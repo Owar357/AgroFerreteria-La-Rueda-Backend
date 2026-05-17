@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\CategoriaController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -17,3 +18,6 @@ Route::prefix('auth')->group(function(){
         Route::post('refresh',[AuthController::class, 'refresh']);
     });
 });
+
+//Cracion de rutas para laws api
+Route::apiResource('categorias', CategoriaController::class);
