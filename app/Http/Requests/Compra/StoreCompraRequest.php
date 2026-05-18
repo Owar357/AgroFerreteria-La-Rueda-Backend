@@ -24,7 +24,7 @@ class StoreCompraRequest extends FormRequest
     {
         return [
             // Compra
-            'tipo_dte' => 'required|integer',
+            'tipo_dte' => 'required|string',
             'numero_documento' => 'nullable|string|max:25',
             'fecha_emision' => 'nullable|date',
             'descuento_global' => 'nullable|numeric|min:0',

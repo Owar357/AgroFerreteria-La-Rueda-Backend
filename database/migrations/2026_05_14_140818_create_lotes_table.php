@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('lotes', function (Blueprint $table) {
             $table->id(); 
-            $table->string('lote_interno',13)->unique();
+            $table->string('lote_interno',20)->unique();
             $table->string('lote_fabricante',50)->nullable();
             $table->date('fecha_vencimiento')->nullable()->index();
             $table->decimal('cantidad_inicial',15,3);

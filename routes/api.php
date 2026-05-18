@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\CompraController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -17,3 +18,9 @@ Route::prefix('auth')->group(function(){
         Route::post('refresh',[AuthController::class, 'refresh']);
     });
 });
+
+Route::middleware('auth:api')->group(function(){
+    Route::apiResource('compras', CompraController::class);
+});
+
+

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Compra extends Model
 {
     protected $fillable = [
-        'tipo_documento',
+        'tipo_dte',
         'numero_documento',
         'fecha_emision',
         'descuentos_global',

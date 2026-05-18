@@ -20,7 +20,7 @@ return new class extends Migration
             $table->decimal('iva_total',15,2)->nullable();
             $table->decimal('monto_total',15,2)->nullable();
             $table->enum('estado_pago',['PAGADO','PENDIENTE','ABONADO','VENCIDO'])->index();
-            $table->date('')->nullable();
+            $table->date('fecha_vencimiento_pago')->nullable();
             $table->foreignId('proveedor_id')->constrained('proveedores');
             $table->foreignId('usuario_id')->constrained('users');
             $table->timestamps();

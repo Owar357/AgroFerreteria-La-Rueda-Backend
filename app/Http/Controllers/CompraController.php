@@ -6,6 +6,7 @@ use App\Http\Requests\Compra\StoreCompraRequest;
 use App\Models\Compra;
 use App\Models\Lote;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CompraController extends Controller
 {
@@ -14,48 +15,48 @@ class CompraController extends Controller
      */
     public function index(Request $request)
     {
-       try {
-         $resultado = Compra::query()
-         ->with(['proveedor:id,nombre'])
-         ->select([
-            'id',
-            'tipo_dte',
-            'numero_documento',
-            'fecha_emision',
-            'estado_pago',
-            'fecha_vencimiento_pago',
-            'monto_total',
-            'proveedor_id'
-         ]);
+        try {
+            $resultado = Compra::query()
+                ->with(['proveedor:id,nombre'])
+                ->select([
+                    'id',
+                    'tipo_dte',
+                    'numero_documento',
+                    'fecha_emision',
+                    'estado_pago',
+                    'fecha_vencimiento_pago',
+                    'monto_total',
+                    'proveedor_id',
+                ]);
+            if ($request->fecha_desde && $request->fecha_hasta) {
+                $resultado->whereBetween('fecha_emision', [
+                    $request->fecha_desde,
+                    $request->fecha_hasta,
+                ]);
+            }
+            if ($request->tipo_documento) {
+                $resultado->where('tipo_dte', $request->tipo_documento);
+            }
+            if ($request->estado_pago) {
+                $resultado->where('estado_pago', $request->estado_pago);
+            }
+            if ($request->proveedor) {
+                $resultado->where('proveedor_id', $request->proveedor);
+            }
 
-         if($request->fecha_desde){
-            $resultado->whereDate('fecha_emision', '>=', $request->fecha_desde); 
-         }
-         if($request->fecha_hasta){
-            $resultado->whereDate('fecha_emision', '<=', $request->fecha_hasta);
-         }
-         if($request->tipo_documento){
-            $resultado->where('tipo_dte', $request->tipo_documento);
-         }
-         if($request->estado_pago){
-            $resultado->where('estado_pago',  $request->estado_pago);
-         }
-         if($request->proveedor){
-            $resultado->where('proveedor_id',  $request->proveedor);
-         }
+            $compras = $resultado
+                ->orderBy('created_at', 'desc')
+                ->paginate($request->per_page ?? 15);
 
-         $compras = $resultado
-         ->orderBy('created_at','desc')
-         ->paginate($request->per_page ?? 15);
+            return response()->json($compras);
 
-        return response()->json($compras);
-
-       } catch (\Throwable $th) {
-         return response()->json([
-            'status' => 'error',
-            'message' => 'No se pudo obtener el listado de compras'
-         ],500);
-       }
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No se pudo obtener el listado de compras',
+                'temporalmessage' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -80,7 +81,7 @@ class CompraController extends Controller
                         'cantidad_actual' => $detalle['cantidad_facturada'],
                     ]);
 
-                    $compra->detalles()->create([
+                    $compra->detallesCompra()->create([
                         'cantidad_facturada' => $detalle['cantidad_facturada'],
                         'cantidad_bonificada' => $detalle['cantidad_bonificada'],
                         'precio_unitario_factura' => $detalle['precio_unitario_factura'],
@@ -143,13 +144,12 @@ class CompraController extends Controller
 
         $ultimo = ! empty($resultado) ? $resultado[0]->lote_interno : null;
 
-        if($ultimo){
-            $secuencia = (int) substr($ultimo,-4) + 1;  
+        if ($ultimo) {
+            $secuencia = (int) substr($ultimo, -4) + 1;
+        } else {
+            $secuencia = 1;
         }
-            else {
-                $secuencia = 1;
-            }
 
-       return 'LOT' . $fecha . '-' . str_pad($secuencia,4,'0',STR_PAD_LEFT);
+        return 'LOT-'.$fecha.'-'.str_pad($secuencia, 4, '0', STR_PAD_LEFT);
     }
 }
