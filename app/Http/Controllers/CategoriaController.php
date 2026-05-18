@@ -17,14 +17,18 @@ class CategoriaController extends Controller
     public function index()
     {
         try {
+
             $categoria = Categoria::with('creadoPor')
             ->orderBy('id', 'desc')->get();
+
+
 
             if ($categoria->isEmpty()) {
                 return response()->json([
                     'message' => 'No se encontraron categorías'
                 ], 404);
         }
+
             return response()->json($categoria, 200);
 
         } catch (\Exception $e) {
@@ -47,9 +51,17 @@ class CategoriaController extends Controller
                 'nombre' => 'required|string|min:2|max:50|unique:categorias'
             ],
             [
-                'nombre.unique' => 'Ya existte una categoria con este'
+                'nombre.unique' => 'Ya existe una categoria con este nombre'
             ]
         );
+        
+        if (!auth()->check()) {
+
+            return response()->json([
+                'message' => 'Token vencido o no autorizado'
+            ], 401);
+
+        }
 
         $categoria = Categoria::create([
             'nombre' => $request->nombre,
@@ -99,7 +111,7 @@ class CategoriaController extends Controller
         //
     }
 
-   
+
 
 
 }
