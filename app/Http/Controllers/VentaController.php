@@ -61,7 +61,6 @@ class VentaController extends Controller
                                 'detalle_venta_id' => $detalleVenta->id,
                                 'lote_id' => $lote->id,
                                 'cantidad_tomada' => $cantidadSolicitada,
-                                'numero_lote' => $lote->lote_interno,
                             ]);
 
                             $lote->cantidad_actual = $lote->cantidad_actual - $cantidadSolicitada;
@@ -80,7 +79,6 @@ class VentaController extends Controller
                                 'detalle_venta_id' => $detalleVenta->id,
                                 'lote_id' => $lote->id,
                                 'cantidad_tomada' => $stockEntregado,
-                                'numero_lote' => $lote->lote_interno,
                             ]);
 
                             
