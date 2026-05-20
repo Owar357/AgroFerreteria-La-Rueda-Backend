@@ -142,7 +142,7 @@ class CompraController extends Controller
          LIMIT 1',
             ['buscar' => "LOT-{$fecha}-%"]);
 
-        $ultimo = ! empty($resultado) ? $resultado[0]->lote_interno : null;
+        $ultimo = !empty($resultado) ? $resultado[0]->lote_interno : null;
 
         if ($ultimo) {
             $secuencia = (int) substr($ultimo, -4) + 1;
