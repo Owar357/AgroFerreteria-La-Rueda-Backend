@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Producto;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ProductoController extends Controller
@@ -14,12 +15,12 @@ class ProductoController extends Controller
     public function index()
     {
         try {
-            $producto = Producto::with('registradoPor')
+            $producto = Producto::with('registradoPor', 'categoria', 'presentaciones.codigosBarras')
                 ->orderby('id', 'desc')->get();
 
             if ($producto->isEmpty()) {
                 return response()->json([
-                    'message' => 'No se encontraron categorías',
+                    'message' => 'No se encontraron productos',
                 ], 404);
             }
 
@@ -27,7 +28,7 @@ class ProductoController extends Controller
 
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Error al obtener las categorias',
+                'message' => 'Error al obtener productos',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -47,12 +48,16 @@ class ProductoController extends Controller
                     'tipo_producto' => 'required',
                     'unidad_base' => 'required',
                     'categoria_id' => 'required|exists:categorias,id',
+                    'presentaciones' => 'required|array|min:1',
+
                 ],
                 [
                     'codigo.unique' => 'Ya existe  una categoria con este codigo',
-                    'categoria_id.exists' => 'La categoría seleccionada no existe'
+                    'categoria_id.exists' => 'La categoría seleccionada no existe',
                 ]
             );
+
+            DB::beginTransaction();
 
             $producto = Producto::create([
                 'codigo' => $request->codigo,
@@ -65,22 +70,39 @@ class ProductoController extends Controller
                 'registrado_por' => auth()->id(),
             ]);
 
-             return response()->json([
+            foreach ($request->presentaciones as $presentacionData) {
+                $presentacion = $producto->presentaciones()->create([
+                    'nombre' => $presentacionData['nombre'],
+                    'factor_conversion' => $presentacionData['factor_conversion'],
+                    'precio_venta' => $presentacionData['precio_venta'],
+                ]);
+
+                foreach ($presentacionData['codigos_barra'] as $codigoData) {
+                    $presentacion->codigosBarras()->create([
+                        'codigo' => $codigoData['codigo'],
+                        'activo' => true,
+                    ]);
+                }
+
+            }
+            DB::commit();
+
+            return response()->json([
                 'message' => 'Producto creado exitosamente',
-                'categoria' => $producto
+                'producto' => $producto->load(
+                    'presentaciones.codigosBarra'
+                ),
             ], 201);
-
-
 
         } catch (ValidationException $e) {
             return response()->json([
-            'message' => 'Error de validación',
-            'errors' => $e->errors()
-           ], 422);
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al registrar el producto',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
 
