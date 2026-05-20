@@ -1,0 +1,155 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\Compra\StoreCompraRequest;
+use App\Models\Compra;
+use App\Models\Lote;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class CompraController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request)
+    {
+        try {
+            $resultado = Compra::query()
+                ->with(['proveedor:id,nombre'])
+                ->select([
+                    'id',
+                    'tipo_dte',
+                    'numero_documento',
+                    'fecha_emision',
+                    'estado_pago',
+                    'fecha_vencimiento_pago',
+                    'monto_total',
+                    'proveedor_id',
+                ]);
+            if ($request->fecha_desde && $request->fecha_hasta) {
+                $resultado->whereBetween('fecha_emision', [
+                    $request->fecha_desde,
+                    $request->fecha_hasta,
+                ]);
+            }
+            if ($request->tipo_documento) {
+                $resultado->where('tipo_dte', $request->tipo_documento);
+            }
+            if ($request->estado_pago) {
+                $resultado->where('estado_pago', $request->estado_pago);
+            }
+            if ($request->proveedor) {
+                $resultado->where('proveedor_id', $request->proveedor);
+            }
+
+            $compras = $resultado
+                ->orderBy('created_at', 'desc')
+                ->paginate($request->per_page ?? 15);
+
+            return response()->json($compras);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No se pudo obtener el listado de compras',
+                'temporalmessage' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(StoreCompraRequest $request)
+    {
+        try {
+
+            DB::transaction(function () use ($request) {
+
+                $compra = Compra::create([
+                    ...$request->safe()->except(['detalles']),
+                    'usuario_id' => auth()->id(),
+                ]);
+
+                foreach ($request->validated()['detalles'] as $detalle) {
+
+                    $lote = Lote::create([
+                        ...$detalle['lote'],
+                        'lote_interno' => $this->generarLoteInterno(),
+                        'cantidad_actual' => $detalle['cantidad_facturada'],
+                    ]);
+
+                    $compra->detallesCompra()->create([
+                        'cantidad_facturada' => $detalle['cantidad_facturada'],
+                        'cantidad_bonificada' => $detalle['cantidad_bonificada'],
+                        'precio_unitario_factura' => $detalle['precio_unitario_factura'],
+                        'iva_linea' => $detalle['iva_linea'],
+                        'descuento_linea' => $detalle['descuento_linea'],
+                        'sub_total' => $detalle['sub_total'],
+                        'lote_id' => $lote->id,
+                    ]);
+
+                }
+            });
+
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Documento de compra y Detalles de los lotes han sido guardados',
+            ], 201);
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ocurrio un error interno y no se pudo completar la operación',
+            ], 500);
+        }
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        //
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, string $id)
+    {
+        //
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        //
+    }
+
+    public function generarLoteInterno()
+    {
+        $fecha = now()->format('Ymd');
+
+        $resultado = DB::select(
+            'SELECT lote_interno FROM lotes
+         WHERE lote_interno LIKE :buscar
+         ORDER BY lote_interno DESC
+         LIMIT 1',
+            ['buscar' => "LOT-{$fecha}-%"]);
+
+        $ultimo = !empty($resultado) ? $resultado[0]->lote_interno : null;
+
+        if ($ultimo) {
+            $secuencia = (int) substr($ultimo, -4) + 1;
+        } else {
+            $secuencia = 1;
+        }
+
+        return 'LOT-'.$fecha.'-'.str_pad($secuencia, 4, '0', STR_PAD_LEFT);
+    }
+}
