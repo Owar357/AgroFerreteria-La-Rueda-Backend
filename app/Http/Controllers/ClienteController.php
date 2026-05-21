@@ -24,7 +24,7 @@ class ClienteController extends Controller
         try {
 
           $cliente = Cliente::create([
-            ...$request->safe(),
+            ...$request->validated(),
             'registrado_por' => auth()->id()
           ]);
 
