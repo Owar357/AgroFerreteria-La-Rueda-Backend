@@ -20,9 +20,7 @@ class UserController extends Controller
                 ], 403);
             }
 
-            $user = User::with(['roles' => function ($query) {
-                $query->select('name');
-            }])
+            $user = User::with(['roles:name','registradoPor:id,name'])
                 ->select('id', 'name', 'email', 'activo', 'registrado_por')
                 ->orderBy('id', 'desc')
                 ->get();
