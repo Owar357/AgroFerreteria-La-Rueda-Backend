@@ -13,7 +13,27 @@ class ClienteController extends Controller
      */
     public function index()
     {
-        //
+        try {
+
+            $clientes = Cliente::where('activo')
+                ->select(
+                    'id',
+                    'nombre',
+                    'telefono',
+                    'numero_documento'
+                )->paginate();
+
+            return response()->json([
+                'status' => 'ok',
+                'data' => $clientes,
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error al obtener las lista de clientes'
+            ], 500);
+        }
     }
 
     /**
@@ -23,23 +43,23 @@ class ClienteController extends Controller
     {
         try {
 
-          $cliente = Cliente::create([
-            ...$request->validated(),
-            'registrado_por' => auth()->id()
-          ]);
+            $cliente = Cliente::create([
+                ...$request->validated(),
+                'registrado_por' => auth()->id(),
+            ]);
 
-          return response()->json([
-            'status' => 'ok',
-            'message' => 'cliente registrado con exito',
-            'data' => $cliente
-          ],201);
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'cliente registrado con exito',
+                'data' => $cliente,
+            ], 201);
 
         } catch (\Exception $e) {
 
-             return response()->json([
-            'status' => 'error',
-            'message' => 'No se pudo registrar el cliente',
-          ],500);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No se pudo registrar el cliente',
+            ], 500);
         }
     }
 
