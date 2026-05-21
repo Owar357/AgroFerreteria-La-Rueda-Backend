@@ -20,7 +20,7 @@ class UserController extends Controller
                 ], 403);
             }
 
-            $user = User::with(['roles:name','registradoPor:id,name'])
+            $user = User::with(['roles:name', 'registradoPor:id,name'])
                 ->select('id', 'name', 'email', 'activo', 'registrado_por')
                 ->orderBy('id', 'desc')
                 ->get();
@@ -63,11 +63,11 @@ class UserController extends Controller
                 'email' => 'required|email|unique:users,email',
                 'password' => 'required|min:8',
                 'rol' => 'required|exists:roles,name',
-              ],
-             [
-                'email.unique' => 'El correo ya está registrado',
-                'rol.exists' => 'El rol no existe',
-             ]
+            ],
+                [
+                    'email.unique' => 'El correo ya está registrado',
+                    'rol.exists' => 'El rol no existe',
+                ]
             );
 
             $user = User::create([
@@ -79,6 +79,11 @@ class UserController extends Controller
             ]);
             // Parra aggrreegar el rol
             $user->assignRole($request->rol);
+
+            return response()->json([
+                'message' => 'Usuario creado correctamente',
+                'user' => $user,
+            ], 201);
 
         } catch (ValidationException $e) {
 
