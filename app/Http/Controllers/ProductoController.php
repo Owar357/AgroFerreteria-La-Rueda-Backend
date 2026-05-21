@@ -15,6 +15,12 @@ class ProductoController extends Controller
     public function index()
     {
         try {
+            if (! auth()->user()->hasRole('ADMIN|CAJERO')) {
+                return response()->json([
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
             $producto = Producto::with('registradoPor', 'categoria', 'presentaciones.codigosBarras')
                 ->orderby('id', 'desc')->get();
 
@@ -40,6 +46,14 @@ class ProductoController extends Controller
     public function store(Request $request)
     {
         try {
+
+            // Solo admins
+            if (! auth()->user()->hasRole('ADMIN')) {
+                return response()->json([
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
             // validaciones para el reqquest
             $request->validate(
                 [

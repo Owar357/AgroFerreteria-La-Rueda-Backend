@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\CompraController;
+use App\Http\Controllers\UserController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -21,11 +22,14 @@ Route::prefix('auth')->group(function(){
     });
 });
 
-//Cracion de rutas para laws api
-Route::apiResource('categorias', CategoriaController::class);
-Route::apiResource('producto', ProductoController::class);
+
+//Cracion de rutas para law apiex
+
 Route::middleware('auth:api')->group(function(){
     Route::apiResource('compras', CompraController::class);
+    Route::apiResource('categorias', CategoriaController::class);
+    Route::apiResource('producto', ProductoController::class);
+    Route::apiResource('user', UserController::class);
 });
 
 

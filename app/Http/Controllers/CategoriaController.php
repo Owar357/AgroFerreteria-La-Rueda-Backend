@@ -2,12 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Categoria;
-use App\Models\User;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Validation\Rule;
 
 class CategoriaController extends Controller
 {
@@ -18,23 +15,27 @@ class CategoriaController extends Controller
     {
         try {
 
+            if (! auth()->user()->hasRole('ADMIN')) {
+                return response()->json([
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
             $categoria = Categoria::with('creadoPor')
-            ->orderBy('id', 'desc')->get();
-
-
+                ->orderBy('id', 'desc')->get();
 
             if ($categoria->isEmpty()) {
                 return response()->json([
-                    'message' => 'No se encontraron categorías'
+                    'message' => 'No se encontraron categorías',
                 ], 404);
-        }
+            }
 
             return response()->json($categoria, 200);
 
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener las categorias',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -44,44 +45,51 @@ class CategoriaController extends Controller
      */
     public function store(Request $request)
     {
-    //Validaciones para el request
-        try{
-        $request->validate(
-            [
-                'nombre' => 'required|string|min:2|max:50|unique:categorias'
-            ],
-            [
-                'nombre.unique' => 'Ya existe una categoria con este nombre'
-            ]
-        );
-        
-        if (!auth()->check()) {
+        // Validaciones para el request
+        try {
+
+            if (! auth()->user()->hasRole('ADMIN')) {
+                return response()->json([
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
+            $request->validate(
+                [
+                    'nombre' => 'required|string|min:2|max:50|unique:categorias',
+                ],
+                [
+                    'nombre.unique' => 'Ya existe una categoria con este nombre',
+                ]
+            );
+
+            if (! auth()->check()) {
+
+                return response()->json([
+                    'message' => 'Token vencido',
+                ], 401);
+
+            }
+
+            $categoria = Categoria::create([
+                'nombre' => $request->nombre,
+                'creado_por' => auth()->id(),
+            ]);
 
             return response()->json([
-                'message' => 'Token vencido o no autorizado'
-            ], 401);
-
-        }
-
-        $categoria = Categoria::create([
-            'nombre' => $request->nombre,
-            'creado_por' => auth()->id()
-        ]);
-
-         return response()->json([
                 'message' => 'Categoria creada exitosamente',
-                'categoria' => $categoria
+                'categoria' => $categoria,
             ], 201);
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
 
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al crear la categoria',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
 
@@ -110,8 +118,4 @@ class CategoriaController extends Controller
     {
         //
     }
-
-
-
-
 }
