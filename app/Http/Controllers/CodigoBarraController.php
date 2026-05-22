@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\CodigoBarra;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class CodigoBarraController extends Controller
 {
@@ -56,25 +57,46 @@ class CodigoBarraController extends Controller
     public function store(Request $request)
     {
         try {
-             if (! auth()->user()->hasRole('ADMIN|CAJERO')) {
+            if (! auth()->user()->hasRole('ADMIN|CAJERO')) {
                 return response()->json([
                     'message' => 'No autorizado',
                 ], 403);
             }
 
             $request->validate(
-            [
-                'codigo' => 'required|string|max:50|unique:codigos_barra,codigo',
-                'presentacion_id' => 'required|exists:presentaciones,id',
-            ],
-            [
-                'codigo.unique' => 'El código de barra ya existe',
-                'presentacion_id.exists' => 'La presentación no existe',
-            ]
-        );
+                [
+                    'codigo' => 'required|string|max:50|unique:codigos_barras,codigo',
+                    'presentacion_id' => 'required|exists:presentaciones,id',
+                ],
+                [
+                    'codigo.unique' => 'El código de barra ya existe',
+                    'presentacion_id.exists' => 'La presentación no existe',
+                ]
+            );
 
+            $codigoBarra = CodigoBarra::create([
+                'codigo' => $request->codigo,
+                'activo' => true,
+                'presentacion_id' => $request->presentacion_id,
 
-        } catch (\Exception $e){
+            ]);
+
+            return response()->json([
+                'message' => 'Código de barra creado correctamente',
+                'codigo_barra' => $codigoBarra,
+            ], 201);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al crear código de barra',
+                'error' => $e->getMessage(),
+            ], 500);
 
         }
     }

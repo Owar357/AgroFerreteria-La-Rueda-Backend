@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Producto;
+use App\Models\CodigoBarra;
+use App\Models\Categoria;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -57,7 +59,7 @@ class ProductoController extends Controller
             // validaciones para el reqquest
             $request->validate(
                 [
-                    'codigo' => 'required|string|min:2|max:14|unique:productos',
+                    'codigo' => 'required|string|min:2|max:14|unique:productos,codigo',
                     'nombre' => 'required|string|max:100',
                     'tipo_producto' => 'required',
                     'unidad_base' => 'required',
@@ -66,7 +68,7 @@ class ProductoController extends Controller
 
                 ],
                 [
-                    'codigo.unique' => 'Ya existe  una categoria con este codigo',
+                    'codigo.unique' => 'Ya existe un producto con este código',
                     'categoria_id.exists' => 'La categoría seleccionada no existe',
                 ]
             );
@@ -104,7 +106,7 @@ class ProductoController extends Controller
             return response()->json([
                 'message' => 'Producto creado exitosamente',
                 'producto' => $producto->load(
-                    'presentaciones.codigosBarra'
+                    'presentaciones.codigosBarras'
                 ),
             ], 201);
 
@@ -114,6 +116,8 @@ class ProductoController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+
+            DB::rollBack();
             return response()->json([
                 'message' => 'Error al registrar el producto',
                 'error' => $e->getMessage(),
