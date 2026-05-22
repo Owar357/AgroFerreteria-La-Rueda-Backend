@@ -31,7 +31,7 @@ class ClienteController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error al obtener las lista de clientes'
+                'message' => 'Error al obtener las lista de clientes'   
             ], 500);
         }
     }
