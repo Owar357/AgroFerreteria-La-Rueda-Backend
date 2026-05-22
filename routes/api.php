@@ -32,6 +32,7 @@ Route::middleware('auth:api')->group(function(){
     Route::apiResource('producto', ProductoController::class);
     Route::apiResource('user', UserController::class);
     Route::apiResource('CodigoBarra', CodigoBarraController::class);
+    Route::apiResource('codigosBarra', CodigoBarraController::class);
 
 });
 
