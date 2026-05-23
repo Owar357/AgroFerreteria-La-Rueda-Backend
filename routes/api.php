@@ -30,7 +30,7 @@ Route::middleware('auth:api')->group(function(){
     Route::apiResource('ventas',VentaController::class);
     Route::apiResource('categorias', CategoriaController::class);
     Route::apiResource('producto', ProductoController::class);
-    Route::apiResource('user', UserController::class);
+    Route::apiResource('users', UserController::class);
     Route::apiResource('CodigoBarra', CodigoBarraController::class);
 });
 
