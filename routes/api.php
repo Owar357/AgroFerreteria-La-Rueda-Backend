@@ -11,9 +11,6 @@ use App\Http\Controllers\VentaController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CodigoBarraController;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
 
 Route::prefix('auth')->group(function(){
     Route::post('login', [AuthController::class, 'login']);
