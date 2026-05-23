@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Run the migrations.  
      */
     public function up(): void
     {
@@ -16,7 +16,6 @@ return new class extends Migration
             $table->foreignId('detalle_venta_id')->constrained('detalles_venta');
             $table->foreignId('lote_id')->constrained('lotes');
             $table->integer('cantidad_tomada');
-            $table->string('numero_lote');
             $table->timestamps();
         });
     }

@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\CompraController;
@@ -28,12 +29,11 @@ Route::prefix('auth')->group(function(){
 
 Route::middleware('auth:api')->group(function(){
     Route::apiResource('compras', CompraController::class);
+    Route::apiResource('clientes',ClienteController::class);
     Route::apiResource('categorias', CategoriaController::class);
     Route::apiResource('producto', ProductoController::class);
     Route::apiResource('user', UserController::class);
     Route::apiResource('CodigoBarra', CodigoBarraController::class);
-    
-
 });
 
 
