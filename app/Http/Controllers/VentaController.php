@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Venta\StoreVentaRequest;
 use App\Models\DetalleVenta;
 use App\Models\Lote;
+use App\Models\LoteDetalleVenta;
 use App\Models\Venta;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class VentaController extends Controller
 {
@@ -59,9 +61,10 @@ class VentaController extends Controller
         try {
 
             DB::transaction(function () use ($request) {
-
+            
                 $venta = Venta::create([
                     ...$request->safe()->except(['detalles']),
+                    'numero_factura' => 'FAC-12345634',
                     'vendido_por' => auth()->id(),
                 ]);
 
@@ -85,8 +88,9 @@ class VentaController extends Controller
                         $lote = Lote::where('presentacion_id', $detalles['presentacion_id'])
                             ->where('cantidad_actual', '>', 0)
                             ->where('estado', 'ACTIVO')
-                            ->orderBy('fecha_vencimiento ASC NULLS LAST')
-                            ->orderBy('created_at ASC')
+                            ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
+                            ->orderBy('created_at','ASC')
+                            ->lockForUpdate()
                             ->firstOrFail();
 
                         if ($lote->cantidad_actual >= $cantidadSolicitada) {
@@ -138,6 +142,7 @@ class VentaController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Ocurrío un error y no se pudo registrar la compra',
+                'errorMessage' => $e->getMessage()
             ], 500);
 
         }

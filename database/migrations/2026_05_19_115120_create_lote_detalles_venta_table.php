@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('detalle_venta_id')->constrained('detalles_venta');
             $table->foreignId('lote_id')->constrained('lotes');
-            $table->integer('cantidad_tomada');
+            $table->decimal('cantidad_tomada',15,4);
             $table->timestamps();
         });
     }
