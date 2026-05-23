@@ -7,6 +7,7 @@ use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\CompraController;
+use App\Http\Controllers\VentaController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CodigoBarraController;
 
@@ -26,10 +27,10 @@ Route::prefix('auth')->group(function(){
 
 
 //Cracion de rutas para law apiex
-
 Route::middleware('auth:api')->group(function(){
     Route::apiResource('compras', CompraController::class);
     Route::apiResource('clientes',ClienteController::class);
+    Route::apiResource('ventas',VentaController::class);
     Route::apiResource('categorias', CategoriaController::class);
     Route::apiResource('producto', ProductoController::class);
     Route::apiResource('user', UserController::class);
