@@ -27,6 +27,7 @@ class ClienteController extends Controller
                 'status' => 'ok',
                 'data' => $clientes,
             ], 200);
+
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',

@@ -15,6 +15,7 @@ class UserController extends Controller
     public function index()
     {
         try {
+
             if (! auth()->user()->hasRole('ADMIN')) {
                 return response()->json([
                     'message' => 'No autorizado',
@@ -53,6 +54,8 @@ class UserController extends Controller
     public function store(Request $request)
     {
         try {
+
+        
             if (! auth()->user()->hasRole('ADMIN')) {
                 return response()->json([
                     'message' => 'No autorizado',
@@ -60,7 +63,6 @@ class UserController extends Controller
             }
 
             $request->validate([
-                'name' => 'required|string|min:3|max:100',
                 'email' => 'required|email|unique:users,email',
                 'password' => 'required|min:8',
                 'rol' => 'required|exists:roles,name',
@@ -78,7 +80,8 @@ class UserController extends Controller
                 'activo' => true,
                 'registrado_por' => auth()->id(),
             ]);
-            // Parra aggrreegar el rol
+            
+            // Para agregar el rol
             $user->assignRole($request->rol);
 
             return response()->json([

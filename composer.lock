@@ -4,7 +4,11 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
+<<<<<<< HEAD
     "content-hash": "a15d344e031ba4fd490a83b77853dfae",
+=======
+    "content-hash": "1362b80bc1b3a26ef3859f3966609dd1",
+>>>>>>> origin/develop
     "packages": [
         {
             "name": "archtechx/enums",
@@ -1450,6 +1454,7 @@
         },
         {
             "name": "guzzlehttp/guzzle",
+<<<<<<< HEAD
             "version": "7.10.4",
             "source": {
                 "type": "git",
@@ -1460,6 +1465,18 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/guzzle/guzzle/zipball/aec528da477062d3af11f51e6b33402be233b21f",
                 "reference": "aec528da477062d3af11f51e6b33402be233b21f",
+=======
+            "version": "7.10.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/guzzle/guzzle.git",
+                "reference": "47ba23c7a55247e2e1b7407aca90e9bbed0d9d86"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/47ba23c7a55247e2e1b7407aca90e9bbed0d9d86",
+                "reference": "47ba23c7a55247e2e1b7407aca90e9bbed0d9d86",
+>>>>>>> origin/develop
                 "shasum": ""
             },
             "require": {
@@ -1557,7 +1574,11 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/guzzle/issues",
+<<<<<<< HEAD
                 "source": "https://github.com/guzzle/guzzle/tree/7.10.4"
+=======
+                "source": "https://github.com/guzzle/guzzle/tree/7.10.3"
+>>>>>>> origin/develop
             },
             "funding": [
                 {
@@ -1573,7 +1594,11 @@
                     "type": "tidelift"
                 }
             ],
+<<<<<<< HEAD
             "time": "2026-05-22T19:00:53+00:00"
+=======
+            "time": "2026-05-20T22:59:19+00:00"
+>>>>>>> origin/develop
         },
         {
             "name": "guzzlehttp/promises",
@@ -5669,6 +5694,7 @@
             "time": "2025-12-14T04:43:48+00:00"
         },
         {
+<<<<<<< HEAD
             "name": "sabberworm/php-css-parser",
             "version": "v9.3.0",
             "source": {
@@ -5758,6 +5784,17 @@
             },
             "dist": {
                 "type": "zip",
+=======
+            "name": "spatie/laravel-package-tools",
+            "version": "1.93.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/spatie/laravel-package-tools.git",
+                "reference": "d5552849801f2642aea710557463234b59ef65eb"
+            },
+            "dist": {
+                "type": "zip",
+>>>>>>> origin/develop
                 "url": "https://api.github.com/repos/spatie/laravel-package-tools/zipball/d5552849801f2642aea710557463234b59ef65eb",
                 "reference": "d5552849801f2642aea710557463234b59ef65eb",
                 "shasum": ""
