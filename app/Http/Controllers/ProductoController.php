@@ -21,8 +21,10 @@ class ProductoController extends Controller
                 ], 403);
             }
 
-            $producto = Producto::with('registradoPor', 'categoria', 'presentaciones.codigosBarras')
-                ->orderby('id', 'desc')->get();
+            $producto = Producto::with(['categoria:id,nombre'])
+                ->select('id','codigo','nombre','fabricante','tipo_producto','categoria_id')
+                ->orderby('id', 'desc')
+                ->get();
 
             if ($producto->isEmpty()) {
                 return response()->json([
