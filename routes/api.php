@@ -29,9 +29,9 @@ Route::middleware('auth:api')->group(function(){
     Route::apiResource('clientes',ClienteController::class);
     Route::apiResource('ventas',VentaController::class);
     Route::apiResource('categorias', CategoriaController::class);
-    Route::apiResource('producto', ProductoController::class);
-    Route::apiResource('users', UserController::class);
-    Route::apiResource('CodigoBarra', CodigoBarraController::class);
+    Route::apiResource('productos', ProductoController::class);
+    Route::apiResource('usuarios', UserController::class);
+    Route::apiResource('codigosBarra', CodigoBarraController::class);
 });
 
 

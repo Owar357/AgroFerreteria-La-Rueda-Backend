@@ -26,38 +26,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withExceptions(function (Exceptions $exceptions) {
 
-        $exceptions->render(function (TokenExpiredException $e, $request) {
-            if ($request->is('api/*')) {
-                return response()->json([
-                    'message' => 'Token vencido',
-                ], Response::HTTP_UNAUTHORIZED);
-            }
-        });
-
-        $exceptions->render(function (TokenInvalidException $e, $request) {
-            if ($request->is('api/*')) {
-                return response()->json([
-                    'message' => 'Token inválido',
-                ], Response::HTTP_UNAUTHORIZED);
-            }
-        });
-
         $exceptions->render(function (AuthenticationException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
-                    'message' => 'Token vencido',
+                    'message' => 'Token expirado',
                 ], Response::HTTP_UNAUTHORIZED);
 
             }
         });
 
-
-        $exceptions->render(function (JWTException $e, $request) {
-        if ($request->is('api/*')) {
-            return response()->json([
-                'message' => 'Token no proporcionado',
-            ], Response::HTTP_UNAUTHORIZED);
-        }
-    });
 
     })->create();

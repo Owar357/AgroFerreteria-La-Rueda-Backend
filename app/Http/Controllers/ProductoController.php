@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Producto;
-use App\Models\CodigoBarra;
-use App\Models\Categoria;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -61,15 +59,26 @@ class ProductoController extends Controller
                 [
                     'codigo' => 'required|string|min:2|max:14|unique:productos,codigo',
                     'nombre' => 'required|string|max:100',
-                    'tipo_producto' => 'required',
+                    'fabricante' => 'nullable|max:100',
+                    'tipo_producto' => 'required|in:UNIDAD FIJA,GRANEL',
                     'unidad_base' => 'required',
                     'categoria_id' => 'required|exists:categorias,id',
-                    'presentaciones' => 'required|array|min:1',
 
+                    'presentaciones' => 'required|array|min:1',
+                    'presentaciones.*.nombre' => 'nullable|string|max:150',
+                    'presentaciones.*.factor_conversion' => 'required|numeric|min:0',
+                    'presentaciones.*.precio_venta' => 'required|numeric|min:0',
+
+                    'presentaciones.*.codigos_barra' => 'required|array|min:1',
+                    'presentaciones.*.codigos_barra.*.codigo' => 'required|string|unique:codigos_barras,codigo',
                 ],
                 [
                     'codigo.unique' => 'Ya existe un producto con este código',
                     'categoria_id.exists' => 'La categoría seleccionada no existe',
+                    'presentaciones.required' => 'Debe agregar al menos una presentación',
+                    'presentaciones.*.factor_conversion.required' => 'El factor de conversión es requerido',
+                    'presentaciones.*.precio_venta.required' => 'El precio de venta es requerido',
+                    'presentaciones.*.codigos_barra.required' => 'Debe agregar al menos un código de barra',
                 ]
             );
 
@@ -80,7 +89,7 @@ class ProductoController extends Controller
                 'nombre' => $request->nombre,
                 'fabricante' => $request->fabricante,
                 'tipo_producto' => $request->tipo_producto,
-                'unidad_base' => $request->unidad_base,
+                'unidad_base' => $request->unidad_base, 
                 'aplica_iva' => $request->aplica_iva,
                 'categoria_id' => $request->categoria_id,
                 'registrado_por' => auth()->id(),
@@ -118,6 +127,7 @@ class ProductoController extends Controller
         } catch (\Exception $e) {
 
             DB::rollBack();
+
             return response()->json([
                 'message' => 'Error al registrar el producto',
                 'error' => $e->getMessage(),
