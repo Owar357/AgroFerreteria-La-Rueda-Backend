@@ -42,7 +42,7 @@ class StoreVentaRequest extends FormRequest
             'detalles.*.iva_aplicado' => 'required|numeric|min:0',
             'detalles.*.descuento_aplicado' => 'required|numeric|min:0',
             'detalles.*.presentacion_id' => 'required|exists:presentaciones,id',
-            
+
 
         ];
     }
