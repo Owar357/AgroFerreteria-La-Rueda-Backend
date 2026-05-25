@@ -5,17 +5,52 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Venta\StoreVentaRequest;
 use App\Models\DetalleVenta;
 use App\Models\Lote;
+use App\Models\LoteDetalleVenta;
 use App\Models\Venta;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class VentaController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        try {
+
+            $resultados = Venta::query()
+                ->with(['cliente:id,nombre,tipo_persona'])
+                ->select([
+                    'id',
+                    'numero_factura',
+                    'total',
+                    'tipo_pago',
+                    'estado',
+                    'cliente_id',
+                    'apertura_caja_id',
+                    'created_at',
+                ]);
+
+            if ($request->cliente) {
+                $resultados->where('cliente_id', $request->cliente);
+            }
+            if ($request->cajaApertura) {
+                $resultados->where('apertura_caja_id', $request->cajaApertura);
+            }
+
+            $ventas = $resultados
+                ->orderBy('created_at', 'desc')
+                ->paginate($request->per_page ?? 12);
+
+            return response()->json($ventas);
+
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ocurrio un error interno y no se pudo obtener los registros',
+            ], 500);
+        }
     }
 
     /**
@@ -26,15 +61,16 @@ class VentaController extends Controller
         try {
 
             DB::transaction(function () use ($request) {
-
+            
                 $venta = Venta::create([
                     ...$request->safe()->except(['detalles']),
+                    'numero_factura' => 'FAC-12345634',
                     'vendido_por' => auth()->id(),
                 ]);
 
                 foreach ($request->validated()['detalles'] as $detalles) {
 
-                   $detalleVenta = DetalleVenta::create([
+                    $detalleVenta = DetalleVenta::create([
                         'venta_id' => $venta->id,
                         'nombre_producto' => $detalles['nombre_producto'],
                         'presentacion' => $detalles['presentacion'],
@@ -52,7 +88,9 @@ class VentaController extends Controller
                         $lote = Lote::where('presentacion_id', $detalles['presentacion_id'])
                             ->where('cantidad_actual', '>', 0)
                             ->where('estado', 'ACTIVO')
-                            ->orderBy('fecha_vencimiento', 'asc')
+                            ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
+                            ->orderBy('created_at','ASC')
+                            ->lockForUpdate()
                             ->firstOrFail();
 
                         if ($lote->cantidad_actual >= $cantidadSolicitada) {
@@ -61,13 +99,12 @@ class VentaController extends Controller
                                 'detalle_venta_id' => $detalleVenta->id,
                                 'lote_id' => $lote->id,
                                 'cantidad_tomada' => $cantidadSolicitada,
-                                'numero_lote' => $lote->lote_interno,
                             ]);
 
                             $lote->cantidad_actual = $lote->cantidad_actual - $cantidadSolicitada;
 
-                            if($lote->cantidad_actual == 0){
-                                 $lote->estado = 'AGOTADO';
+                            if ($lote->cantidad_actual == 0) {
+                                $lote->estado = 'AGOTADO';
                             }
                             $lote->update();
                             $cantidadSolicitada = 0;
@@ -75,15 +112,12 @@ class VentaController extends Controller
                         } else {
 
                             $stockEntregado = $lote->cantidad_actual;
-                             
+
                             LoteDetalleVenta::create([
                                 'detalle_venta_id' => $detalleVenta->id,
                                 'lote_id' => $lote->id,
                                 'cantidad_tomada' => $stockEntregado,
-                                'numero_lote' => $lote->lote_interno,
                             ]);
-
-                            
 
                             $lote->cantidad_actual = 0;
                             $lote->estado = 'AGOTADO';
@@ -108,6 +142,7 @@ class VentaController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Ocurrío un error y no se pudo registrar la compra',
+                'errorMessage' => $e->getMessage()
             ], 500);
 
         }
