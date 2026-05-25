@@ -61,7 +61,7 @@ class VentaController extends Controller
         try {
 
             DB::transaction(function () use ($request) {
-            
+
                 $venta = Venta::create([
                     ...$request->safe()->except(['detalles']),
                     'numero_factura' => 'FAC-12345634',
@@ -79,6 +79,7 @@ class VentaController extends Controller
                         'subtotal' => $detalles['subtotal'],
                         'iva_aplicado' => $detalles['iva_aplicado'],
                         'descuento_aplicado' => $detalles['descuento_aplicado'],
+
                     ]);
 
                     $cantidadSolicitada = $detalles['cantidad'];

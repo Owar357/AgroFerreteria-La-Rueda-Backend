@@ -10,7 +10,9 @@ use App\Http\Controllers\CompraController;
 use App\Http\Controllers\VentaController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CodigoBarraController;
+use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\ReporteController;
+
 
 
 Route::prefix('auth')->group(function(){
@@ -33,8 +35,9 @@ Route::middleware('auth:api')->group(function(){
     Route::apiResource('productos', ProductoController::class);
     Route::apiResource('usuarios', UserController::class);
     Route::apiResource('codigosBarra', CodigoBarraController::class);
-    Route::get('/reportes/ventas', [ReporteController::class, 'ventas']);
+
+    Route::apiResource('proveedores', ProveedorController::class);
 });
 
 
-
+ Route::get('/reportes/ventas', [ReporteController::class, 'ventas']);
