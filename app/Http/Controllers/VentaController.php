@@ -61,10 +61,10 @@ class VentaController extends Controller
         try {
 
             DB::transaction(function () use ($request) {
-            
+
                 $venta = Venta::create([
                     ...$request->safe()->except(['detalles']),
-                    'numero_factura' => 'FAC-12345634',
+                    'numero_factura' => $this->numeroFactura(),
                     'vendido_por' => auth()->id(),
                 ]);
 
@@ -89,7 +89,7 @@ class VentaController extends Controller
                             ->where('cantidad_actual', '>', 0)
                             ->where('estado', 'ACTIVO')
                             ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
-                            ->orderBy('created_at','ASC')
+                            ->orderBy('created_at', 'ASC')
                             ->lockForUpdate()
                             ->firstOrFail();
 
@@ -142,7 +142,7 @@ class VentaController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Ocurrío un error y no se pudo registrar la compra',
-                'errorMessage' => $e->getMessage()
+                'errorMessage' => $e->getMessage(),
             ], 500);
 
         }
@@ -170,5 +170,25 @@ class VentaController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function numeroFactura()
+    {
+
+        $numeroFactura = DB::select(
+            'SELECT numero_factura FROM ventas
+             ORDER BY numero_factura DESC
+             LIMIT 1
+            ', );
+
+        $resultado = ! empty($numeroFactura) ? $numeroFactura[0]->numero_factura : null;
+
+        if ($resultado) {
+            $secuencia = (int) substr($resultado, 4) + 1;
+        } else {
+            $secuencia = 1;
+        }
+
+        return 'FAC-'.str_pad($secuencia, 7, '0', STR_PAD_LEFT);
     }
 }

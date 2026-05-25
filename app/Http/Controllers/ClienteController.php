@@ -11,30 +11,29 @@ class ClienteController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-        try {
+   public function index()
+{
+    try {
+        $clientes = Cliente::select(
+                'id',
+                'nombre',
+                'telefono',
+                'numero_documento',
+                'activo'  
+            )->paginate();
 
-            $clientes = Cliente::where('activo')
-                ->select(
-                    'id',
-                    'nombre',
-                    'telefono',
-                    'numero_documento'
-                )->paginate();
+        return response()->json([
+            'status' => 'ok',
+            'data' => $clientes,
+        ], 200);
 
-            return response()->json([
-                'status' => 'ok',
-                'data' => $clientes,
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Error al obtener las lista de clientes'   
-            ], 500);
-        }
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error al obtener la lista de clientes'   
+        ], 500);
     }
+}
 
     /**
      * Store a newly created resource in storage.
