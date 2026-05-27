@@ -24,7 +24,7 @@ class UserController extends Controller
             $user = User::with(['roles:name', 'registradoPor:id,name'])
                 ->select('id', 'name', 'email', 'activo', 'registrado_por')
                 ->orderBy('id', 'desc')
-                ->get();
+                ->paginate(5);
 
             if ($user->isEmpty()) {
                 return response()->json([
