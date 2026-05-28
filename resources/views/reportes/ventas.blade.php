@@ -6,6 +6,11 @@
     <title>Reporte de Ventas - Agroferretería La Rueda</title>
 
     <style>
+
+        @page {
+            margin: 1.5cm 1.5cm 2cm 1.5cm;
+        }
+
         body {
             font-family: Arial, sans-serif;
             font-size: 12px;
@@ -13,11 +18,35 @@
             margin: 10px;
         }
 
+
+        footer {
+            position: fixed;
+            bottom: -1cm;
+            left: 0px;
+            right: 0px;
+            height: 0.8cm;
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: #333;
+        }
+
         .encabezado {
             text-align: center;
             margin-bottom: 25px;
             border-bottom: 2px solid #333;
             padding-bottom: 15px;
+            position: relative;
+        }
+
+
+        .fecha-emision-top {
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-size: 11px;
+            color: #555;
+            text-align: right;
         }
 
         .logo {
@@ -84,24 +113,38 @@
             margin-top: 20px;
             width: 280px;
             float: right;
+            page-break-inside: avoid;
         }
 
         .totales td {
             border: none;
             padding: 5px;
         }
+
+
+        .page-number:before {
+            content: counter(page);
+        }
     </style>
 </head>
 
 <body>
 
+    <footer>
+        <span class="page-number"></span>
+    </footer>
+
     <div class="encabezado">
+        <div class="fecha-emision-top">
+            <strong>Reporte emitido el:</strong> {{ \Carbon\Carbon::now()->format('d/m/Y h:i A') }}
+        </div>
+
         <img src="{{ public_path('img/logo.jpeg') }}" class="logo">
 
         <div class="titulo">AGROFERRETERÍA LA RUEDA</div>
 
         <div class="datos-empresa">
-            <p> lotificación San Rafael, Aguilares, polígono 22, lote 13 y 14</p> <br>
+            <p>lotificación San Rafael, Aguilares, polígono 22, lote 13 y 14</p>
         </div>
 
         <div class="subtitulo">Reporte de Ventas</div>
