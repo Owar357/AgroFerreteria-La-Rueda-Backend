@@ -23,7 +23,7 @@ class UserController extends Controller
             }
 
             $user = User::with(['roles:name', 'registradoPor:id,name'])
-                ->select('id', 'name', 'email', 'activo', 'registrado_por')
+                ->select('id', 'name', 'email', 'activo', 'registrado_por', 'created_at')
                 ->orderBy('id', 'desc')
                 ->get();
 
@@ -88,7 +88,7 @@ class UserController extends Controller
 
             return response()->json([
                 'message' => 'Usuario creado correctamente',
-                'user' => $user,
+                'user' => $user->fresh()->load(['roles:name', 'registradoPor:id,name'])
             ], 201);
 
         } catch (ValidationException $e) {
