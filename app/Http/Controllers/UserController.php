@@ -64,7 +64,7 @@ class UserController extends Controller
 
             $request->validate([
                 'email' => 'required|email|unique:users,email',
-                'pin_caja' => 'required|max:6|min:6',
+                'pin_caja' => 'nullable|max:6|min:6',
                 'password' => 'required|min:8',
                 'rol' => 'required|exists:roles,name',
             ],
