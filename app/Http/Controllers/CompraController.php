@@ -46,7 +46,29 @@ class CompraController extends Controller
 
             $compras = $resultado
                 ->orderBy('created_at', 'desc')
-                ->paginate($request->per_page ?? 15);
+                ->paginate(5);
+
+           // Mapeamos los datos para amoldarlos EXACTAMENTE a los nombres de columna del Frontend
+            $itemsFormateados = collect($paginator->items())->map(function ($compra) {
+                return [
+                    'id' => $compra->id,
+                    // Convertimos la fecha al formato clásico dd-mm-aaaa de tu vista
+                    'fechaEmision' => date('d-m-Y', strtotime($compra->fecha_emision)),
+                    // Extraemos el nombre de la relación para que encaje con field="proveedor"
+                    'proveedor' => $compra->proveedor->nombre ?? 'Sin Proveedor',
+                    'tipoDocumento' => $compra->tipo_dte,
+                    'numDocumento' => $compra->numero_documento,
+                    // Formateamos el número para mostrar dos decimales
+                    'precioFactura' => number_format($compra->monto_total, 2, '.', ','),
+                    'estadoPago' => strtoupper($compra->estado_pago),
+            ];
+        });
+
+            // Devolvemos la estructura de datos que PrimeVue procesa limpiamente
+            return response()->json([
+                'compras' => $itemsFormateados,        
+                'current_page' => $paginator->currentPage()
+            ], 200);
 
             return response()->json($compras);
         } catch (\Exception $e) {

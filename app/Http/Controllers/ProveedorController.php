@@ -23,15 +23,40 @@ class ProveedorController extends Controller
                 ], 403);
             }
 
-            $Proveedor = Proveedor::where('activo', true)
-                ->orderBy('id', 'desc')
-                ->get();
+            $paginator = Proveedor::orderBy('id', 'desc')
+              ->paginate(7);
 
             if ($Proveedor->isEmpty()) {
                 return response()->json([
                     'message' => 'No se encontraron proveedor',
                 ], 404);
             }
+
+            // Mapeamos los campos para asegurarnos de que la propiedad 'estado' 
+            // concuerde exactamente con los textos 'Activo' o 'Inactivo' de tu frontend.
+            $proveedoresFormateados = collect($paginator->items())->map(function ($proveedor) {
+                return [
+                    'id' => $proveedor->id,
+                    'nombre' => $proveedor->nombre,
+                    'correo' => $proveedor->correo ?? '—',
+                    'telefono' => $proveedor->telefono,
+                    // Si en tu BD guardas un booleano (1/0) o string, lo homologamos a 'Activo'/'Inactivo'
+                    'estado' => $proveedor->activo ? 'Activo' : 'Inactivo',
+                    'direccion' => $proveedor->direccion,
+                    'tipo_persona' => $proveedor->tipo_persona,
+                    'nrc' => $proveedor->nrc,
+                    'nit' => $proveedor->nit,
+                    'dui' => $proveedor->dui,
+                ];
+        });
+
+            // Retornamos la estructura limpia para PrimeVue
+            return response()->json([
+                'proveedores' => $proveedoresFormateados,
+                'total' => $paginator->total(),
+                'per_page' => $paginator->perPage(),
+                'current_page' => $paginator->currentPage()
+            ], 200);
 
             return response()->json($Proveedor, 200);
         } catch (\Exception $e) {
