@@ -21,10 +21,13 @@ class ProductoController extends Controller
                 ], 403);
             }
 
+            $perPage = $request->get('per_page', 8);
+            $page = $request->get('page', 1);
+
             $producto = Producto::with(['categoria:id,nombre'])
                 ->select('id','codigo','nombre','fabricante','tipo_producto','categoria_id')
                 ->orderby('id', 'desc')
-                ->get();
+                ->paginate($perPage, ['*'], 'page', $page);
 
             if ($producto->isEmpty()) {
                 return response()->json([
@@ -32,7 +35,13 @@ class ProductoController extends Controller
                 ], 404);
             }
 
-            return response()->json($producto, 200);
+            return response()->json([
+                'data'         => $productos->items(),
+                'total'        => $productos->total(),
+                'per_page'     => $productos->perPage(),
+                'current_page' => $productos->currentPage(),
+                'last_page'    => $productos->lastPage(),
+            ],200);
 
         } catch (\Exception $e) {
             return response()->json([
