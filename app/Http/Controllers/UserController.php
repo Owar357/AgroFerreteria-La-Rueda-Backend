@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
@@ -54,7 +55,7 @@ class UserController extends Controller
     {
         try {
 
-        
+
             if (! auth()->user()->hasRole('ADMIN')) {
                 return response()->json([
                     'message' => 'No autorizado',
@@ -63,6 +64,7 @@ class UserController extends Controller
 
             $request->validate([
                 'email' => 'required|email|unique:users,email',
+                'pin_caja' => 'required|max:6|min:6',
                 'password' => 'required|min:8',
                 'rol' => 'required|exists:roles,name',
             ],
@@ -75,11 +77,12 @@ class UserController extends Controller
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
+                'pin_caja' => $request->pin_caja,
                 'password' => Hash::make($request->password),
                 'activo' => true,
                 'registrado_por' => auth()->id(),
             ]);
-            
+
             // Para agregar el rol
             $user->assignRole($request->rol);
 

@@ -49,7 +49,6 @@ class CompraController extends Controller
                 ->paginate($request->per_page ?? 15);
 
             return response()->json($compras);
-
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
@@ -90,7 +89,6 @@ class CompraController extends Controller
                         'sub_total' => $detalle['sub_total'],
                         'lote_id' => $lote->id,
                     ]);
-
                 }
             });
 
@@ -102,7 +100,9 @@ class CompraController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Ocurrio un error interno y no se pudo completar la operación',
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
             ], 500);
         }
     }
@@ -140,7 +140,8 @@ class CompraController extends Controller
          WHERE lote_interno LIKE :buscar
          ORDER BY lote_interno DESC
          LIMIT 1',
-            ['buscar' => "LOT-{$fecha}-%"]);
+            ['buscar' => "LOT-{$fecha}-%"]
+        );
 
         $ultimo = !empty($resultado) ? $resultado[0]->lote_interno : null;
 
@@ -150,6 +151,6 @@ class CompraController extends Controller
             $secuencia = 1;
         }
 
-        return 'LOT-'.$fecha.'-'.str_pad($secuencia, 4, '0', STR_PAD_LEFT);
+        return 'LOT-' . $fecha . '-' . str_pad($secuencia, 4, '0', STR_PAD_LEFT);
     }
 }

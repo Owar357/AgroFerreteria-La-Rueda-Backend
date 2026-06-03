@@ -79,6 +79,7 @@ class VentaController extends Controller
                         'subtotal' => $detalles['subtotal'],
                         'iva_aplicado' => $detalles['iva_aplicado'],
                         'descuento_aplicado' => $detalles['descuento_aplicado'],
+
                     ]);
 
                     $cantidadSolicitada = $detalles['cantidad'];

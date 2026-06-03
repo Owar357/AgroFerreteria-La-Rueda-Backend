@@ -19,7 +19,7 @@ class ClienteController extends Controller
                 'nombre',
                 'telefono',
                 'numero_documento',
-                'activo'  
+                'activo'
             )->paginate();
 
         return response()->json([
@@ -30,7 +30,7 @@ class ClienteController extends Controller
     } catch (\Exception $e) {
         return response()->json([
             'status' => 'error',
-            'message' => 'Error al obtener la lista de clientes'   
+            'message' => 'Error al obtener la lista de clientes'
         ], 500);
     }
 }
@@ -52,7 +52,6 @@ class ClienteController extends Controller
                 'message' => 'cliente registrado con exito',
                 'data' => $cliente,
             ], 201);
-
         } catch (\Exception $e) {
 
             return response()->json([
