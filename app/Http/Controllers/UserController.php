@@ -22,7 +22,7 @@ class UserController extends Controller
                 ], 403);
             }
 
-            $perPage = $request->get('per_page', 5); // Filas por página (default 5)
+            $perPage = $request->get('per_page', 5);
             $page    = $request->get('page', 1);
 
             $users = User::with(['roles:name', 'registradoPor:id,name'])

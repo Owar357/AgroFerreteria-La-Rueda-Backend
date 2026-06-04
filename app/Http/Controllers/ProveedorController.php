@@ -26,21 +26,19 @@ class ProveedorController extends Controller
             $paginator = Proveedor::orderBy('id', 'desc')
               ->paginate(7);
 
-            if ($Proveedor->isEmpty()) {
+            if ($paginator->isEmpty()) {
                 return response()->json([
-                    'message' => 'No se encontraron proveedor',
+                    'message' => 'No se encontraron proveedores',
                 ], 404);
             }
 
-            // Mapeamos los campos para asegurarnos de que la propiedad 'estado' 
-            // concuerde exactamente con los textos 'Activo' o 'Inactivo' de tu frontend.
+            //aqui mapeo los campos
             $proveedoresFormateados = collect($paginator->items())->map(function ($proveedor) {
                 return [
                     'id' => $proveedor->id,
                     'nombre' => $proveedor->nombre,
                     'correo' => $proveedor->correo ?? '—',
                     'telefono' => $proveedor->telefono,
-                    // Si en tu BD guardas un booleano (1/0) o string, lo homologamos a 'Activo'/'Inactivo'
                     'estado' => $proveedor->activo ? 'Activo' : 'Inactivo',
                     'direccion' => $proveedor->direccion,
                     'tipo_persona' => $proveedor->tipo_persona,
@@ -55,10 +53,11 @@ class ProveedorController extends Controller
                 'proveedores' => $proveedoresFormateados,
                 'total' => $paginator->total(),
                 'per_page' => $paginator->perPage(),
-                'current_page' => $paginator->currentPage()
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage()
             ], 200);
 
-            return response()->json($Proveedor, 200);
+            
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener proveedores',
@@ -110,7 +109,7 @@ class ProveedorController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            return reponse()->json([
+            return response()->json([
                 'status' => 'error',
                 'message' => 'Ocurrió un error y no se pudo registrar el proveedor',
                 'errorMessage' => $e->getMessage()

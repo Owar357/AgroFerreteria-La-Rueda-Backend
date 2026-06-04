@@ -12,7 +12,7 @@ class ProductoController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
             if (! auth()->user()->hasRole('ADMIN|CAJERO')) {
@@ -24,7 +24,7 @@ class ProductoController extends Controller
             $perPage = $request->get('per_page', 8);
             $page = $request->get('page', 1);
 
-            $producto = Producto::with(['categoria:id,nombre'])
+            $productos = Producto::with(['categoria:id,nombre'])
                 ->select('id','codigo','nombre','fabricante','tipo_producto','categoria_id')
                 ->orderby('id', 'desc')
                 ->paginate($perPage, ['*'], 'page', $page);
