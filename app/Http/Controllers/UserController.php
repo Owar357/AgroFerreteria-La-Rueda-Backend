@@ -22,8 +22,8 @@ class UserController extends Controller
                 ], 403);
             }
 
-            $perPage = $request->input('per_page', 5); // Filas por página (default 5)
-            $page    = $request->input('page', 1);
+            $perPage = $request->get('per_page', 5);
+            $page    = $request->get('page', 1);
 
             $users = User::with(['roles:name', 'registradoPor:id,name'])
                 ->select('id', 'name', 'email', 'activo', 'registrado_por', 'created_at')
