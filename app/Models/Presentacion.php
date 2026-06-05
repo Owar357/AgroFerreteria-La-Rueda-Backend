@@ -32,4 +32,9 @@ class Presentacion extends Model
     {
         return $this->hasMany(CodigoBarra::class);
     }
+
+    public function lotes()
+    {
+        return $this->hasMany(Lote::class);
+    }
 }
