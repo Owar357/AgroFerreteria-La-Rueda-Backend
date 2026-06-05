@@ -29,4 +29,4 @@ class StorePresentacionesRequest extends FormRequest
             "producto_id" => "required|exists:productos,id"
         ];
     }
-}
+}   

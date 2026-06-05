@@ -150,13 +150,25 @@ class ProductoController extends Controller
      * Display the specified resource.
      */
     public function show(string $id){
-        if(! auth()->user()->hasRole('ADMIN|CAJERO'))
+       try {
+         if(! auth()->user()->hasRole('ADMIN|CAJERO'))
         {
             return response()->json([
               "status" => 'ok',
               "message" => "No autorizado"
             ],403);
         }
+
+
+
+         $productoId = Producto::where('id', $id)->exists();
+
+        if(!$productoId){
+           return response()->json(['status'=> 'ok',
+            'data' => "El producto no existe"
+            ],404); 
+        }
+         
 
          $presentaciones = Presentacion::select('id','nombre','factor_conversion','precio_venta','activo')
             ->where('producto_id',$id)
@@ -166,9 +178,23 @@ class ProductoController extends Controller
             ->get();
 
 
+             if($presentaciones->isEmpty())
+            {
+              return response()->json(['status'=> 'ok',
+            'data' => [], 
+            "message"=>"No hay presentaciones registradas"
+            ],200);  
+            }
+
+
             return response()->json(['status'=> 'ok',
             'data' => $presentaciones
             ],200);
+       } catch (\Exception $e) {
+            return response()->json(['status'=> 'ok',
+            'message' => "Error interno del servidor"
+            ],500);
+       }
     }
 
     /**
