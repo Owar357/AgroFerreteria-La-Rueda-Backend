@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Presentaciones\StorePresentacionesRequest;
 use App\Models\Presentacion;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 
 class PresentacionController extends Controller
@@ -59,8 +60,27 @@ class PresentacionController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(string $id )
     {
-        //
+        try {
+           
+            $presentacion = Presentacion::findOrFail($id);
+
+            $presentacion->activo = !$presentacion->activo;
+            $presentacion->save();
+
+
+            return response()->json([
+                'status' => 'OK',
+                'activo' =>  $presentacion->activo
+            ],200);
+
+        } catch (ModelNotFoundException $m) {
+            
+            return response()->json([
+                'status' => 'error',
+                'error' => 'La presentacion no existe'
+            ],404);
+        } 
     }
 }

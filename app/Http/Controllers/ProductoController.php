@@ -22,8 +22,8 @@ class ProductoController extends Controller
                 ], 403);
             }
 
-            $perPage = $request->get('per_page', 8);
-            $page = $request->get('page', 1);
+            $perPage = $request->input('per_page', 8);
+            $page = $request->input('page', 1);
 
             $productos = Producto::with(['categoria:id,nombre'])
                 ->select('id','codigo','nombre','fabricante','tipo_producto','categoria_id')
@@ -210,6 +210,6 @@ class ProductoController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        
     }
 }
