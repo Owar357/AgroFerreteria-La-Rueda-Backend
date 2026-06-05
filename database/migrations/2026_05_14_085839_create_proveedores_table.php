@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('proveedores', function (Blueprint $table) {
             $table->id();
             $table->string('nombre',150)->index();
-            $table->string('direccion',250);
+            $table->string('direccion',250)->nullable();
             $table->string('correo',150)->nullable()->unique();
             $table->string('telefono',20);
             $table->enum('tipo_persona',['NATURAL','JURIDICA']);

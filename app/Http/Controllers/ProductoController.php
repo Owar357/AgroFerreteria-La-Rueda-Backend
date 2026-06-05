@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Presentacion;
 use App\Models\Producto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,7 @@ class ProductoController extends Controller
                 ->orderby('id', 'desc')
                 ->paginate($perPage, ['*'], 'page', $page);
 
-            if ($producto->isEmpty()) {
+            if ($productos->isEmpty()) {
                 return response()->json([
                     'message' => 'No se encontraron productos',
                 ], 404);
@@ -46,7 +47,6 @@ class ProductoController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener productos',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -125,7 +125,7 @@ class ProductoController extends Controller
 
             return response()->json([
                 'message' => 'Producto creado exitosamente',
-                'producto' => $producto->load(
+                'data' => $producto->load(
                     'presentaciones.codigosBarras'
                 ),
             ], 201);
@@ -141,7 +141,6 @@ class ProductoController extends Controller
 
             return response()->json([
                 'message' => 'Error al registrar el producto',
-                'error' => $e->getMessage(),
             ], 500);
         }
 
@@ -150,9 +149,26 @@ class ProductoController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
-    {
-        //
+    public function show(string $id){
+        if(! auth()->user()->hasRole('ADMIN|CAJERO'))
+        {
+            return response()->json([
+              "status" => 'ok',
+              "message" => "No autorizado"
+            ],403);
+        }
+
+         $presentaciones = Presentacion::select('id','nombre','factor_conversion','precio_venta','activo')
+            ->where('producto_id',$id)
+            ->withSum(['lotes as stock' => function($query){
+                  $query->where('estado', 'ACTIVO');
+            }],'cantidad_actual')
+            ->get();
+
+
+            return response()->json(['status'=> 'ok',
+            'data' => $presentaciones
+            ],200);
     }
 
     /**

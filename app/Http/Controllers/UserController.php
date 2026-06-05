@@ -16,7 +16,7 @@ class UserController extends Controller
     {
         try {
 
-            if (! auth()->user()->hasRole('ADMIN')) {
+            if (! auth()->user()->hasRole('ADMIN')  ) {
                 return response()->json([
                     'message' => 'No autorizado',
                 ], 403);

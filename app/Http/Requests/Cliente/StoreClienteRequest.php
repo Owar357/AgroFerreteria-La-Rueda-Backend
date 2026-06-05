@@ -39,7 +39,6 @@ class StoreClienteRequest extends FormRequest
         } else {
 
             $rules['razon_social'] = 'required|string|max:250';
-            $rules['nombre'] = 'prohibited';
             $rules['nrc'] = 'required|string|max:15';
             $rules['giro_actividad'] = 'required|string|max:250';
 
