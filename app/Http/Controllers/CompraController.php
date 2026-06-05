@@ -48,7 +48,6 @@ class CompraController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->paginate(5);
 
-           // Mapeamos los datos para amoldarlos EXACTAMENTE a los nombres de columna del Frontend
             $itemsFormateados = collect($compras->items())->map(function ($compra) {
                 return [
                     'id' => $compra->id,
