@@ -158,9 +158,6 @@ class ProductoController extends Controller
               "message" => "No autorizado"
             ],403);
         }
-
-
-
          $productoId = Producto::where('id', $id)->exists();
 
         if(!$productoId){

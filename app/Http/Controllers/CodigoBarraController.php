@@ -11,45 +11,7 @@ class CodigoBarraController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-        try {
-
-            if (! auth()->user()->hasRole('ADMIN|CAJERO')) {
-                return response()->json([
-                    'message' => 'No autorizado',
-                ], 403);
-            }
-
-            $codigoBarra = CodigoBarra::with([
-                'presentacion:id,nombre',
-            ])
-                ->select(
-                    'id',
-                    'codigo',
-                    'activo',
-                    'presentacion_id'
-                )
-                ->orderBy('id', 'desc')
-                ->get();
-
-            if ($codigoBarra->isEmpty()) {
-                return response()->json([
-                    'message' => 'No se encontraron códigos de barra',
-                ], 404);
-            }
-
-            return response()->json($codigoBarra, 200);
-
-        } catch (\Exception $e) {
-
-            return response()->json([
-                'message' => 'Error al obtener códigos de barra',
-                'error' => $e->getMessage(),
-            ], 500);
-
-        }
-    }
+    public function index() {}
 
     /**
      * Store a newly created resource in storage.
@@ -106,7 +68,39 @@ class CodigoBarraController extends Controller
      */
     public function show(string $id)
     {
-        //
+        try {
+
+            if (! auth()->user()->hasRole('ADMIN|CAJERO')) {
+                return response()->json([
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
+            $codigosBarra = CodigoBarra::where('presentacion_id', $id)
+                ->select('id', 'codigo')
+                ->orderBy('id', 'desc')
+                ->get();
+
+            if ($codigosBarra->isEmpty()) {
+                return response()->json([
+                    'status' => 'ok',
+                    'data' => [],
+                    'message' => 'La presentacion no tiene codigos de barra aun',
+                ], 200);
+            }
+
+            return response()->json([
+                'status' => 'ok',
+                'data' => $codigosBarra,
+            ], 200);
+
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'message' => 'Error interno del servidor ',
+            ], 500);
+
+        }
     }
 
     /**
