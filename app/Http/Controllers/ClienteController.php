@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Cliente\StoreClienteRequest;
 use App\Models\Cliente;
+use Error;
+use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 
 class ClienteController extends Controller
@@ -80,5 +82,43 @@ class ClienteController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function buscarPorDocumento(Request $request){
+    
+       try {
+
+         $documento = trim($request->input('numero_documento',''));
+
+          if(empty($documento)){
+            return response()->json([
+                "data" => [],
+                "message" => "Ingrese un numero de documento"
+            ],422);
+          }
+
+
+         $numeroDocumento = Cliente::Where('numero_documento', $documento)
+         ->select('id', 'nombre', 'razon_social;')
+         ->first();
+   
+         
+         if(!$numeroDocumento){
+            return response()->json([
+                "status" => "not found"
+            ],404);
+         }
+          
+         return response()->json([
+            "status" =>"ok",
+            "data" => $numeroDocumento
+         ],200);
+
+       } catch (\Throwable $th) {
+            return response()->json([
+            "status" =>"error",
+            "message" => "Error interno del servidor"
+         ],500);
+       }
     }
 }

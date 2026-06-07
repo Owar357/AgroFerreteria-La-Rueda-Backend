@@ -13,7 +13,7 @@ use App\Http\Controllers\CodigoBarraController;
 use App\Http\Controllers\PresentacionController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\ReporteController;
-use App\Models\Presentacion;
+
 
 Route::prefix('auth')->group(function(){
     Route::post('login', [AuthController::class, 'login']);
@@ -26,12 +26,13 @@ Route::prefix('auth')->group(function(){
 });
 
 
-//Cracion de rutas para law apiex
+
 Route::middleware('auth:api')->group(function(){
     Route::apiResource('compras', CompraController::class);
     Route::apiResource('clientes',ClienteController::class);
     Route::apiResource('ventas',VentaController::class);
     Route::apiResource('categorias', CategoriaController::class);
+    Route::get('productos/buscar-venta',[ProductoController::class,'buscarVenta']);
     Route::apiResource('productos', ProductoController::class);
     Route::apiResource('usuarios', UserController::class);
     Route::apiResource('codigosBarra', CodigoBarraController::class);
