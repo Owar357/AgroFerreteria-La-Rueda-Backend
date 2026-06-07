@@ -29,6 +29,7 @@ Route::prefix('auth')->group(function(){
 
 Route::middleware('auth:api')->group(function(){
     Route::apiResource('compras', CompraController::class);
+    Route::get('/clientes/buscar',[ClienteController::class,'buscarPorDocumento']);
     Route::apiResource('clientes',ClienteController::class);
     Route::apiResource('ventas',VentaController::class);
     Route::apiResource('categorias', CategoriaController::class);

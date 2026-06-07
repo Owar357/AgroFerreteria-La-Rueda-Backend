@@ -99,7 +99,7 @@ class ClienteController extends Controller
 
 
          $numeroDocumento = Cliente::Where('numero_documento', $documento)
-         ->select('id', 'nombre', 'razon_social;')
+         ->select('id', 'nombre', 'razon_social')
          ->first();
    
          
