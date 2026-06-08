@@ -26,7 +26,7 @@ class ProductoController extends Controller
             $page = $request->input('page', 1);
 
             $productos = Producto::with(['categoria:id,nombre'])
-                ->select('id','codigo','nombre','fabricante','tipo_producto','categoria_id')
+                ->select('id', 'codigo', 'nombre', 'fabricante', 'tipo_producto', 'categoria_id')
                 ->orderby('id', 'desc')
                 ->paginate($perPage, ['*'], 'page', $page);
 
@@ -37,12 +37,12 @@ class ProductoController extends Controller
             }
 
             return response()->json([
-                'data'         => $productos->items(),
-                'total'        => $productos->total(),
-                'per_page'     => $productos->perPage(),
+                'data' => $productos->items(),
+                'total' => $productos->total(),
+                'per_page' => $productos->perPage(),
                 'current_page' => $productos->currentPage(),
-                'last_page'    => $productos->lastPage(),
-            ],200);
+                'last_page' => $productos->lastPage(),
+            ], 200);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -100,7 +100,7 @@ class ProductoController extends Controller
                 'nombre' => $request->nombre,
                 'fabricante' => $request->fabricante,
                 'tipo_producto' => $request->tipo_producto,
-                'unidad_base' => $request->unidad_base, 
+                'unidad_base' => $request->unidad_base,
                 'aplica_iva' => $request->aplica_iva,
                 'categoria_id' => $request->categoria_id,
                 'registrado_por' => auth()->id(),
@@ -149,52 +149,45 @@ class ProductoController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id){
-       try {
-         if(! auth()->user()->hasRole('ADMIN|CAJERO'))
-        {
-            return response()->json([
-              "status" => 'ok',
-              "message" => "No autorizado"
-            ],403);
-        }
+    public function show(string $id)
+    {
+        try {
+            if (! auth()->user()->hasRole('ADMIN|CAJERO')) {
+                return response()->json([
+                    'status' => 'ok',
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+            $productoId = Producto::where('id', $id)->exists();
 
-
-
-         $productoId = Producto::where('id', $id)->exists();
-
-        if(!$productoId){
-           return response()->json(['status'=> 'ok',
-            'data' => "El producto no existe"
-            ],404); 
-        }
-         
-
-         $presentaciones = Presentacion::select('id','nombre','factor_conversion','precio_venta','activo')
-            ->where('producto_id',$id)
-            ->withSum(['lotes as stock' => function($query){
-                  $query->where('estado', 'ACTIVO');
-            }],'cantidad_actual')
-            ->get();
-
-
-             if($presentaciones->isEmpty())
-            {
-              return response()->json(['status'=> 'ok',
-            'data' => [], 
-            "message"=>"No hay presentaciones registradas"
-            ],200);  
+            if (! $productoId) {
+                return response()->json(['status' => 'ok',
+                    'data' => 'El producto no existe',
+                ], 404);
             }
 
+            $presentaciones = Presentacion::select('id', 'nombre', 'factor_conversion', 'precio_venta', 'activo')
+                ->where('producto_id', $id)
+                ->withSum(['lotes as stock' => function ($query) {
+                    $query->where('estado', 'ACTIVO');
+                }], 'cantidad_actual')
+                ->get();
 
-            return response()->json(['status'=> 'ok',
-            'data' => $presentaciones
-            ],200);
-       } catch (\Exception $e) {
-            return response()->json(['status'=> 'ok',
-            'message' => "Error interno del servidor"
-            ],500);
-       }
+            if ($presentaciones->isEmpty()) {
+                return response()->json(['status' => 'ok',
+                    'data' => [],
+                    'message' => 'No hay presentaciones registradas',
+                ], 200);
+            }
+
+            return response()->json(['status' => 'ok',
+                'data' => $presentaciones,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'ok',
+                'message' => 'Error interno del servidor',
+            ], 500);
+        }
     }
 
     /**
@@ -205,11 +198,39 @@ class ProductoController extends Controller
         //
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function buscarVenta(Request $request)
     {
-        
+
+       try {
+         $q = trim($request->input('q', ''));
+
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $productos = Producto::query()
+            ->select('id','codigo','nombre','unidad_base','aplica_iva')
+            ->where('nombre', 'ilike', "%{$q}%")
+            ->orWhere('codigo', 'ilike', "%{$q}%")
+            ->orWhereHas('presentaciones.codigosBarras', function ($query) use ($q) {
+                $query->where('codigo', 'ilike', "%{$q}%");
+            })
+            ->with(['presentaciones' => function ($query) {
+                $query->where('activo', true)
+                    ->select('id', 'producto_id',  'nombre','factor_conversion','precio_venta');
+            }])
+            ->limit(15)
+            ->get();
+
+        return response()->json([
+            'status' => 'Ok',
+            'data' =>  $productos
+        ],200);
+       } catch (\Exception $e) {
+             return response()->json([
+            'status' => 'Error',
+            'message' =>  "Error interno en el servidor"
+        ],500);
+       }
     }
 }
