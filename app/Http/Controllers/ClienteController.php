@@ -20,8 +20,8 @@ class ClienteController extends Controller
                 'id',
                 'nombre',
                 'telefono',
+                'tipo_persona',
                 'numero_documento',
-                'activo'
             )->paginate();
 
         return response()->json([

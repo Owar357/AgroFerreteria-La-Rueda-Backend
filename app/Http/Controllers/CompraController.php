@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Compra\StoreCompraRequest;
 use App\Models\Compra;
 use App\Models\Lote;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -20,20 +21,24 @@ class CompraController extends Controller
                 ->with(['proveedor:id,nombre'])
                 ->select([
                     'id',
+                    'fecha_emision',
                     'tipo_dte',
                     'numero_documento',
-                    'fecha_emision',
+                    'monto_total',
                     'estado_pago',
                     'fecha_vencimiento_pago',
-                    'monto_total',
                     'proveedor_id',
                 ]);
-            if ($request->fecha_desde && $request->fecha_hasta) {
+            
+
+                $fechaDesde = $request->fecha_desde??Carbon::now()->startOfMonth()->toDateString();
+                $fechaHasta= $request->fecha_hasta??Carbon::now()->endOfMonth()->toDateString();
+
                 $resultado->whereBetween('fecha_emision', [
-                    $request->fecha_desde,
-                    $request->fecha_hasta,
+                    $fechaDesde,
+                    $fechaHasta,
                 ]);
-            }
+            
             if ($request->tipo_documento) {
                 $resultado->where('tipo_dte', $request->tipo_documento);
             }
@@ -124,9 +129,7 @@ class CompraController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => $e->getMessage(),
-                'line' => $e->getLine(),
-                'file' => $e->getFile(),
+                'message' => "Error interno del servidor",
             ], 500);
         }
     }
