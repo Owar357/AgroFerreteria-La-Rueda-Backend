@@ -116,7 +116,7 @@ class VentaController extends Controller
 
                             LoteDetalleVenta::create([
                                 'detalle_venta_id' => $detalleVenta->id,
-                                'lote_id' => $lote->id,
+                                'lote_id' => $lote->id, 
                                 'cantidad_tomada' => $stockEntregado,
                             ]);
 

@@ -33,7 +33,7 @@ class StoreClienteRequest extends FormRequest
             'correo' => 'nullable|email|max:150',
         ];
 
-        if ($this->tipo_persona == 'NATURAL') {
+        if ($this->input('tipo_persona')== 'NATURAL') {
             $rules['nombre'] = 'required|string|max:250';
             $rules['razon_social'] = 'prohibited';
         } else {

@@ -30,7 +30,7 @@ class StoreVentaRequest extends FormRequest
             'total' => 'required|numeric|min:0',
             'efectivo_recibido' => 'nullable|numeric|min:0',
             'cambio' => 'nullable|numeric|min:0',
-            'cliente_id' => 'required|exists:clientes,id',
+            'cliente_id' => 'nullable|exists:clientes,id',
             'apertura_caja_id' => 'required|exists:turnos_caja,id',
 
             'detalles' => 'required|array|min:1',
