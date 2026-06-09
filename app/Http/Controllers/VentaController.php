@@ -20,7 +20,7 @@ class VentaController extends Controller
         try {
 
             $resultados = Venta::query()
-                ->with(['cliente:id,nombre,tipo_persona'])
+                ->with(['cliente:id,nombre,tipo_persona','vendidoPor:id,name'])
                 ->select([
                     'id',
                     'numero_factura',
@@ -30,6 +30,7 @@ class VentaController extends Controller
                     'cliente_id',
                     'apertura_caja_id',
                     'created_at',
+                    'vendido_por'
                 ]);
 
             if ($request->cliente) {
@@ -45,10 +46,10 @@ class VentaController extends Controller
 
             return response()->json($ventas);
 
-        } catch (\Throwable $th) {
+        } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'ocurrio un error interno y no se pudo obtener los registros',
+                'message' => 'ocurrio un error interno y no se pudo obtener los registros' , $e->getMessage()
             ], 500);
         }
     }
@@ -152,26 +153,27 @@ class VentaController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
-    {
-        //
-    }
+        public function show(string $id)
+        {
+            try {
+            
+                $detallesVenta = DetalleVenta::where('venta_id',$id)
+                ->get();
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
+                return response()->json([
+                    'status' => 'ok',
+                    'data' => $detallesVenta
+                ],200);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
+            } catch (\Exception $e) {
+                response()->json([
+                    'status' => 'Error',
+                    'message' => 'Error interno del servidor'
+                ],500);
+            }
+        }
+
+   
 
     public function numeroFactura()
     {
