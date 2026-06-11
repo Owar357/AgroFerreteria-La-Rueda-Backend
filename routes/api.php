@@ -34,11 +34,12 @@ Route::middleware('auth:api')->group(function(){
     Route::apiResource('ventas',VentaController::class);
     Route::apiResource('categorias', CategoriaController::class);
     Route::get('productos/buscar-venta',[ProductoController::class,'buscarVenta']);
+    Route::get('productos/buscar-producto/compra',[ProductoController::class,'busquedaParaCompra']);
     Route::apiResource('productos', ProductoController::class);
     Route::apiResource('usuarios', UserController::class);
     Route::apiResource('codigosBarra', CodigoBarraController::class);
     Route::apiResource('presentaciones', PresentacionController::class);
-
+    Route::get('/proveedor/proveedores',[ProveedorController::class,'TraerNombreProveedores']); 
     Route::apiResource('proveedores', ProveedorController::class);
 });
 

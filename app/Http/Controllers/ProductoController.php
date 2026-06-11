@@ -233,4 +233,41 @@ class ProductoController extends Controller
         ],500);
        }
     }
+
+
+      public function busquedaParaCompra(Request $request)
+    {
+
+       try {
+         $q = trim($request->input('q', ''));
+
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $productos = Producto::query()
+            ->select('id','codigo','nombre','unidad_base')
+            ->where('nombre', 'ilike', "%{$q}%")
+            ->orWhere('codigo', 'ilike', "%{$q}%")
+            ->orWhereHas('presentaciones.codigosBarras', function ($query) use ($q) {
+                $query->where('codigo', 'ilike', "%{$q}%");
+            })
+            ->with(['presentaciones' => function ($query) {
+                $query->where('activo', true)
+                    ->select('id', 'producto_id', 'nombre','factor_conversion' );
+            }])
+            ->limit(15)
+            ->get();
+
+        return response()->json([
+            'status' => 'Ok',
+            'data' =>  $productos
+        ],200);
+       } catch (\Exception $e) {
+             return response()->json([
+            'status' => 'Error',
+            'message' =>  "Error interno en el servidor"
+        ],500);
+       }
+    }
 }
