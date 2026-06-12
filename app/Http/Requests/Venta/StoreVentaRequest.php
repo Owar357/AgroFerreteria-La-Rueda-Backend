@@ -35,7 +35,8 @@ class StoreVentaRequest extends FormRequest
 
             'detalles' => 'required|array|min:1',
             'detalles.*.nombre_producto' => 'required|string',
-            'detalles.*.presentacion' => 'required|string' ,
+            'detalles.*.presentacion' => 'required|string',
+            'detalles.*.unidad_base'=> 'required|string', 
             'detalles.*.cantidad' => 'required|numeric|min:0',
             'detalles.*.precio_unitario' => 'required|numeric|min:0',
             'detalles.*.subtotal' => 'required|numeric|min:0',
