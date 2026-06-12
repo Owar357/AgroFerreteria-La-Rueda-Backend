@@ -81,8 +81,7 @@ class CompraController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'No se pudo obtener el listado de compras',
-                'temporalmessage' => $e->getMessage(),
+                'message' => 'Error interno del servidor',
             ], 500);
         }
     }
@@ -139,7 +138,22 @@ class CompraController extends Controller
      */
     public function show(string $id)
     {
-        //
+        try {
+            $compras = Compra::with(['proveedor:id,nombre','detallesCompra', 'detallesCompra.lote'])
+            ->findOrFail($id);
+
+             
+            return response()->json([
+                'status' => 'ok',
+                'data' => $compras 
+            ],200);
+
+        } catch (\Exception $e) {
+             return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno en el Servidor' . $e->getMessage()
+            ],500);
+        }
     }
 
     /**
