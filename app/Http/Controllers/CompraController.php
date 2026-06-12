@@ -139,7 +139,8 @@ class CompraController extends Controller
     public function show(string $id)
     {
         try {
-            $compras = Compra::with(['proveedor:id,nombre','detallesCompra', 'detallesCompra.lote'])
+            $compras = Compra::with(['proveedor:id,nombre','detallesCompra', 
+            'detallesCompra.lote', 'detallesCompra.lote.presentacion.producto:id,nombre', 'detallesCompra.lote.presentacion.producto:id,nombre' ])
             ->findOrFail($id);
 
              
