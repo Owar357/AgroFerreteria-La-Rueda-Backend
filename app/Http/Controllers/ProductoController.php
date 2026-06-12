@@ -26,7 +26,7 @@ class ProductoController extends Controller
             $page = $request->input('page', 1);
 
             $productos = Producto::with(['categoria:id,nombre'])
-                ->select('id', 'codigo', 'nombre', 'fabricante', 'tipo_producto', 'categoria_id')
+                ->select('id', 'codigo', 'nombre', 'fabricante', 'tipo_producto', 'unidad_base', 'categoria_id')
                 ->orderby('id', 'desc')
                 ->paginate($perPage, ['*'], 'page', $page);
 
