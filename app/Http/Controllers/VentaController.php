@@ -7,6 +7,7 @@ use App\Models\DetalleVenta;
 use App\Models\Lote;
 use App\Models\LoteDetalleVenta;
 use App\Models\Venta;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -35,10 +36,19 @@ class VentaController extends Controller
 
             if ($request->cliente) {
                 $resultados->where('cliente_id', $request->cliente);
+            }elseif($request->input('fecha_desde') &&  $request->input('fecha_hasta')){
+                 $resultados->whereBetween('created_at', [
+               Carbon::parse($request->input('fecha_desde'))->startOfDay(),
+               Carbon::parse($request->input('fecha_hasta'))->endOfDay()
+                ]);
+            } elseif($request->input('fecha_desde')){
+                
+               $resultados->whereDate('created_at','>=', $request->input('fecha_desde'));
+            }else{
+                 $resultados->whereDate('created_at',today());
+
             }
-            if ($request->cajaApertura) {
-                $resultados->where('apertura_caja_id', $request->cajaApertura);
-            }
+           
 
             $ventas = $resultados
                 ->orderBy('created_at', 'desc')

@@ -140,4 +140,25 @@ class ProveedorController extends Controller
     {
         //
     }
+
+    public function TraerNombreProveedores(){
+        try {
+         
+           $proveedores = Proveedor::select('id','nombre')
+           ->get();
+           
+           
+           return response()->json([
+            'status' => 'ok',
+            'data' => $proveedores
+           ],200);
+           
+    
+        } catch (\Throwable $th) {
+            return response()->json([
+            'status' => 'error',
+            'data' => 'Error interno del servidor'
+           ],500);
+        }
+    }
 }

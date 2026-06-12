@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('nombre_producto',150);
             $table->string('presentacion',100);
+            $table->string('unidad_base',100);
             $table->decimal('cantidad',15,4);
             $table->decimal('precio_unitario',15,4);
             $table->decimal('subtotal',15,2);
