@@ -24,7 +24,8 @@ class Venta extends Model
     ];
 
     protected $casts = [
-        'subtotal' => 'decimal:2',
+        'gravado' => 'decimal:2',
+        'exento' => 'decimal:2',
         'iva' => 'decimal:2',
         'total' => 'decimal:2',
         'efectivo_recibido' => 'decimal:2',
