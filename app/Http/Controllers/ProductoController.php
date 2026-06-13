@@ -166,11 +166,13 @@ class ProductoController extends Controller
                 ], 404);
             }
 
-            $presentaciones = Presentacion::select('id', 'nombre', 'factor_conversion', 'precio_venta', 'activo')
+            $presentaciones = Presentacion::select('id', 'nombre', 'factor_conversion','producto_id','precio_venta','activo')
+                ->with('producto:id,unidad_base')
                 ->where('producto_id', $id)
                 ->withSum(['lotes as stock' => function ($query) {
                     $query->where('estado', 'ACTIVO');
                 }], 'cantidad_actual')
+                ->orderBy('factor_conversion','asc')
                 ->get();
 
             if ($presentaciones->isEmpty()) {

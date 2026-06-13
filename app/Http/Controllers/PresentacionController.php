@@ -24,17 +24,17 @@ class PresentacionController extends Controller
     {
         try {
             
-            Presentacion::create([ 
+          $presentaciones =  Presentacion::create([ 
               ...$request->safe()
             ]); 
 
-            response()->json([
+           return response()->json([
                 "status" => "Ok",
-                "message" => "Presentacion registrada con exíto" 
+                "data" => $presentaciones 
             ],200);
 
         } catch (\Throwable $th) {
-           response()->json([
+           return response()->json([
             "status" => "Error",
             "message" => "Error interno en el Servidor"
            ],500);
