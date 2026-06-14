@@ -18,9 +18,6 @@ return new class extends Migration
             $table->string('correo',150)->nullable()->unique();
             $table->string('telefono',20);
             $table->enum('tipo_persona',['NATURAL','JURIDICA']);
-            $table->string('nrc',10)->nullable()->unique();
-            $table->string('nit',17)->nullable()->unique();
-            $table->string('dui',10)->nullable()->unique();
             $table->boolean('activo')->default('true')->index();
             $table->timestamps();
         });

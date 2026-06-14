@@ -32,19 +32,16 @@ class ProveedorController extends Controller
                 ], 404);
             }
 
-            //aqui mapeo los campos
+           
             $proveedoresFormateados = collect($paginator->items())->map(function ($proveedor) {
                 return [
                     'id' => $proveedor->id,
                     'nombre' => $proveedor->nombre,
                     'correo' => $proveedor->correo ?? '—',
                     'telefono' => $proveedor->telefono,
-                    'estado' => $proveedor->activo ? 'Activo' : 'Inactivo',
+                    'activo' => $proveedor->activo,
                     'direccion' => $proveedor->direccion,
                     'tipo_persona' => $proveedor->tipo_persona,
-                    'nrc' => $proveedor->nrc,
-                    'nit' => $proveedor->nit,
-                    'dui' => $proveedor->dui,
                 ];
         });
 
@@ -77,9 +74,6 @@ class ProveedorController extends Controller
             'correo' => 'nullable|unique:proveedores,correo',
             'telefono' => 'required',
             'tipo_persona' => 'required',
-            'nrc' => 'nullable|unique:proveedores,nrc',
-            'nit' => 'nullable|unique:proveedores,nit',
-            'dui' => 'nullable|unique:proveedores,dui',
             'activo' => 'nullable'
         ]);
 
@@ -93,9 +87,6 @@ class ProveedorController extends Controller
                 'correo' => $request->correo,
                 'telefono' => $request->telefono,
                 'tipo_persona' => $request->tipo_persona,
-                'nrc' => $request->nrc,
-                'nit' => $request->nit,
-                'dui' => $request->dui,
                 'activo' => $request->json('activo', true),
             ]);
             DB::commit();

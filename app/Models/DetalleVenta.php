@@ -13,6 +13,7 @@ class DetalleVenta extends Model
         'nombre_producto',
         'presentacion',
         'cantidad',
+        'unidad_base',
         'precio_unitario',
         'subtotal',
         'iva_aplicado',

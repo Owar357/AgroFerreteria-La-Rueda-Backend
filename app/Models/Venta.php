@@ -10,7 +10,8 @@ class Venta extends Model
         'numero_factura',
         'tipo_pago',
         'estado',
-        'subtotal',
+        'gravado',
+        'exento',
         'iva',
         'total',
         'efectivo_recibido',
@@ -20,10 +21,12 @@ class Venta extends Model
         'vendido_por',
         'anulado_por',
         'apertura_caja_id',
+        
     ];
 
     protected $casts = [
-        'subtotal' => 'decimal:2',
+        'gravado' => 'decimal:2',
+        'exento' => 'decimal:2',
         'iva' => 'decimal:2',
         'total' => 'decimal:2',
         'efectivo_recibido' => 'decimal:2',
