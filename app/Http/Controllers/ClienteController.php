@@ -19,7 +19,6 @@ class ClienteController extends Controller
         $clientes = Cliente::select(
                 'id',
                 'nombre',
-                'telefono',
                 'tipo_persona',
                 'numero_documento',
             )->paginate();
