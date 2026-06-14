@@ -89,6 +89,7 @@ class VentaController extends Controller
                         'precio_unitario' => $detalles['precio_unitario'],
                         'subtotal' => $detalles['subtotal'],
                         'iva_aplicado' => $detalles['iva_aplicado'],
+                        'unidad_base' => $detalles['unidad_base'],
                         'descuento_aplicado' => $detalles['descuento_aplicado'],
 
                     ]);
@@ -154,7 +155,7 @@ class VentaController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Ocurrío un error y no se pudo registrar la compra',
-                'errorMessage' => $e->getMessage(),
+               
             ], 500);
 
         }
