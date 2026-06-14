@@ -17,6 +17,7 @@ class Cliente extends Model
         'tipo_documento_receptor',
         'numero_documento',
         'nrc',
+        'nit',
         'cod_actividad',
         'giro_actividad',
         'cod_departamento',

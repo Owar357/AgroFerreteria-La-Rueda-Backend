@@ -26,7 +26,7 @@ return new class extends Migration
             $table->char('cod_departamento', 2)->nullable();
             $table->char('cod_municipio', 4)->nullable();
             $table->string('complemento', 250)->nullable();
-      
+            
             $table->string('correo', 150)->nullable();
             $table->boolean('activo')->default(true)->index();
             $table->foreignId('registrado_por')->nullable()->constrained('users');

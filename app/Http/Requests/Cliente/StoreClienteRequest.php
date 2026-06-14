@@ -29,6 +29,9 @@ class StoreClienteRequest extends FormRequest
             'numero_documento' => ['nullable', 'string', 'max:20',  'required_with:tipo_documento_receptor',
                 Rule::unique('clientes')->where(fn ($q) => $q->where('tipo_documento_receptor', $this->tipo_documento_receptor))],
             'correo' => 'nullable|email|max:150',
+            'cod_departamento' => 'nullable|string|size:2',
+            'cod_municipio' => 'nullable|string|size:4',
+            'complemento' => 'nullable|string|max:250',
         ];
 
         if ($this->input('tipo_persona') == 'NATURAL') {
