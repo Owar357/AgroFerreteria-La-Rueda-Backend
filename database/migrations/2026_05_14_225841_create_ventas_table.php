@@ -16,7 +16,8 @@
                 $table->string('numero_factura',20)->unique();
                 $table->enum('tipo_pago',['EFECTIVO', 'TARJETA', 'TRANSFERENCIA']);
                 $table->enum('estado',['PROCESADA','ANULADA'])->default('PROCESADA')->index();
-                $table->decimal('subtotal',15,2);
+                $table->decimal('gravado',15,2);
+                $table->decimal('exento',15,2);
                 $table->decimal('iva',15,2)->default(00.00);
                 $table->decimal('total',15,2);
                 $table->decimal('efectivo_recibido',15,2)->nullable();

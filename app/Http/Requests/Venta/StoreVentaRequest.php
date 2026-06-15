@@ -25,8 +25,8 @@ class StoreVentaRequest extends FormRequest
         return [
             'tipo_pago' => 'required|in:EFECTIVO,TARJETA,TRANSFERENCIA',
             'estado' => 'sometimes|in:ANULADA',
-            'subtotal' => 'required|numeric|min:0',
-            'iva' => 'required|numeric|min:0',
+            'gravado' => 'required|numeric|min:0',   
+            'exento' => 'required|numeric|min:0',
             'total' => 'required|numeric|min:0',
             'efectivo_recibido' => 'nullable|numeric|min:0',
             'cambio' => 'nullable|numeric|min:0',
@@ -36,14 +36,13 @@ class StoreVentaRequest extends FormRequest
             'detalles' => 'required|array|min:1',
             'detalles.*.nombre_producto' => 'required|string',
             'detalles.*.presentacion' => 'required|string',
-            'detalles.*.unidad_base'=> 'required|string', 
+            'detalles.*.unidad_base' => 'required|string',
             'detalles.*.cantidad' => 'required|numeric|min:0',
             'detalles.*.precio_unitario' => 'required|numeric|min:0',
             'detalles.*.subtotal' => 'required|numeric|min:0',
             'detalles.*.iva_aplicado' => 'required|numeric|min:0',
             'detalles.*.descuento_aplicado' => 'required|numeric|min:0',
             'detalles.*.presentacion_id' => 'required|exists:presentaciones,id',
-
 
         ];
     }

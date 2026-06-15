@@ -166,11 +166,19 @@ class ProductoController extends Controller
                 ], 404);
             }
 
-            $presentaciones = Presentacion::select('id', 'nombre', 'factor_conversion', 'precio_venta', 'activo')
+            $presentaciones = Presentacion::select(
+                'id', 'nombre', 'factor_conversion', 'producto_id', 'precio_venta', 'activo',
+                DB::raw('(
+            SELECT COALESCE(SUM(l.cantidad_actual), 0) + COALESCE(SUM(dc.cantidad_bonificada), 0)
+            FROM lotes l
+            LEFT JOIN detalles_compra dc ON dc.lote_id = l.id
+            WHERE l.presentacion_id = presentaciones.id
+            AND l.estado = \'ACTIVO\'
+        ) as stock')
+            )
+                ->with('producto:id,unidad_base')
                 ->where('producto_id', $id)
-                ->withSum(['lotes as stock' => function ($query) {
-                    $query->where('estado', 'ACTIVO');
-                }], 'cantidad_actual')
+                ->orderBy('factor_conversion', 'asc')
                 ->get();
 
             if ($presentaciones->isEmpty()) {
@@ -201,73 +209,72 @@ class ProductoController extends Controller
     public function buscarVenta(Request $request)
     {
 
-       try {
-         $q = trim($request->input('q', ''));
+        try {
+            $q = trim($request->input('q', ''));
 
-        if (strlen($q) < 2) {
-            return response()->json([]);
+            if (strlen($q) < 2) {
+                return response()->json([]);
+            }
+
+            $productos = Producto::query()
+                ->select('id', 'codigo', 'nombre', 'unidad_base', 'aplica_iva')
+                ->where('nombre', 'ilike', "%{$q}%")
+                ->orWhere('codigo', 'ilike', "%{$q}%")
+                ->orWhereHas('presentaciones.codigosBarras', function ($query) use ($q) {
+                    $query->where('codigo', 'ilike', "%{$q}%");
+                })
+                ->with(['presentaciones' => function ($query) {
+                    $query->where('activo', true)
+                        ->select('id', 'producto_id', 'nombre', 'factor_conversion', 'precio_venta');
+                }])
+                ->limit(15)
+                ->get();
+
+            return response()->json([
+                'status' => 'Ok',
+                'data' => $productos,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'Error',
+                'message' => 'Error interno en el servidor',
+            ], 500);
         }
-
-        $productos = Producto::query()
-            ->select('id','codigo','nombre','unidad_base','aplica_iva')
-            ->where('nombre', 'ilike', "%{$q}%")
-            ->orWhere('codigo', 'ilike', "%{$q}%")
-            ->orWhereHas('presentaciones.codigosBarras', function ($query) use ($q) {
-                $query->where('codigo', 'ilike', "%{$q}%");
-            })
-            ->with(['presentaciones' => function ($query) {
-                $query->where('activo', true)
-                    ->select('id', 'producto_id',  'nombre','factor_conversion','precio_venta');
-            }])
-            ->limit(15)
-            ->get();
-
-        return response()->json([
-            'status' => 'Ok',
-            'data' =>  $productos
-        ],200);
-       } catch (\Exception $e) {
-             return response()->json([
-            'status' => 'Error',
-            'message' =>  "Error interno en el servidor"
-        ],500);
-       }
     }
 
-
-      public function busquedaParaCompra(Request $request)
+    public function busquedaParaCompra(Request $request)
     {
 
-       try {
-         $q = trim($request->input('q', ''));
+        try {
+            $q = trim($request->input('q', ''));
 
-        if (strlen($q) < 2) {
-            return response()->json([]);
+            if (strlen($q) < 2) {
+                return response()->json([]);
+            }
+
+            $productos = Producto::query()
+                ->select('id', 'codigo', 'nombre', 'unidad_base')
+                ->where('nombre', 'ilike', "%{$q}%")
+                ->orWhere('codigo', 'ilike', "%{$q}%")
+                ->orWhereHas('presentaciones.codigosBarras', function ($query) use ($q) {
+                    $query->where('codigo', 'ilike', "%{$q}%");
+                })
+                ->with(['presentaciones' => function ($query) {
+                    $query->where('activo', true)
+                        ->select('id', 'producto_id', 'nombre', 'factor_conversion');
+                }])
+                ->limit(15)
+                ->get();
+
+            return response()->json([
+                'status' => 'Ok',
+                'data' => $productos,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'Error',
+                'message' => 'Error interno en el servidor',
+            ], 500);
         }
-
-        $productos = Producto::query()
-            ->select('id','codigo','nombre','unidad_base')
-            ->where('nombre', 'ilike', "%{$q}%")
-            ->orWhere('codigo', 'ilike', "%{$q}%")
-            ->orWhereHas('presentaciones.codigosBarras', function ($query) use ($q) {
-                $query->where('codigo', 'ilike', "%{$q}%");
-            })
-            ->with(['presentaciones' => function ($query) {
-                $query->where('activo', true)
-                    ->select('id', 'producto_id', 'nombre','factor_conversion' );
-            }])
-            ->limit(15)
-            ->get();
-
-        return response()->json([
-            'status' => 'Ok',
-            'data' =>  $productos
-        ],200);
-       } catch (\Exception $e) {
-             return response()->json([
-            'status' => 'Error',
-            'message' =>  "Error interno en el servidor"
-        ],500);
-       }
     }
 }
