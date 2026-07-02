@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Categoria;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use App\Http\Requests\Categoria\StoreCategoriaRequest;
 
 class CategoriaController extends Controller
 {
@@ -53,7 +54,7 @@ class CategoriaController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreCategoriaRequest $request)
     {
         try {
 
@@ -63,17 +64,8 @@ class CategoriaController extends Controller
                 ], 403);
             }
 
-            $request->validate(
-                [
-                    'nombre' => 'required|string|min:2|max:50|unique:categorias',
-                ],
-                [
-                    'nombre.unique' => 'Ya existe una categoria con este nombre',
-                ]
-            );
-
             $categoria = Categoria::create([
-                'nombre'     => $request->nombre,
+                ...$request->validated(),
                 'creado_por' => auth()->id(),
             ]);
 
