@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CodigoBarra;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use App\Http\Requests\CodigoBarra\StoreCodigoBarraRequest;
 
 class CodigoBarraController extends Controller
 {
@@ -16,7 +17,7 @@ class CodigoBarraController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreCodigoBarraRequest $request)
     {
         try {
             if (! auth()->user()->hasRole('ADMIN|CAJERO')) {
@@ -25,22 +26,10 @@ class CodigoBarraController extends Controller
                 ], 403);
             }
 
-            $request->validate(
-                [
-                    'codigo' => 'required|string|max:50|unique:codigos_barras,codigo',
-                    'presentacion_id' => 'required|exists:presentaciones,id',
-                ],
-                [
-                    'codigo.unique' => 'El código de barra ya existe',
-                    'presentacion_id.exists' => 'La presentación no existe',
-                ]
-            );
+
 
             $codigoBarra = CodigoBarra::create([
-                'codigo' => $request->codigo,
-                'activo' => true,
-                'presentacion_id' => $request->presentacion_id,
-
+            ...$request->validated(),
             ]);
 
             return response()->json([

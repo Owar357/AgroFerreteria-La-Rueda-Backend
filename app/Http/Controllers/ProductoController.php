@@ -7,6 +7,7 @@ use App\Models\Producto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Http\Requests\Producto\StoreProductoRequest;
 
 class ProductoController extends Controller
 {
@@ -16,7 +17,7 @@ class ProductoController extends Controller
     public function index(Request $request)
     {
         try {
-            if (! auth()->user()->hasRole('ADMIN|CAJERO')) {
+            if (! auth()->user()->hasRole(['ADMIN|CAJERO'])) {
                 return response()->json([
                     'message' => 'No autorizado',
                 ], 403);
@@ -43,7 +44,6 @@ class ProductoController extends Controller
                 'current_page' => $productos->currentPage(),
                 'last_page' => $productos->lastPage(),
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener productos',
@@ -54,7 +54,7 @@ class ProductoController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreProductoRequest $request)
     {
         try {
 
@@ -65,48 +65,15 @@ class ProductoController extends Controller
                 ], 403);
             }
 
-            // validaciones para el reqquest
-            $request->validate(
-                [
-                    'codigo' => 'required|string|min:2|max:14|unique:productos,codigo',
-                    'nombre' => 'required|string|max:100',
-                    'fabricante' => 'nullable|max:100',
-                    'tipo_producto' => 'required|in:UNIDAD FIJA,GRANEL',
-                    'unidad_base' => 'required',
-                    'categoria_id' => 'required|exists:categorias,id',
-
-                    'presentaciones' => 'required|array|min:1',
-                    'presentaciones.*.nombre' => 'nullable|string|max:150',
-                    'presentaciones.*.factor_conversion' => 'required|numeric|min:0',
-                    'presentaciones.*.precio_venta' => 'required|numeric|min:0',
-
-                    'presentaciones.*.codigos_barra' => 'required|array|min:1',
-                    'presentaciones.*.codigos_barra.*.codigo' => 'required|string|unique:codigos_barras,codigo',
-                ],
-                [
-                    'codigo.unique' => 'Ya existe un producto con este código',
-                    'categoria_id.exists' => 'La categoría seleccionada no existe',
-                    'presentaciones.required' => 'Debe agregar al menos una presentación',
-                    'presentaciones.*.factor_conversion.required' => 'El factor de conversión es requerido',
-                    'presentaciones.*.precio_venta.required' => 'El precio de venta es requerido',
-                    'presentaciones.*.codigos_barra.required' => 'Debe agregar al menos un código de barra',
-                ]
-            );
-
             DB::beginTransaction();
 
             $producto = Producto::create([
-                'codigo' => $request->codigo,
-                'nombre' => $request->nombre,
-                'fabricante' => $request->fabricante,
-                'tipo_producto' => $request->tipo_producto,
-                'unidad_base' => $request->unidad_base,
-                'aplica_iva' => $request->aplica_iva,
-                'categoria_id' => $request->categoria_id,
+                ...$request->safe()->except('presentaciones'),
                 'registrado_por' => auth()->id(),
             ]);
 
-            foreach ($request->presentaciones as $presentacionData) {
+            foreach ($request->validated()['presentaciones'] as $presentacionData) {
+
                 $presentacion = $producto->presentaciones()->create([
                     'nombre' => $presentacionData['nombre'],
                     'factor_conversion' => $presentacionData['factor_conversion'],
@@ -114,13 +81,13 @@ class ProductoController extends Controller
                 ]);
 
                 foreach ($presentacionData['codigos_barra'] as $codigoData) {
+
                     $presentacion->codigosBarras()->create([
                         'codigo' => $codigoData['codigo'],
-                        'activo' => true,
                     ]);
                 }
-
             }
+
             DB::commit();
 
             return response()->json([
@@ -129,12 +96,6 @@ class ProductoController extends Controller
                     'presentaciones.codigosBarras'
                 ),
             ], 201);
-
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $e->errors(),
-            ], 422);
         } catch (\Exception $e) {
 
             DB::rollBack();
@@ -143,7 +104,6 @@ class ProductoController extends Controller
                 'message' => 'Error al registrar el producto',
             ], 500);
         }
-
     }
 
     /**
@@ -161,13 +121,19 @@ class ProductoController extends Controller
             $productoId = Producto::where('id', $id)->exists();
 
             if (! $productoId) {
-                return response()->json(['status' => 'ok',
+                return response()->json([
+                    'status' => 'ok',
                     'data' => 'El producto no existe',
                 ], 404);
             }
 
             $presentaciones = Presentacion::select(
-                'id', 'nombre', 'factor_conversion', 'producto_id', 'precio_venta', 'activo',
+                'id',
+                'nombre',
+                'factor_conversion',
+                'producto_id',
+                'precio_venta',
+                'activo',
                 DB::raw('(
             SELECT COALESCE(SUM(l.cantidad_actual), 0) + COALESCE(SUM(dc.cantidad_bonificada), 0)
             FROM lotes l
@@ -182,17 +148,20 @@ class ProductoController extends Controller
                 ->get();
 
             if ($presentaciones->isEmpty()) {
-                return response()->json(['status' => 'ok',
+                return response()->json([
+                    'status' => 'ok',
                     'data' => [],
                     'message' => 'No hay presentaciones registradas',
                 ], 200);
             }
 
-            return response()->json(['status' => 'ok',
+            return response()->json([
+                'status' => 'ok',
                 'data' => $presentaciones,
             ], 200);
         } catch (\Exception $e) {
-            return response()->json(['status' => 'ok',
+            return response()->json([
+                'status' => 'ok',
                 'message' => 'Error interno del servidor',
             ], 500);
         }

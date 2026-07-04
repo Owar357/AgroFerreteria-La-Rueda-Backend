@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Categoria;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use App\Http\Requests\Categoria\StoreCategoriaRequest;
+use App\Http\Requests\Categoria\UpdateCategoriaRequest;
 
 class CategoriaController extends Controller
 {
@@ -53,7 +55,7 @@ class CategoriaController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreCategoriaRequest $request)
     {
         try {
 
@@ -63,17 +65,8 @@ class CategoriaController extends Controller
                 ], 403);
             }
 
-            $request->validate(
-                [
-                    'nombre' => 'required|string|min:2|max:50|unique:categorias',
-                ],
-                [
-                    'nombre.unique' => 'Ya existe una categoria con este nombre',
-                ]
-            );
-
             $categoria = Categoria::create([
-                'nombre'     => $request->nombre,
+                ...$request->validated(),
                 'creado_por' => auth()->id(),
             ]);
 
@@ -98,7 +91,7 @@ class CategoriaController extends Controller
 
     public function show(string $id) {}
 
-    public function update(Request $request, string $id)
+    public function update(UpdateCategoriaRequest $request, string $id)
     {
         try {
 
@@ -116,16 +109,7 @@ class CategoriaController extends Controller
                 ], 404);
             }
 
-            $request->validate(
-                [
-                    'nombre' => 'required|string|min:2|max:50|unique:categorias,nombre,' . $id,
-                ],
-                [
-                    'nombre.unique' => 'Ya existe otra categoría con este nombre.',
-                ]
-            );
-
-            $categoria->update(['nombre' => $request->nombre]);
+            $categoria->update($request->validated());
 
             return response()->json([
                 'message'   => 'Categoría actualizada exitosamente',
