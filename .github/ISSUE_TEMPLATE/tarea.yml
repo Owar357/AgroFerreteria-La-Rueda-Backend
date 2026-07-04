@@ -1,6 +1,6 @@
-name: "📋 Asignación de Tarea"
-description: Tarea específica de desarrollo, redacción o corrección de la tesis.
-title: "📋 [TAREA] - <nombre de la tarea>"
+name: "✅ Asignación de Tarea"
+description: Tarea específica de desarrollo del proyecto AgroFerretería.
+title: "[TAREA] - <nombre de la tarea>"
 labels: ["todo"]
 body:
   - type: textarea
@@ -8,15 +8,30 @@ body:
     attributes:
       label: "Descripción de la Tarea"
       description: Qué se debe hacer exactamente.
-      placeholder: "Ej: Redactar el capítulo 3 o Corregir las referencias bibliográficas en formato APA."
+      placeholder: "Ej: Implementar endpoint de ventas, Corregir validación en compras."
     validations:
       required: true
-  - type: checkboxes
-    id: entregables
+
+  - type: textarea
+    id: json_esperado
     attributes:
-      label: "Criterios de Aceptación / Checklist"
+      label: "JSON esperado"
+      description: Si aplica, documenta qué debe devolver el endpoint.
+      value: |
+```json
+        {
+          "status": "success",
+          "data": []
+        }
+```
+
+  - type: checkboxes
+    id: criterios
+    attributes:
+      label: "Criterios de Aceptación"
       description: Pasos necesarios para considerar la tarea como terminada.
       options:
-        - label: "Paso 1: Investigar la fuente"
-        - label: "Paso 2: Escribir el borrador"
-        - label: "Paso 3: Revisión de ortografía"
+        - label: "Endpoint responde correctamente"
+        - label: "Devuelve el JSON esperado"
+        - label: "Validaciones funcionan"
+        - label: "Probado en Postman"
