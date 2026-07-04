@@ -30,7 +30,7 @@ class ReporteController extends Controller
         }
 
         // Traemos los datos de la Db
-        $ventas = $ventas->orderBy('created_at', 'desc')->get();
+        $ventas = $ventas->orderBy('created_at', 'asc')->get();
 
             $pdf = Pdf::loadView('reportes.ventas', [
 
