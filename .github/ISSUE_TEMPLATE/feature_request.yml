@@ -1,0 +1,21 @@
+name: "🚀 Nueva Funcionalidad"
+description: Propuesta para añadir algo nuevo al sistema o al documento de tesis.
+title: "🚀 [NUEVA FUNCIÓN] - <nombre del módulo>"
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: que_es
+    attributes:
+      label: "¿Qué se va a agregar?"
+      description: Explica brevemente la nueva función o sección.
+      placeholder: "Ej: Agregar inicio de sesión con JWT o Sección de marco metodológico detallado."
+    validations:
+      required: true
+  - type: textarea
+    id: por_que
+    attributes:
+      label: "¿Por qué es necesario?"
+      description: Justificación de por qué aporta valor a la tesis.
+      placeholder: "Ej: El asesor lo solicitó en la última revisión para dar más validez."
+    validations:
+      required: true
