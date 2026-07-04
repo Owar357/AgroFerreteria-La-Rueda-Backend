@@ -26,13 +26,11 @@ body:
     attributes:
       label: "JSON esperado"
       description: Si aplica, documenta qué debe devolver el endpoint.
-      value: |
-```json
+      placeholder: |
         {
           "status": "success",
           "data": []
         }
-```
 
   - type: textarea
     id: como_funciona
