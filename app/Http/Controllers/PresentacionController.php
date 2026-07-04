@@ -23,14 +23,14 @@ class PresentacionController extends Controller
     public function store(StorePresentacionesRequest $request)
     {
         try {
-            
-          $presentaciones =  Presentacion::create([ 
+
+          $presentaciones =  Presentacion::create([
               ...$request->safe()
-            ]); 
+            ]);
 
            return response()->json([
                 "status" => "Ok",
-                "data" => $presentaciones 
+                "data" => $presentaciones
             ],200);
 
         } catch (\Throwable $th) {
@@ -63,7 +63,7 @@ class PresentacionController extends Controller
     public function destroy(string $id )
     {
         try {
-           
+
             $presentacion = Presentacion::findOrFail($id);
 
             $presentacion->activo = !$presentacion->activo;
@@ -76,11 +76,12 @@ class PresentacionController extends Controller
             ],200);
 
         } catch (ModelNotFoundException $m) {
-            
+
             return response()->json([
                 'status' => 'error',
                 'error' => 'La presentacion no existe'
             ],404);
-        } 
+        }
     }
 }
+  
