@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('presentaciones', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre',100)->index();
+            $table->string('nombre',150)->index();
             $table->decimal('factor_conversion',15,3);
             $table->decimal('precio_venta',15,4);
             $table->boolean('activo')->default(true);

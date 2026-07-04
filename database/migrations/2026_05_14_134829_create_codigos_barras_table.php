@@ -17,7 +17,6 @@ return new class extends Migration
                 $table->boolean('activo')->default(true);
                 $table->foreignId('presentacion_id')->nullable()->constrained('presentaciones');
                 $table->timestamps();
-
             });
     }
 

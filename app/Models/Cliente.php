@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+
 
 class Cliente extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'tipo_persona',
         'nombre',
@@ -13,12 +17,12 @@ class Cliente extends Model
         'tipo_documento_receptor',
         'numero_documento',
         'nrc',
+        'nit',
         'cod_actividad',
         'giro_actividad',
         'cod_departamento',
         'cod_municipio',
         'complemento',
-        'telefono',
         'correo',
         'activo',
         'registrado_por',

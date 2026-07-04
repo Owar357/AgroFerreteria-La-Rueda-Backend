@@ -1,0 +1,22 @@
+name: "📋 Asignación de Tarea"
+description: Tarea específica de desarrollo, redacción o corrección de la tesis.
+title: "📋 [TAREA] - <nombre de la tarea>"
+labels: ["todo"]
+body:
+  - type: textarea
+    id: descripcion
+    attributes:
+      label: "Descripción de la Tarea"
+      description: Qué se debe hacer exactamente.
+      placeholder: "Ej: Redactar el capítulo 3 o Corregir las referencias bibliográficas en formato APA."
+    validations:
+      required: true
+  - type: checkboxes
+    id: entregables
+    attributes:
+      label: "Criterios de Aceptación / Checklist"
+      description: Pasos necesarios para considerar la tarea como terminada.
+      options:
+        - label: "Paso 1: Investigar la fuente"
+        - label: "Paso 2: Escribir el borrador"
+        - label: "Paso 3: Revisión de ortografía"

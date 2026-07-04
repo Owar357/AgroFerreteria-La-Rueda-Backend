@@ -13,15 +13,14 @@ return new class extends Migration
     {
         Schema::create('detalles_venta', function (Blueprint $table) {
             $table->id();
-            $table->string('numero_lote',30);
             $table->string('nombre_producto',150);
             $table->string('presentacion',100);
+            $table->string('unidad_base',100);
             $table->decimal('cantidad',15,4);
             $table->decimal('precio_unitario',15,4);
             $table->decimal('subtotal',15,2);
             $table->decimal('iva_aplicado',15,2)->default(0.00);
             $table->decimal('descuento_aplicado',15,2);
-            $table->foreignId('lote_id')->constrained('lotes');
             $table->foreignId('venta_id')->constrained('ventas');
             $table->timestamps();
         });

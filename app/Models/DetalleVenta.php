@@ -13,7 +13,8 @@ class DetalleVenta extends Model
         'nombre_producto',
         'presentacion',
         'cantidad',
-
+        'unidad_base',
+        'precio_unitario',
         'subtotal',
         'iva_aplicado',
         'descuento_aplicado',
@@ -38,4 +39,5 @@ class DetalleVenta extends Model
     {
         return $this->belongsTo(Venta::class);
     }
+
 }

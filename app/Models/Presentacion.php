@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\CodigoBarra;
 
 class Presentacion extends Model
 {
@@ -30,5 +31,10 @@ class Presentacion extends Model
     public function codigosBarras()
     {
         return $this->hasMany(CodigoBarra::class);
+    }
+
+    public function lotes()
+    {
+        return $this->hasMany(Lote::class);
     }
 }
