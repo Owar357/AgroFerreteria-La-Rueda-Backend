@@ -7,6 +7,7 @@ use App\Models\Proveedor;
 use Exception;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Proveedor\StoreProveedorRequest;
 
 class ProveedorController extends Controller
 {
@@ -32,7 +33,7 @@ class ProveedorController extends Controller
                 ], 404);
             }
 
-           
+
             $proveedoresFormateados = collect($paginator->items())->map(function ($proveedor) {
                 return [
                     'id' => $proveedor->id,
@@ -54,7 +55,7 @@ class ProveedorController extends Controller
                 'last_page' => $paginator->lastPage()
             ], 200);
 
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener proveedores',
@@ -66,8 +67,15 @@ class ProveedorController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreProveedorRequest $request)
     {
+
+      if (! auth()->user()->hasRole('ADMIN')) {
+                return response()->json([
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
         $request->validate([
             'nombre' => 'required',
             'direccion' => 'required',
@@ -79,15 +87,9 @@ class ProveedorController extends Controller
 
 
         DB::beginTransaction();
-
         try {
             $proveedor = Proveedor::create([
-                'nombre' => $request->nombre,
-                'direccion' => $request->direccion,
-                'correo' => $request->correo,
-                'telefono' => $request->telefono,
-                'tipo_persona' => $request->tipo_persona,
-                'activo' => $request->json('activo', true),
+            ...$request->validated(),
             ]);
             DB::commit();
 
@@ -134,17 +136,17 @@ class ProveedorController extends Controller
 
     public function TraerNombreProveedores(){
         try {
-         
+
            $proveedores = Proveedor::select('id','nombre')
            ->get();
-           
-           
+
+
            return response()->json([
             'status' => 'ok',
             'data' => $proveedores
            ],200);
-           
-    
+
+
         } catch (\Throwable $th) {
             return response()->json([
             'status' => 'error',
