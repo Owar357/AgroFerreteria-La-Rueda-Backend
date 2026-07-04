@@ -1,0 +1,36 @@
+  name: Automatización Kanban - AgroFerretería
+
+  on:
+    issues:
+      types: [assigned]
+    pull_request:
+      types: [opened, ready_for_review]
+
+  jobs:
+    mover-issue-en-progreso:
+      name: Mover Issue a En progreso al asignar
+      runs-on: ubuntu-latest
+      if: github.event_name == 'issues' && github.event.action == 'assigned'
+      steps:
+        - name: Mover a En progreso
+          uses: leonsteinhaeuser/project-beta-automations@v2.2.1
+          with:
+            gh_token: ${{ secrets.PROJECT_TOKEN }}
+            user: Owar357
+            project_id: 3
+            resource_node_id: ${{ github.event.issue.node_id }}
+            status_value: "En progreso"
+
+    mover-pr-en-revision:
+      name: Mover PR a En revisión al abrir
+      runs-on: ubuntu-latest
+      if: github.event_name == 'pull_request'
+      steps:
+        - name: Mover a En revisión
+          uses: leonsteinhaeuser/project-beta-automations@v2.2.1
+          with:
+            gh_token: ${{ secrets.PROJECT_TOKEN }}
+            user: Owar357
+            project_id: 3
+            resource_node_id: ${{ github.event.pull_request.node_id }}
+            status_value: "En revisión"
