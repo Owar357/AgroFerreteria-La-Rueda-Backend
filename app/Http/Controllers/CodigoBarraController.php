@@ -105,6 +105,19 @@ class CodigoBarraController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        try {
+            $codigo = CodigoBarra::findOrfaild($id);
+            $codigo->delete();
+
+            return response()->json([
+                'status' => 'ok',
+                'menssage' => ' Código eliminado correctamente'
+            ], 200);
+        }catch (ModelNotFoundExecption $e) {
+            return response()->json([
+                'status' => 'error',
+                'menssage' => 'Código no encontrado'
+            ], 404);
+        }
     }
 }
