@@ -1,0 +1,35 @@
+name: "✅ Asignación de Tarea"
+description: Tarea específica de desarrollo del proyecto AgroFerretería.
+title: "[TAREA] - <nombre de la tarea>"
+labels: ["todo"]
+body:
+  - type: textarea
+    id: descripcion
+    attributes:
+      label: "Descripción de la Tarea"
+      description: Qué se debe hacer exactamente.
+      placeholder: "Ej: Implementar endpoint de ventas, Corregir validación en compras."
+    validations:
+      required: true
+
+  - type: textarea
+    id: json_esperado
+    attributes:
+      label: "JSON esperado"
+      description: Si aplica, documenta qué debe devolver el endpoint.
+      placeholder: |
+        {
+          "status": "success",
+          "data": []
+        }
+
+  - type: checkboxes
+    id: criterios
+    attributes:
+      label: "Criterios de Aceptación"
+      description: Pasos necesarios para considerar la tarea como terminada.
+      options:
+        - label: "Endpoint responde correctamente"
+        - label: "Devuelve el JSON esperado"
+        - label: "Validaciones funcionan"
+        - label: "Probado en Postman"

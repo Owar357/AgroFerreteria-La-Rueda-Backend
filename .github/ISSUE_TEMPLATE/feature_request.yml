@@ -1,0 +1,54 @@
+name: "✨ Nueva Funcionalidad"
+description: Propuesta para añadir algo nuevo al sistema AgroFerretería.
+title: "[FEATURE] - <nombre del módulo>"
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: que_es
+    attributes:
+      label: "¿Qué se va a agregar?"
+      description: Explica brevemente la nueva funcionalidad.
+      placeholder: "Ej: Módulo de reportes de ventas por rango de fechas."
+    validations:
+      required: true
+
+  - type: textarea
+    id: por_que
+    attributes:
+      label: "¿Por qué es necesario?"
+      description: Justificación de por qué aporta valor al sistema.
+      placeholder: "Ej: Don Carlos necesita ver el historial de ventas por mes."
+    validations:
+      required: true
+
+  - type: textarea
+    id: json_esperado
+    attributes:
+      label: "JSON esperado"
+      description: Si aplica, documenta qué debe devolver el endpoint.
+      placeholder: |
+        {
+          "status": "success",
+          "data": []
+        }
+
+  - type: textarea
+    id: como_funciona
+    attributes:
+      label: "¿Cómo debería funcionar?"
+      description: Describe el comportamiento esperado del módulo.
+      placeholder: "Ej: El usuario selecciona rango de fechas y el sistema devuelve las ventas en ese período."
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: criterios
+    attributes:
+      label: "Criterios de Aceptación"
+      description: Requisitos para considerar la funcionalidad completa.
+      options:
+        - label: "Endpoint implementado y funcional"
+        - label: "Devuelve el JSON esperado"
+        - label: "Validaciones implementadas"
+        - label: "Probado en Postman"
+        - label: "Integrado con el frontend"

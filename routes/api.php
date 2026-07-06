@@ -37,9 +37,10 @@ Route::middleware('auth:api')->group(function(){
     Route::get('productos/buscar-producto/compra',[ProductoController::class,'busquedaParaCompra']);
     Route::apiResource('productos', ProductoController::class);
     Route::apiResource('usuarios', UserController::class);
+    Route::patch('usuarios/{id}/desactivar', [UserController::class, 'desactivarUsuario']);
     Route::apiResource('codigosBarra', CodigoBarraController::class);
     Route::apiResource('presentaciones', PresentacionController::class);
-    Route::get('/proveedor/proveedores',[ProveedorController::class,'TraerNombreProveedores']); 
+    Route::get('/proveedor/proveedores',[ProveedorController::class,'TraerNombreProveedores']);
     Route::apiResource('proveedores', ProveedorController::class);
 });
 
