@@ -53,11 +53,29 @@ class StoreClienteRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'numero_documento.required_with' => 'El número de documento es obligatorio cuando se especifica el tipo de documento',
-            'nombre.prohibited' => 'El campo nombre no debe estar presente para personas jurídicas',
-            'razon_social.prohibited' => 'El campo razón social no debe estar presente para personas naturales',
-            'nombre.required' => 'El nombre es obligatorio para personas naturales',
-            'razon_social.required' => 'La razón social es obligatoria para personas jurídicas',
+        'tipo_persona.required' => 'Debe indicar el tipo de persona',
+        'tipo_persona.in' => 'El tipo de persona debe ser JURIDICA o NATURAL',
+        'tipo_documento_receptor.in' => 'El tipo de documento debe ser 13, 36, 02 o 03',
+        'numero_documento.max' => 'El número de documento no puede exceder los 20 caracteres',
+        'numero_documento.required_with' => 'El número de documento es obligatorio cuando se especifica el tipo de documento',
+        'numero_documento.unique' => 'Ya existe un cliente con este número de documento',
+        'correo.email' => 'El correo debe tener un formato válido',
+        'correo.max' => 'El correo no puede exceder los 150 caracteres',
+        'cod_departamento.size' => 'El código de departamento debe tener exactamente 2 caracteres',
+        'cod_municipio.size' => 'El código de municipio debe tener exactamente 4 caracteres',
+        'complemento.max' => 'El complemento no puede exceder los 250 caracteres',
+        'nombre.required' => 'El nombre es obligatorio para personas naturales',
+        'nombre.prohibited' => 'El campo nombre no debe estar presente para personas jurídicas',
+        'nombre.max' => 'El nombre no puede exceder los 250 caracteres',
+        'razon_social.required' => 'La razón social es obligatoria para personas jurídicas',
+        'razon_social.prohibited' => 'El campo razón social no debe estar presente para personas naturales',
+        'razon_social.max' => 'La razón social no puede exceder los 250 caracteres',
+        'nrc.required' => 'El NRC es obligatorio para personas jurídicas',
+        'nrc.prohibited' => 'El campo NRC no debe estar presente para personas naturales',
+        'nrc.max' => 'El NRC no puede exceder los 15 caracteres',
+        'giro_actividad.required' => 'El giro de actividad es obligatorio para personas jurídicas',
+        'giro_actividad.prohibited' => 'El campo giro de actividad no debe estar presente para personas naturales',
+        'giro_actividad.max' => 'El giro de actividad no puede exceder los 250 caracteres',
         ];
     }
 }
