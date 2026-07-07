@@ -124,7 +124,7 @@ class UserController extends Controller
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Error al actualizar la categoría',
+                'message' => 'Error al actualizar el usuario',
                 'error'   => $e->getMessage(),
             ], 500);
         }

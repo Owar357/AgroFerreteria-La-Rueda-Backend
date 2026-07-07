@@ -16,7 +16,7 @@ class ReporteController extends Controller
             'numero_factura',
             'created_at',
             'tipo_pago',
-            'subtotal',
+            'gravado',
             'iva',
             'total'
         );
