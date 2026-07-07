@@ -13,7 +13,7 @@
         {
             Schema::create('ventas', function (Blueprint $table) {
                 $table->id();
-                $table->string('numero_factura',20)->unique();
+                $table->string('numero_factura',31)->unique();
                 $table->enum('tipo_pago',['EFECTIVO', 'TARJETA', 'TRANSFERENCIA']);
                 $table->enum('estado',['PROCESADA','ANULADA'])->default('PROCESADA')->index();
                 $table->decimal('gravado',15,2);

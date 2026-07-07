@@ -157,22 +157,7 @@ class CompraController extends Controller
         }
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
-
+    
     public function generarLoteInterno()
     {
         $fecha = now()->format('Ymd');
@@ -194,5 +179,37 @@ class CompraController extends Controller
         }
 
         return 'LOT-' . $fecha . '-' . str_pad($secuencia, 4, '0', STR_PAD_LEFT);
+    }
+
+    public function anularCompra(string $id){
+
+    try { 
+
+     
+       $compra =  Compra::with('detallesCompra.lote')->findOrFail($id);
+
+       DB::beginTransaction();
+
+       foreach($compra->detallesCompra as $detalle){
+          $lote = $detalle->lote;
+
+          if($lote->cantidad_inicial == $lote->cantidad_actual){
+
+          }else{
+
+             return response()->json([
+                'status' => 'error',
+                'message' => 'La compra no se puede anular,por que unos de sus productos ya fue vendido'
+                ],422);
+          }
+       }
+    
+       
+
+      
+    } catch (\Throwable $th) {
+        //throw $th;
+    }
+
     }
 }
