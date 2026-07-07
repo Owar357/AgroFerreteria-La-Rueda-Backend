@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('compras', function (Blueprint $table) {
             $table->id();
             $table->char('tipo_dte',2)->comment('01=factura,03=CCF,04=NR,05=NC,06=ND,11=FEX,14=FSE');
-            $table->string('numero_documento',25)->nullable()->index(); 
+            $table->string('numero_documento',31)->nullable()->index(); 
             $table->date('fecha_emision')->nullable()->index();
             $table->decimal('descuento_global',15,2)->nullable();
             $table->decimal('iva_total',15,2)->nullable();
