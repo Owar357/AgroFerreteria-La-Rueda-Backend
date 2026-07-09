@@ -114,12 +114,12 @@ class VentaController extends Controller
                                 'cantidad_tomada' => $cantidadSolicitada,
                             ]);
 
-                            $lote->cantidad_actual = $lote->cantidad_actual - $cantidadSolicitada;
+                            $lote->cantidad_actual = bcsub($lote->cantidad_actual, $cantidadSolicitada,3);
 
                             if ($lote->cantidad_actual == 0) {
                                 $lote->estado = 'AGOTADO';
                             }
-                            $lote->update();
+                            $lote->save();
                             $cantidadSolicitada = 0;
 
                         } else {
@@ -136,7 +136,7 @@ class VentaController extends Controller
                             $lote->estado = 'AGOTADO';
                             $lote->update();
 
-                            $cantidadSolicitada = $cantidadSolicitada - $stockEntregado;
+                            $cantidadSolicitada = bcsub($cantidadSolicitada, $stockEntregado, 3) ;
 
                         }
 
@@ -154,7 +154,7 @@ class VentaController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Ocurrío un error y no se pudo registrar la compra',
+                'message' => 'No hay stock suficiente y no se puedo registrar la venta',
                
             ], 500);
 
