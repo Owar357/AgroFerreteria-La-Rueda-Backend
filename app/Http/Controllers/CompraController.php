@@ -6,6 +6,7 @@ use App\Http\Requests\Compra\StoreCompraRequest;
 use App\Models\Compra;
 use App\Models\Lote;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -29,16 +30,15 @@ class CompraController extends Controller
                     'fecha_vencimiento_pago',
                     'proveedor_id',
                 ]);
-            
 
-                $fechaDesde = $request->fecha_desde??Carbon::now()->startOfMonth()->toDateString();
-                $fechaHasta= $request->fecha_hasta??Carbon::now()->endOfMonth()->toDateString();
+            $fechaDesde = $request->fecha_desde ?? Carbon::now()->startOfMonth()->toDateString();
+            $fechaHasta = $request->fecha_hasta ?? Carbon::now()->endOfMonth()->toDateString();
 
-                $resultado->whereBetween('fecha_emision', [
-                    $fechaDesde,
-                    $fechaHasta,
-                ]);
-            
+            $resultado->whereBetween('fecha_emision', [
+                $fechaDesde,
+                $fechaHasta,
+            ]);
+
             if ($request->tipo_documento) {
                 $resultado->where('tipo_dte', $request->tipo_documento);
             }
@@ -56,21 +56,20 @@ class CompraController extends Controller
             $itemsFormateados = collect($compras->items())->map(function ($compra) {
                 return [
                     'id' => $compra->id,
-                   
+
                     'fechaEmision' => date('d-m-Y', strtotime($compra->fecha_emision)),
-                   
+
                     'proveedor' => $compra->proveedor->nombre ?? 'Sin Proveedor',
                     'tipoDocumento' => $compra->tipo_dte,
                     'numDocumento' => $compra->numero_documento,
-                   
+
                     'precioFactura' => number_format($compra->monto_total, 2, '.', ','),
                     'estadoPago' => strtoupper($compra->estado_pago),
-            ];
-        });
+                ];
+            });
 
-          
             return response()->json([
-                'compras' => $itemsFormateados,        
+                'compras' => $itemsFormateados,
                 'current_page' => $compras->currentPage(),
                 'last_page' => $compras->lastPage(),
                 'per_page' => $compras->perPage(),
@@ -128,7 +127,7 @@ class CompraController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => "Error interno del servidor",
+                'message' => 'Error interno del servidor',
             ], 500);
         }
     }
@@ -139,25 +138,23 @@ class CompraController extends Controller
     public function show(string $id)
     {
         try {
-            $compras = Compra::with(['proveedor:id,nombre','detallesCompra', 
-            'detallesCompra.lote', 'detallesCompra.lote.presentacion.producto:id,nombre', 'detallesCompra.lote.presentacion.producto:id,nombre' ])
-            ->findOrFail($id);
+            $compras = Compra::with(['proveedor:id,nombre', 'detallesCompra',
+                'detallesCompra.lote', 'detallesCompra.lote.presentacion.producto:id,nombre', 'detallesCompra.lote.presentacion.producto:id,nombre'])
+                ->findOrFail($id);
 
-             
             return response()->json([
                 'status' => 'ok',
-                'data' => $compras 
-            ],200);
+                'data' => $compras,
+            ], 200);
 
         } catch (\Exception $e) {
-             return response()->json([
+            return response()->json([
                 'status' => 'error',
-                'message' => 'Error interno en el Servidor' . $e->getMessage()
-            ],500);
+                'message' => 'Error interno en el Servidor'.$e->getMessage(),
+            ], 500);
         }
     }
 
-    
     public function generarLoteInterno()
     {
         $fecha = now()->format('Ymd');
@@ -170,7 +167,7 @@ class CompraController extends Controller
             ['buscar' => "LOT-{$fecha}-%"]
         );
 
-        $ultimo = !empty($resultado) ? $resultado[0]->lote_interno : null;
+        $ultimo = ! empty($resultado) ? $resultado[0]->lote_interno : null;
 
         if ($ultimo) {
             $secuencia = (int) substr($ultimo, -4) + 1;
@@ -178,38 +175,72 @@ class CompraController extends Controller
             $secuencia = 1;
         }
 
-        return 'LOT-' . $fecha . '-' . str_pad($secuencia, 4, '0', STR_PAD_LEFT);
+        return 'LOT-'.$fecha.'-'.str_pad($secuencia, 4, '0', STR_PAD_LEFT);
     }
 
-    public function anularCompra(string $id){
+    public function anularCompra(string $id)
+    {
 
-    try { 
+        try {
 
-     
-       $compra =  Compra::with('detallesCompra.lote')->findOrFail($id);
+            DB::beginTransaction();
 
-       DB::beginTransaction();
+            $compra = Compra::with('detallesCompra')->findOrFail($id);
 
-       foreach($compra->detallesCompra as $detalle){
-          $lote = $detalle->lote;
+            $lotesBloqueados = [];
 
-          if($lote->cantidad_inicial == $lote->cantidad_actual){
+            foreach ($compra->detallesCompra as $detalle) {
+                $lote = Lote::where('id', $detalle->lote_id)->lockForUpdate()->first();
 
-          }else{
+                if ($lote->cantidad_inicial != $lote->cantidad_actual) {
+                    DB::rollBack();
 
-             return response()->json([
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'La compra no se puede anular,por que unos de sus productos ya fue vendido',
+                    ], 422);
+                }
+
+                $lotesBloqueados[] = [
+                    'detalle' => $detalle,
+                    'lote' => $lote,
+                ];
+            }
+
+            foreach ($lotesBloqueados as $item) {
+                $item['detalle']->es_anulado = true;
+                $item['detalle']->save();
+
+                $item['lote']->estado = 'ANULADO';
+                $item['lote']->save ();
+            }
+
+            $compra->es_anulado = true;
+            $compra->save();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'La compra se anuló con éxito',
+            ], 200);
+
+        } catch (ModelNotFoundException $mdn) {
+            DB::rollback();
+
+            return response()->json([
                 'status' => 'error',
-                'message' => 'La compra no se puede anular,por que unos de sus productos ya fue vendido'
-                ],422);
-          }
-       }
-    
-       
+                'message' => 'La compra no existe',
+            ], 404);
 
-      
-    } catch (\Throwable $th) {
-        //throw $th;
-    }
+        } catch (\Throwable $th) {
+            DB::rollback();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno en el servidor, la compra no se pudo anular',
+            ], 500);
+        }
 
     }
 }
