@@ -76,7 +76,7 @@ class CompraController extends Controller
                 'total' => $compras->total(),
             ], 200);
 
-            return response()->json($compras);
+            
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
@@ -104,7 +104,7 @@ class CompraController extends Controller
                     $lote = Lote::create([
                         ...$detalle['lote'],
                         'lote_interno' => $this->generarLoteInterno(),
-                        'cantidad_actual' => $detalle['cantidad_facturada'],
+                        'cantidad_actual' => $detalle['lote']['cantidad_inicial'],
                     ]);
 
                     $compra->detallesCompra()->create([
@@ -127,7 +127,7 @@ class CompraController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error interno del servidor',
+                'message' => 'Error interno del servidor'
             ], 500);
         }
     }
@@ -150,7 +150,7 @@ class CompraController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error interno en el Servidor'.$e->getMessage(),
+                'message' => 'Error interno en el Servidor'
             ], 500);
         }
     }
@@ -187,6 +187,13 @@ class CompraController extends Controller
 
             $compra = Compra::with('detallesCompra')->findOrFail($id);
 
+            if ($compra->es_anulado) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Esta compra ya fue anulada previamente',
+                ], 422);
+            }
+
             $lotesBloqueados = [];
 
             foreach ($compra->detallesCompra as $detalle) {
@@ -212,7 +219,7 @@ class CompraController extends Controller
                 $item['detalle']->save();
 
                 $item['lote']->estado = 'ANULADO';
-                $item['lote']->save ();
+                $item['lote']->save();
             }
 
             $compra->es_anulado = true;

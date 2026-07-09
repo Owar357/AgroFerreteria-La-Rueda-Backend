@@ -24,7 +24,7 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::middleware('auth:api')->group(function () {
-    Route::put('compra/anular',[CompraController::class, 'anularCompra']);
+    Route::patch('compras/{id}/anular',[CompraController::class, 'anularCompra']);
     Route::apiResource('compras', CompraController::class);
     Route::get('/clientes/buscar', [ClienteController::class, 'buscarPorDocumento']);
     Route::apiResource('clientes', ClienteController::class);
