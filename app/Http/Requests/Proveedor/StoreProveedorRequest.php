@@ -24,7 +24,7 @@ class StoreProveedorRequest extends FormRequest
     {
         return [
             'nombre' => 'required|string|min:3|max:100|unique:proveedores,nombre',
-            'direccion' => 'required|string|min:5',
+            'direccion' => 'required|string|min:5|max:250',
             'correo' => 'nullable|unique:proveedores,correo|email|regex:/^[a-z0-9_.+\-]+@[a-z0-9\-]+\.[a-z]{2,}$/',
             'telefono' => 'required|string',
             'tipo_persona' => 'required',
