@@ -8,6 +8,7 @@ use Exception;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use App\Http\Requests\Proveedor\StoreProveedorRequest;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class ProveedorController extends Controller
 {
@@ -126,18 +127,11 @@ class ProveedorController extends Controller
         //
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
-
-    public function TraerNombreProveedores(){
+    
+    public function traerNombreProveedores(){
         try {
 
-           $proveedores = Proveedor::select('id','nombre')
+           $proveedores = Proveedor::select('id','nombre')->where('activo', true)
            ->get();
 
 
@@ -150,8 +144,37 @@ class ProveedorController extends Controller
         } catch (\Throwable $th) {
             return response()->json([
             'status' => 'error',
-            'data' => 'Error interno del servidor'
+            'message' => 'Error interno del servidor'
            ],500);
         }
+    }
+
+    public function desactivarProveedor(int $id){
+
+       try {
+
+          $proveedor = Proveedor::findOrFail($id);
+
+          $proveedor->activo = false;
+          $proveedor->save();
+
+
+          return  response()->json([
+            "status" => "ok",
+            "message" => "Proveedor desactivado correctamente"
+          ],200);
+          
+       } catch (ModelNotFoundException $mdn) {
+          return  response()->json([
+            "status" => "error",
+            "message" => "El proveedor no existe"
+          ],404);
+       }catch ( \Throwable $e) {
+        return  response()->json([
+            "status" => "error",
+            "message" => "Error interno en el servidor"
+          ],500);
+       }
+
     }
 }
