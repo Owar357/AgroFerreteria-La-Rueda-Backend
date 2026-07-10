@@ -8,6 +8,7 @@ use Exception;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use App\Http\Requests\Proveedor\StoreProveedorRequest;
+use App\Http\Requests\Proveedor\UpdateProveedorRequest;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class ProveedorController extends Controller
@@ -122,10 +123,24 @@ class ProveedorController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateProveedorRequest $request, Proveedor $proveedore)
     {
-        //
-    }
+        try {
+
+        $proveedore->update($request->validated());
+          
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'proveedor editado correctamente'
+        ],200);
+          
+        } catch (\Throwable $th) {
+            return response()->json([
+            'status' => 'error',
+            'message' => 'Error interno del servidor'
+        ],500);
+        }
+    }   
 
     
     public function traerNombreProveedores(){
