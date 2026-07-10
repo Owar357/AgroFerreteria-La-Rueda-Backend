@@ -19,6 +19,13 @@ class AuthController extends Controller
             ], 401);
         }
 
+        if (! auth()->user()->activo) {
+            auth()->logout(); // esto invalida el toker recien emitido
+
+            return response()->json([
+                'message' => 'Su cuenta ha sido desactivada.'
+            ], 403);
+        }
         // en caso de exitoso retornamos el token
         return $this->responseWithToken($token);
     }
