@@ -13,6 +13,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\VentaController;
 use Illuminate\Support\Facades\Route;
 
+use function Pest\Laravel\patch;
+
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
 
@@ -39,7 +41,8 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('usuarios', UserController::class);
     Route::apiResource('codigosBarra', CodigoBarraController::class);
     Route::apiResource('presentaciones', PresentacionController::class);
-    Route::get('/proveedor/proveedores', [ProveedorController::class, 'TraerNombreProveedores']);
+    Route::patch('/proveedores/{id}/desactivar',[ProveedorController::class,'desactivarProveedor' ]);
+    Route::get('/proveedor/proveedores', [ProveedorController::class, 'traerNombreProveedores']);
     Route::apiResource('proveedores', ProveedorController::class);
 });
 

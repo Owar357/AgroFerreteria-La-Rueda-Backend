@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Compra;
 
+
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Override;
 
 class StoreCompraRequest extends FormRequest
@@ -33,7 +35,11 @@ class StoreCompraRequest extends FormRequest
             'monto_total' => 'nullable|numeric|min:0',
             'estado_pago' => 'required|in:PAGADO,PENDIENTE,ABONADO,VENCIDO',
             'fecha_vencimiento_pago' => 'nullable|date|after_or_equal:fecha_emision',
-            'proveedor_id' => 'required|exists:proveedores,id',
+            'proveedor_id' => ['required',
+            Rule::exists('proveedores', 'id')->where(function ($query){
+                $query->where('activo',true);
+            }),
+            ], 
 
             // DetalleCompra
             'detalles' => 'required|array|min:1',
@@ -74,7 +80,7 @@ class StoreCompraRequest extends FormRequest
             'fecha_vencimiento_pago.date' => 'La fecha de vencimiento de pago debe ser una fecha válida',
             'fecha_vencimiento_pago.after_or_equal' => 'La fecha de vencimiento de pago no puede ser anterior a la fecha de emisión',
             'proveedor_id.required' => 'El proveedor es obligatorio',
-            'proveedor_id.exists' => 'El proveedor seleccionado no existe',
+            'proveedor_id.exists' => 'El proveedor seleccionado no está disponible o no existe',
 
             'detalles.required' => 'Debe agregar al menos un producto a la compra',
             'detalles.min' => 'Debe agregar al menos un producto a la compra',
