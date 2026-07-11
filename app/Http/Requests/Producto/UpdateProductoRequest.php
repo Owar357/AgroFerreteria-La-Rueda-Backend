@@ -23,7 +23,7 @@ class UpdateProductoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'codigo' => 'required|string|min:2|max:14|unique:productos,codigo,' . $this->route('producto')->id . '|regex:/^[A-Za-z0-9-]+$/',
+            'codigo' => 'required|string|min:2|max:14|unique:productos,codigo,' . $this->route('producto') . '|regex:/^[A-Za-z0-9-]+$/',
             'nombre' => 'sometimes|string|max:100',
             'fabricante' => 'sometimes|nullable|max:100',
             'categoria_id' => 'sometimes|exists:categorias,id',

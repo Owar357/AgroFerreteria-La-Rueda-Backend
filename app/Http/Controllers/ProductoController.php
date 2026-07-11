@@ -171,7 +171,7 @@ class ProductoController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(RequestProductoUpdate $request, string $id)
+    public function update(UpdateProductoRequest $request, string $id)
     {
         try {
 
@@ -189,11 +189,11 @@ class ProductoController extends Controller
                 ]);
             }
 
-            $producto->update(request->validate());
+            $producto->update($request->validated());
 
             return response()->json([
                 'message' => 'Producto actulizado correctamente.',
-                'Producto' => $producto - fresh(),
+                'Producto' => $producto -> fresh(),
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
