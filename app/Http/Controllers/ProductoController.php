@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use App\Http\Requests\Producto\StoreProductoRequest;
+use App\Http\Requests\Producto\UpdateProductoRequest;
 
 class ProductoController extends Controller
 {
@@ -170,9 +171,36 @@ class ProductoController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateProductoRequest $request, string $id)
     {
-        //
+        try {
+
+            if (! auth()->user()->hasRole('ADMIN')) {
+                return response()->json([
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
+            $producto = Producto::find($id);
+
+            if (! $producto) {
+                return response()->json([
+                    'message' => 'Producto no encontrado'
+                ]);
+            }
+
+            $producto->update($request->validated());
+
+            return response()->json([
+                'message' => 'Producto actulizado correctamente.',
+                'Producto' => $producto -> fresh(),
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al actualizar el producto',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function buscarVenta(Request $request)
