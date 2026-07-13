@@ -26,7 +26,7 @@
                 $table->foreignId('cliente_id')->nullable()->constrained('clientes');
                 $table->foreignId('vendido_por')->constrained('users');
                 $table->foreignId('anulado_por')->nullable()->constrained('users');
-                $table->foreignId('apertura_caja_id')->constrained('turnos_caja');
+                $table->foreignId('apertura_ventas_id')->constrained('apertura_ventas');
                 $table->timestamps();
                 $table->index('created_at');
             });
