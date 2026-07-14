@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('apertura_ventas', function (Blueprint $table) {
             $table->id();
             $table->dateTime('fecha_hora_apertura')->index();
-            $table->dateTime('fecha_hora_cierra')->index();
+            $table->dateTime('fecha_hora_cierre')->index()->nullable();
             $table->decimal('monto_inicial',15,2);
             $table->decimal('monto_esperado',15,2)->nullable();
             $table->decimal('monto_contado',15,2)->nullable();

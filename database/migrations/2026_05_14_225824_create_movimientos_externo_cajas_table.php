@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('movimientos_externo_cajas', function (Blueprint $table) {
             $table->id();
+            $table->boolean('es_anulado')->default(false);
             $table->enum('tipo_movimiento',['ENTRADA','SALIDA'])->index();
             $table->decimal('monto',15,2);
             $table->string('motivo',255);
