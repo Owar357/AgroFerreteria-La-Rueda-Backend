@@ -17,8 +17,8 @@ return new class extends Migration
             $table->enum('tipo_movimiento',['ENTRADA','SALIDA'])->index();
             $table->decimal('monto',15,2);
             $table->string('motivo',255);
-            $table->foreignId('apertura_ventas_id')->constrained('apertura_ventas');
-            $table->foreignId('usuario_id')->constrained('users');
+            $table->foreignId('apertura_venta_id')->constrained('apertura_ventas');
+            $table->foreignId('user_id')->constrained('users');
             $table->timestamps();
         });
     }

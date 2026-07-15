@@ -21,7 +21,7 @@ return new class extends Migration
             $table->decimal('diferencia',15,2)->nullable();
             $table->enum('estado_arqueo',['SOBRANTE','FALTANTE','CUADRADO'])->nullable();
             $table->enum('estado',['ABIERTA','CERRADA'])->index();
-            $table->foreignId('apertura_cajas_id')->constrained('apertura_cajas');
+            $table->foreignId('apertura_caja_id')->constrained('apertura_cajas');
             $table->foreignId('cajero_id')->constrained('users');
             $table->foreignId('cerrada_por')->nullable()->constrained('users');  
             $table->timestamps();
