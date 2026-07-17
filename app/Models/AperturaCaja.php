@@ -31,8 +31,12 @@ class AperturaCaja extends Model
         return $this->belongsTo(User::class,'abierta_por');
     }
 
-    
+
     public function cerradaPor(){
         return $this->belongsTo(User::class,'cerrada_por');
+    }
+
+    public function ventas(){
+        return $this->hasMany(Venta::class);
     }
 }

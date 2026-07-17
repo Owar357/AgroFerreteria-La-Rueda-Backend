@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\CajaController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\CodigoBarraController;
@@ -44,6 +45,8 @@ Route::middleware('auth:api')->group(function () {
     Route::patch('/proveedores/{id}/desactivar',[ProveedorController::class,'desactivarProveedor' ]);
     Route::get('/proveedor/proveedores', [ProveedorController::class, 'traerNombreProveedores']);
     Route::apiResource('proveedores', ProveedorController::class);
+
+    Route::post('/caja/apertura',[CajaController::class,'abrirCaja']);
 });
 
 Route::get('/reportes/ventas', [ReporteController::class, 'ventas']);

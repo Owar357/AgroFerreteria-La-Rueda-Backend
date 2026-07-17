@@ -4,8 +4,9 @@ namespace App\Http\Requests\Caja;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Override;
 
-class AbrirAperturaCajaRequest extends FormRequest
+class AbrirAperturaVentaRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -20,22 +21,20 @@ class AbrirAperturaCajaRequest extends FormRequest
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
-     public function rules(): array
+    public function rules(): array
     {
         return [
-            "email" => "required|email",
-            "password" => "required|string"
+            'monto_inicial' => 'required|numeric|min:0.01', 
         ];
     }
 
     
     public function messages()
     {
-        return [
-            "email.required" => "El email es obligatario",
-            "email.email" => "El email no tiene el formato válido",
-            "password.required" => "La contraseña es obligatoria",
+        return[
+            'monto_inicial.required' => 'El monto inicial es requerido para apertura la venta',
+            'monto_inicial.numeric' => 'EL monto inicial deber ser un valor númerico valido',
+            'monto_inicial.min' => 'El monto incial debe ser un valor positivo diferente de 0' 
         ];
-    }   
-    
+    }
 }
