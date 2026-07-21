@@ -116,6 +116,12 @@ class CategoriaController extends Controller
                 'categoria' => $categoria->fresh(),
             ], 200);
 
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Error de validación',
+                'errors'  => $e->errors(),
+            ], 422);
+
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar la categoría',

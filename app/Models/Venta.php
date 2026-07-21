@@ -20,7 +20,8 @@ class Venta extends Model
         'cliente_id',
         'vendido_por',
         'anulado_por',
-        'apertura_venta_id',
+        'apertura_caja_id',
+        
     ];
 
     protected $casts = [

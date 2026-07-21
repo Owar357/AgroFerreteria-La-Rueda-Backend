@@ -9,7 +9,6 @@ class DetalleCompra extends Model
     protected $table = 'detalles_compra';
 
     protected $fillable = [
-        'es_anulado',
         'cantidad_facturada',
         'cantidad_bonificada',
         'precio_unitario_factura',

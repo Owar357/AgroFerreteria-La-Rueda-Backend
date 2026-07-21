@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('pin_caja',255)->nullable();
+            $table->string('pin_caja',255)->nullable()->index();
             $table->boolean('activo')->default(true);
             $table->foreignId('registrado_por')->nullable()->constrained('users')->nullOnDelete();
             $table->rememberToken();
