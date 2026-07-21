@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Venta\StoreVentaRequest;
+use App\Models\AperturaVenta;
 use App\Models\DetalleVenta;
 use App\Models\Lote;
 use App\Models\LoteDetalleVenta;
@@ -21,7 +22,7 @@ class VentaController extends Controller
         try {
 
             $resultados = Venta::query()
-                ->with(['cliente:id,nombre,tipo_persona','vendidoPor:id,name'])
+                ->with(['cliente:id,nombre,tipo_persona', 'vendidoPor:id,name'])
                 ->select([
                     'id',
                     'numero_factura',
@@ -29,26 +30,25 @@ class VentaController extends Controller
                     'tipo_pago',
                     'estado',
                     'cliente_id',
-                    'apertura_caja_id',
+                    'apertura_venta_id',
                     'created_at',
-                    'vendido_por'
+                    'vendido_por',
                 ]);
 
             if ($request->cliente) {
                 $resultados->where('cliente_id', $request->cliente);
-            }elseif($request->input('fecha_desde') &&  $request->input('fecha_hasta')){
-                 $resultados->whereBetween('created_at', [
-               Carbon::parse($request->input('fecha_desde'))->startOfDay(),
-               Carbon::parse($request->input('fecha_hasta'))->endOfDay()
+            } elseif ($request->input('fecha_desde') && $request->input('fecha_hasta')) {
+                $resultados->whereBetween('created_at', [
+                    Carbon::parse($request->input('fecha_desde'))->startOfDay(),
+                    Carbon::parse($request->input('fecha_hasta'))->endOfDay(),
                 ]);
-            } elseif($request->input('fecha_desde')){
-                
-               $resultados->whereDate('created_at','>=', $request->input('fecha_desde'));
-            }else{
-                 $resultados->whereDate('created_at',today());
+            } elseif ($request->input('fecha_desde')) {
+
+                $resultados->whereDate('created_at', '>=', $request->input('fecha_desde'));
+            } else {
+                $resultados->whereDate('created_at', today());
 
             }
-           
 
             $ventas = $resultados
                 ->orderBy('created_at', 'desc')
@@ -59,7 +59,7 @@ class VentaController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'ocurrio un error interno y no se pudo obtener los registros' , $e->getMessage()
+                'message' => 'ocurrio un error interno y no se pudo obtener los registros',
             ], 500);
         }
     }
@@ -71,11 +71,16 @@ class VentaController extends Controller
     {
         try {
 
-            DB::transaction(function () use ($request) {
+            $aperturaVenta = AperturaVenta::where('cajero_id', auth()->id())
+                ->where('estado', 'ABIERTA')
+                ->first();
+
+            DB::transaction(function () use ($request, &$aperturaVenta) {
 
                 $venta = Venta::create([
                     ...$request->safe()->except(['detalles']),
                     'numero_factura' => $this->numeroFactura(),
+                    'apertura_venta_id' => $aperturaVenta?->id,
                     'vendido_por' => auth()->id(),
                 ]);
 
@@ -114,7 +119,7 @@ class VentaController extends Controller
                                 'cantidad_tomada' => $cantidadSolicitada,
                             ]);
 
-                            $lote->cantidad_actual = bcsub($lote->cantidad_actual, $cantidadSolicitada,3);
+                            $lote->cantidad_actual = bcsub($lote->cantidad_actual, $cantidadSolicitada, 3);
 
                             if ($lote->cantidad_actual == 0) {
                                 $lote->estado = 'AGOTADO';
@@ -128,7 +133,7 @@ class VentaController extends Controller
 
                             LoteDetalleVenta::create([
                                 'detalle_venta_id' => $detalleVenta->id,
-                                'lote_id' => $lote->id, 
+                                'lote_id' => $lote->id,
                                 'cantidad_tomada' => $stockEntregado,
                             ]);
 
@@ -136,7 +141,7 @@ class VentaController extends Controller
                             $lote->estado = 'AGOTADO';
                             $lote->update();
 
-                            $cantidadSolicitada = bcsub($cantidadSolicitada, $stockEntregado, 3) ;
+                            $cantidadSolicitada = bcsub($cantidadSolicitada, $stockEntregado, 3);
 
                         }
 
@@ -149,13 +154,14 @@ class VentaController extends Controller
             return response()->json([
                 'status' => 'ok',
                 'message' => 'Venta registrada con éxito',
+                'apertura_pendiente' => is_null($aperturaVenta),
             ], 201);
 
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'No hay stock suficiente y no se puedo registrar la venta',
-               
+
             ], 500);
 
         }
@@ -164,27 +170,25 @@ class VentaController extends Controller
     /**
      * Display the specified resource.
      */
-        public function show(string $id)
-        {
-            try {
-            
-                $detallesVenta = DetalleVenta::where('venta_id',$id)
+    public function show(string $id)
+    {
+        try {
+
+            $detallesVenta = DetalleVenta::where('venta_id', $id)
                 ->get();
 
-                return response()->json([
-                    'status' => 'ok',
-                    'data' => $detallesVenta
-                ],200);
+            return response()->json([
+                'status' => 'ok',
+                'data' => $detallesVenta,
+            ], 200);
 
-            } catch (\Exception $e) {
-                response()->json([
-                    'status' => 'Error',
-                    'message' => 'Error interno del servidor'
-                ],500);
-            }
+        } catch (\Exception $e) {
+            response()->json([
+                'status' => 'Error',
+                'message' => 'Error interno del servidor',
+            ], 500);
         }
-
-   
+    }
 
     public function numeroFactura()
     {

@@ -31,7 +31,7 @@ class StoreVentaRequest extends FormRequest
             'efectivo_recibido' => 'nullable|numeric|min:0',
             'cambio' => 'nullable|numeric|min:0',
             'cliente_id' => 'nullable|exists:clientes,id',
-            'apertura_caja_id' => 'required|exists:turnos_caja,id',
+            
 
             'detalles' => 'required|array|min:1',
             'detalles.*.nombre_producto' => 'required|string',
@@ -64,8 +64,7 @@ class StoreVentaRequest extends FormRequest
             'cambio.numeric' => 'El cambio debe ser un valor numérico ',
             'cambio.min' => 'El cambio no puede ser negativo',
             'cliente_id.exists' => 'El cliente seleccionado no existe',
-            'apertura_caja_id.required' => 'Hay que indicar una apertura de caja disponible',
-            'apertura_caja_id.exists' => 'Actualmente no existe una apertura de caja disponible',    
+           
             
             'detalles.required' => 'Debe agregar al menos un producto a la venta',
             'detalles.min' => 'Debe agregar al menos un producto a la venta',
