@@ -11,12 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('apertura_cajas', function (Blueprint $table) {
+        Schema::create('turnos_caja', function (Blueprint $table) {
             $table->id();
             $table->timestamp('fecha_hora_apertura')->index();
             $table->timestamp('fecha_hora_cierre')->nullable();
+            $table->decimal('monto_inicial',15,2);
+            $table->decimal('monto_esperado',15,2)->nullable();
+            $table->decimal('monto_real_caja',15,2)->nullable();
+            $table->decimal('diferencia',15,2)->nullable();
             $table->enum('estado',['ABIERTO','CERRADO'])->index();
-            $table->unsignedBigInteger('sucursal_id')->nullable();
             $table->foreignId('abierta_por')->constrained('users');
             $table->foreignId('cerrada_por')->nullable()->constrained('users');
             $table->timestamps();

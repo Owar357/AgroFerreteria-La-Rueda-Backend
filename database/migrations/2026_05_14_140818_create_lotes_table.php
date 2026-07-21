@@ -20,7 +20,7 @@ return new class extends Migration
             $table->decimal('cantidad_actual',15,3);
             $table->decimal('costo_unitario_compra',15,4);
             $table->decimal('porcentaje_descuento', 15,2)->nullable();
-            $table->enum('estado', ['ACTIVO','DAÑADO','AGOTADO','VENCIDO','ANULADO'])->default('ACTIVO')->index();
+            $table->enum('estado', ['ACTIVO','DAÑADO','AGOTADO','VENCIDO'])->default('ACTIVO')->index();
             $table->foreignId('presentacion_id')->constrained('presentaciones');         
             $table->timestamps();
         });
