@@ -21,7 +21,6 @@ class DatabaseSeeder extends Seeder
             CodigoBarraSeeder::class,
             ProveedorSeeder::class,
             CompraSeeder::class,
-            TurnoCajaSeeder::class
         ]);
     }
 }
