@@ -18,13 +18,13 @@ class Lote extends Model
         'presentacion_id',
     ];
 
-    protected $casts = [
-        'fecha_vencimiento'     => 'date',
-        'cantidad_inicial'      => 'decimal:3',
-        'cantidad_actual'       => 'decimal:3',
-        'costo_unitario_compra' => 'decimal:4',
-        'porcentaje_descuento'  => 'decimal:2',
-    ];
+        protected $casts = [
+            'fecha_vencimiento'     => 'date',
+            'cantidad_inicial'      => 'decimal:3',
+            'cantidad_actual'       => 'decimal:3',
+            'costo_unitario_compra' => 'decimal:4',
+            'porcentaje_descuento'  => 'decimal:2',
+        ];
 
     
     public function presentacion()
