@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Models\Venta;
 use Hash;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class CajaController extends Controller
 {
@@ -18,34 +20,12 @@ class CajaController extends Controller
     {
         $usuario = User::where('email', $email)->first();
 
-        if (! $usuario) {
-            return [
-                'error' => true,
-                'response' => response()->json([
-                    'status' => 'error',
-                    'message' => 'Credenciales inválidas', ], 401),
-            ];
-        }
-
-        if (! Hash::check($password, $usuario->password)) {
-            return [
-                'error' => true,
-                'response' => response()->json([
-                    'status' => 'error',
-                    'message' => 'Credenciales inválidas',
-                ], 401),
-            ];
+        if (! $usuario || ! Hash::check($password, $usuario->password)) {
+            return ['error' => true, 'message' => 'Credenciales inválidas', 'code' => 401];
         }
 
         if (! $usuario->hasRole('ADMIN')) {
-
-            return [
-                'error' => true,
-                'response' => response()->json([
-                    'status' => 'error',
-                    'message' => 'No tienes permisos para realizar esta acción',
-                ], 403),
-            ];
+            return ['error' => true, 'message' => 'No tienes permisos para realizar esta acción', 'code' => 403];
         }
 
         return ['error' => false, 'usuario' => $usuario];
@@ -58,7 +38,10 @@ class CajaController extends Controller
             $resultado = $this->verificarCredenciales($request->email, $request->password);
 
             if ($resultado['error']) {
-                return $resultado['response'];
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $resultado['message'],
+                ], $resultado['code']);
             }
 
             $usuario = $resultado['usuario'];
@@ -126,7 +109,7 @@ class CajaController extends Controller
                 'fecha_hora_apertura' => now(),
             ]);
 
-            $cantidadVentasVinculadas = Venta::whereNull('apertura_venta_id')
+            Venta::whereNull('apertura_venta_id')
                 ->where('vendido_por', auth()->id())
                 ->update(['apertura_venta_id' => $abrirVenta->id]);
 
@@ -143,16 +126,20 @@ class CajaController extends Controller
         }
     }
 
-    public function CuadrarVenta(Request $request)
+    public function cuadrarVenta(Request $request)
     {
         try {
 
-           $resultado = $this->verificarCredenciales($request->email, $request->password);
- 
-           if($resultado['error']){
-               return $resultado['response'];
-           }           
+            $resultado = $this->verificarCredenciales($request->email, $request->password);
 
+            if ($resultado['error']) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $resultado['message'],
+                ], $resultado['code']);
+            }
+
+            $admin = $resultado['usuario'];
 
             $aperturaVenta = AperturaVenta::where('cajero_id', auth()->id())
                 ->where('estado', 'ABIERTA')
@@ -179,34 +166,126 @@ class CajaController extends Controller
             $diferencia = bcsub($request->monto_contado, $montoEsperado, 2);
 
             $tipoDiferencia = match (true) {
-              $diferencia >  0 => 'SOBRANTE',
-              $diferencia <  0 => 'FALTANTE',
-              default => 'CUADRADO'
+                $diferencia > 0 => 'SOBRANTE',
+                $diferencia < 0 => 'FALTANTE',
+                default => 'CUADRADO'
             };
+
+            $token = Str::random(40);
+
+            Cache::put("autorizacion_cierre_{$token}", [
+                'admin_id' => $admin->id,
+                'apertura_venta_id' => $aperturaVenta->id,
+            ], now()->addMinutes(10));
 
             return response()->json([
                 'status' => 'ok',
+                'token_autorizacion' => $token,
                 'monto_esperado' => $montoEsperado,
                 'monto_contado' => $request->monto_contado,
                 'diferencia' => $diferencia,
                 'tipo_diferencia' => $tipoDiferencia,
             ], 200);
 
-        } catch(ModelNotFoundException $m){
-          return response()->json([
-              'status' => 'error',
-              'message' => 'No tiene una apertura de venta activa para poder cerrarla'
-            ],404);
-        }catch (\Exception $e) {
+        } catch (ModelNotFoundException $m) {
             return response()->json([
-              'status' => 'error',
-              'message' => 'Error interno del servidor'
-            ],500);
+                'status' => 'error',
+                'message' => 'No tiene una apertura de venta activa para poder cerrarla',
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno del servidor',
+            ], 500);
         }
     }
 
+    public function cerrarVentaCaja(Request $request)
+    {
+        try {
+            $datos = Cache::get("autorizacion_cierre_{$request->token_autorizacion}");
 
-    public function CerrarVentaCaja(Request $request){
-      
+            if (! $datos) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Token de autorización inválido o expirado',
+                ], 401);
+            }
+
+            Cache::forget("autorizacion_cierre_{$request->token_autorizacion}");
+
+            $adminId = $datos['admin_id'];
+
+            DB::transaction(function () use ($request, $adminId) {
+
+                $aperturaVenta = AperturaVenta::where('cajero_id', auth()->id())
+                    ->where('estado', 'ABIERTA')
+                    ->firstOrFail();
+
+                $totalVentaEfectivo = Venta::where('apertura_venta_id', $aperturaVenta->id)
+                    ->where('tipo_pago', 'EFECTIVO')
+                    ->selectRaw('COALESCE(SUM(efectivo_recibido - cambio), 0) as total')
+                    ->value('total');
+
+                $movimientos = MovimientoExternoCaja::where('apertura_venta_id', $aperturaVenta->id)
+                    ->where('es_anulado', false)
+                    ->selectRaw("
+                    COALESCE(SUM(CASE WHEN tipo_movimiento = 'ENTRADA' THEN monto ELSE 0 END), 0) as total_entradas,
+                    COALESCE(SUM(CASE WHEN tipo_movimiento = 'SALIDA' THEN monto ELSE 0 END), 0) as total_salidas
+                ")
+                    ->first();
+
+                $movimientosNetos = bcsub($movimientos->total_entradas, $movimientos->total_salidas, 2);
+
+                $montoEsperado = bcadd(
+                    bcadd($aperturaVenta->monto_inicial, $totalVentaEfectivo, 2),
+                    $movimientosNetos,
+                    2
+                );
+
+                $diferencia = bcsub($request->monto_contado, $montoEsperado, 2);
+
+                $tipoDiferencia = match (true) {
+                    $diferencia > 0 => 'SOBRANTE',
+                    $diferencia < 0 => 'FALTANTE',
+                    default => 'CUADRADO',
+                };
+
+                $aperturaVenta->update([
+                    'fecha_hora_cierre' => now(),
+                    'monto_esperado' => $montoEsperado,
+                    'monto_contado' => $request->monto_contado,
+                    'diferencia' => $diferencia,
+                    'estado_arqueo' => $tipoDiferencia,
+                    'estado' => 'CERRADA',
+                    'cerrada_por' => $adminId,
+                ]);
+
+                $aperturaCaja = AperturaCaja::where('estado', 'ABIERTO')->firstOrFail();
+
+                $aperturaCaja->update([
+                    'fecha_hora_cierre' => now(),
+                    'estado' => 'CERRADO',
+                    'cerrada_por' => $adminId,
+                ]);
+            });
+
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Caja cerrada correctamente',
+            ], 200);
+
+        } catch (ModelNotFoundException $m) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No se encontró una apertura activa para cerrar',
+            ], 404);
+
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno del servidor',
+            ], 500);
+        }
     }
 }
