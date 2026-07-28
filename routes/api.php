@@ -6,6 +6,7 @@ use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\CodigoBarraController;
 use App\Http\Controllers\CompraController;
+use App\Http\Controllers\LoteController;
 use App\Http\Controllers\PresentacionController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProveedorController;
@@ -33,6 +34,7 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('clientes', ClienteController::class);
     Route::apiResource('ventas', VentaController::class);
     Route::apiResource('categorias', CategoriaController::class);
+    Route::apiResource('lotes', LoteController::class);
 
     Route::get('productos/buscar-venta', [ProductoController::class, 'buscarVenta']);
     Route::get('productos/buscar-producto/compra', [ProductoController::class, 'busquedaParaCompra']);
