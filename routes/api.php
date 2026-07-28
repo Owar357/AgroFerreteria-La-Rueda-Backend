@@ -47,6 +47,7 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('proveedores', ProveedorController::class);
 
     Route::post('/caja/apertura',[CajaController::class,'abrirCaja']);
+    Route::post('/caja/apertura-venta', [CajaController::class, 'abrirVenta']);
 });
 
 Route::get('/reportes/ventas', [ReporteController::class, 'ventas']);

@@ -34,7 +34,10 @@ class UpdateProveedorRequest extends FormRequest
                 'regex:/^[a-z0-9_.+\-]+@[a-z0-9\-]+\.[a-z]{2,}$/',
             ],
             'direccion' => 'sometimes|string|max:250',
+             'telefono' => 'sometimes|string|max:20',
+            'direccion' => 'sometimes|string|max:260',
         ];
+        
     }
 
     public function messages(): array

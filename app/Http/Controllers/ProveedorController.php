@@ -131,7 +131,8 @@ class ProveedorController extends Controller
           
         return response()->json([
             'status' => 'ok',
-            'message' => 'proveedor editado correctamente'
+            'message' => 'proveedor editado correctamente',
+            'data' => $proveedore,
         ],200);
           
         } catch (\Throwable $th) {
