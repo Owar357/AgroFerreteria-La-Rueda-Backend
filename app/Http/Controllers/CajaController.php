@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Models\Venta;
 use Hash;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -163,7 +165,7 @@ class CajaController extends Controller
             $montoEsperado = bcadd(bcadd($aperturaVenta->monto_inicial, $totalVentaEfectivo, 2),
                 $movimientosNetos, 2);
 
-            $diferencia = bcsub($request->monto_contado, $montoEsperado, 2);
+                $diferencia = bcsub($request->monto_contado, $montoEsperado, 2);
 
             $tipoDiferencia = match (true) {
                 $diferencia > 0 => 'SOBRANTE',
@@ -182,7 +184,7 @@ class CajaController extends Controller
                 'status' => 'ok',
                 'token_autorizacion' => $token,
                 'monto_esperado' => $montoEsperado,
-                'monto_contado' => $request->monto_contado,
+                'monto_contado' => bcadd($request->monto_contado, 0, 2),
                 'diferencia' => $diferencia,
                 'tipo_diferencia' => $tipoDiferencia,
             ], 200);

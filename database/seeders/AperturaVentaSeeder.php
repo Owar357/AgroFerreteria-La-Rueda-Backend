@@ -2,6 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\AperturaCaja;
+use App\Models\AperturaVenta;
+use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
