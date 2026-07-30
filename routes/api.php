@@ -48,8 +48,11 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/proveedor/proveedores', [ProveedorController::class, 'traerNombreProveedores']);
     Route::apiResource('proveedores', ProveedorController::class);
 
+
     Route::post('/caja/apertura',[CajaController::class,'abrirCaja']);
-    Route::post('/caja/apertura-venta', [CajaController::class, 'abrirVenta']);
+    Route::post('/caja/venta/apertura',[CajaController::class,'abrirVenta']);
+    Route::post('/caja/venta/cuadre',[CajaController::class,'cuadrarVenta']);
+    Route::patch('/caja/venta/cierre', [CajaController::class, 'cerrarVentaCaja']);
 });
 
 Route::get('/reportes/ventas', [ReporteController::class, 'ventas']);
