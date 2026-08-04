@@ -12,9 +12,9 @@ use App\Models\Venta;
 use Hash;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CajaController extends Controller
 {
@@ -131,7 +131,6 @@ class CajaController extends Controller
     public function cuadrarVenta(Request $request)
     {
         try {
-
             $resultado = $this->verificarCredenciales($request->email, $request->password);
 
             if ($resultado['error']) {
@@ -145,33 +144,47 @@ class CajaController extends Controller
 
             $aperturaVenta = AperturaVenta::where('cajero_id', auth()->id())
                 ->where('estado', 'ABIERTA')
+                ->with('cajero:id,name')
                 ->firstOrFail();
 
             $totalVentaEfectivo = Venta::where('apertura_venta_id', $aperturaVenta->id)
                 ->where('tipo_pago', 'EFECTIVO')
-                ->selectRaw('COALESCE(SUM(efectivo_recibido - cambio), 0 ) as total')
+                ->selectRaw('COALESCE(SUM(efectivo_recibido - cambio), 0) as total')
                 ->value('total');
+
+            $totalVentaTransferencia = Venta::where('apertura_venta_id', $aperturaVenta->id)
+                ->where('tipo_pago', 'TRANSFERENCIA')
+                ->sum('total');
 
             $movimientos = MovimientoExternoCaja::where('apertura_venta_id', $aperturaVenta->id)
                 ->where('es_anulado', false)
                 ->selectRaw("
-       COALESCE(SUM(CASE WHEN tipo_movimiento = 'ENTRADA' THEN monto ELSE 0  END), 0 ) as total_entradas,
-       COALESCE(SUM(CASE WHEN tipo_movimiento = 'SALIDA' THEN  monto ELSE 0 END), 0) as total_salidas
-      ")
+                COALESCE(SUM(CASE WHEN tipo_movimiento = 'ENTRADA' THEN monto ELSE 0 END), 0) as total_entradas,
+                COALESCE(SUM(CASE WHEN tipo_movimiento = 'SALIDA' THEN monto ELSE 0 END), 0) as total_salidas
+            ")
                 ->first();
 
             $movimientosNetos = bcsub($movimientos->total_entradas, $movimientos->total_salidas, 2);
 
-            $montoEsperado = bcadd(bcadd($aperturaVenta->monto_inicial, $totalVentaEfectivo, 2),
-                $movimientosNetos, 2);
+            $montoEsperado = bcadd(
+                bcadd($aperturaVenta->monto_inicial, $totalVentaEfectivo, 2),
+                $movimientosNetos,
+                2
+            );
 
-                $diferencia = bcsub($request->monto_contado, $montoEsperado, 2);
+            $diferencia = bcsub($request->monto_contado, $montoEsperado, 2);
 
             $tipoDiferencia = match (true) {
                 $diferencia > 0 => 'SOBRANTE',
                 $diferencia < 0 => 'FALTANTE',
-                default => 'CUADRADO'
+                default => 'CUADRADO',
             };
+
+            $retiroEfectivo = bcsub($request->monto_contado, $aperturaVenta->monto_inicial, 2);
+
+            if (bccomp($retiroEfectivo, '0', 2) < 0) {
+                $retiroEfectivo = '0.00';
+            }
 
             $token = Str::random(40);
 
@@ -182,10 +195,19 @@ class CajaController extends Controller
 
             return response()->json([
                 'status' => 'ok',
+                'nombre_cajero' => $aperturaVenta->cajero->name,
+                'numero_caja' => '001',
+                'fecha_hora' => $aperturaVenta->fecha_hora_apertura->format('d/m/y H:i:s'),
+                'monto_inicial' => $aperturaVenta->monto_inicial,
+                'total_entradas' => $movimientos->total_entradas,
+                'total_salidas' => $movimientos->total_salidas,
+                'total_ventas_efectivo' => $totalVentaEfectivo,
+                'total_ventas_transferencia' => $totalVentaTransferencia,
                 'token_autorizacion' => $token,
                 'monto_esperado' => $montoEsperado,
                 'monto_contado' => bcadd($request->monto_contado, 0, 2),
                 'diferencia' => $diferencia,
+                'retiro_efectivo' => $retiroEfectivo,
                 'tipo_diferencia' => $tipoDiferencia,
             ], 200);
 
