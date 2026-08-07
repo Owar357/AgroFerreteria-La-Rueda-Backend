@@ -56,3 +56,4 @@ Route::middleware('auth:api')->group(function () {
 });
 
 Route::get('/reportes/ventas', [ReporteController::class, 'ventas']);
+Route::get('/reportes/ticket/{id}', [ReporteController::class, 'ticket']);
