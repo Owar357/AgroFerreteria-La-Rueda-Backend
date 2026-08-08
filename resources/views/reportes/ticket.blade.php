@@ -127,7 +127,7 @@ td{
 <div class="info">
 <b>Factura:</b> {{ $venta->numero_factura }}<br>
 <b>Fecha:</b> {{ $venta->created_at->format('d/m/Y h:i:s A') }}<br>
-<b>Cliente:</b> {{ $venta->cliente->nombre }}<br>
+<b>Cliente:</b> {{ $venta->cliente?->nombre ?? 'Consumidor Final' }}<br>
 <b>Atendió:</b> {{ $venta->vendidoPor->name }}
 </div>
 
