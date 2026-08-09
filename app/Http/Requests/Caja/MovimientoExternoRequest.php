@@ -23,8 +23,9 @@ class MovimientoExternoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tipo_movimiento' => "required|in:ENTRADA','SALIDA",
-            'monto' => "required|min:0.01"
+            'tipo_movimiento' => "required|in:ENTRADA,SALIDA",
+            'monto' => "required|numeric|min:0.01",
+            'motivo' =>  "required|string|max:255", 
         ];
     }
 }

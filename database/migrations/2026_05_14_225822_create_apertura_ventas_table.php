@@ -19,6 +19,7 @@ return new class extends Migration
             $table->decimal('monto_esperado',15,2)->nullable();
             $table->decimal('monto_contado',15,2)->nullable();
             $table->decimal('diferencia',15,2)->nullable();
+            $table->string('justificacion')->nullable();
             $table->enum('estado_arqueo',['SOBRANTE','FALTANTE','CUADRADO'])->nullable();
             $table->enum('estado',['ABIERTA','CERRADA'])->index();
             $table->foreignId('apertura_caja_id')->constrained('apertura_cajas');

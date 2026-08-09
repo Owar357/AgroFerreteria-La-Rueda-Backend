@@ -14,11 +14,13 @@ return new class extends Migration
         Schema::create('movimientos_externo_cajas', function (Blueprint $table) {
             $table->id();
             $table->boolean('es_anulado')->default(false);
-            $table->enum('tipo_movimiento',['ENTRADA','SALIDA'])->index();
-            $table->decimal('monto',15,2);
-            $table->string('motivo',255);
+            $table->enum('tipo_movimiento', ['ENTRADA', 'SALIDA'])->index();
+            $table->decimal('monto', 15, 2);
+            $table->string('motivo', 255);
             $table->foreignId('apertura_venta_id')->constrained('apertura_ventas');
             $table->foreignId('user_id')->constrained('users');
+            $table->foreignId('anulado_por')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('anulado_at')->nullable();
             $table->timestamps();
         });
     }
