@@ -78,21 +78,10 @@ class ProveedorController extends Controller
                 ], 403);
             }
 
-        $request->validate([
-            'nombre' => 'required',
-            'direccion' => 'required',
-            'correo' => 'nullable|unique:proveedores,correo',
-            'telefono' => 'required',
-            'tipo_persona' => 'required',
-            'activo' => 'nullable'
-        ]);
-
-
         DB::beginTransaction();
         try {
             $proveedor = Proveedor::create([
-            ...$request->validated(),
-            ]);
+            ...$request->validated()  ]);
             DB::commit();
 
             return response()->json([

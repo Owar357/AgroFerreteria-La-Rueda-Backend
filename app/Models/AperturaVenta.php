@@ -15,6 +15,7 @@ class AperturaVenta extends Model
         'monto_esperado',
         'monto_contado',
         'diferencia',
+        'justificacion',
         'estado_arqueo',
         'estado',
         'apertura_caja_id',

@@ -208,6 +208,7 @@ class CajaController extends Controller
                 'monto_contado' => bcadd($request->monto_contado, 0, 2),
                 'diferencia' => $diferencia,
                 'retiro_efectivo' => $retiroEfectivo,
+                'fondo_siguiente_turno' => bcsub($request->monto_contado, $retiroEfectivo, 2),
                 'tipo_diferencia' => $tipoDiferencia,
             ], 200);
 
@@ -275,6 +276,10 @@ class CajaController extends Controller
                     default => 'CUADRADO',
                 };
 
+                if ($tipoDiferencia !== 'CUADRADO' && empty($request->justificacion)) {
+                    throw new \InvalidArgumentException('La justificación es obligatoria cuando hay diferencia de caja');
+                }
+
                 $aperturaVenta->update([
                     'fecha_hora_cierre' => now(),
                     'monto_esperado' => $montoEsperado,
@@ -282,6 +287,7 @@ class CajaController extends Controller
                     'diferencia' => $diferencia,
                     'estado_arqueo' => $tipoDiferencia,
                     'estado' => 'CERRADA',
+                    'justificacion' => $request->justificacion,
                     'cerrada_por' => $adminId,
                 ]);
 
@@ -298,6 +304,12 @@ class CajaController extends Controller
                 'status' => 'ok',
                 'message' => 'Caja cerrada correctamente',
             ], 200);
+
+        } catch (\InvalidArgumentException $ex) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $ex->getMessage(),
+            ], 422);
 
         } catch (ModelNotFoundException $m) {
             return response()->json([

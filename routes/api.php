@@ -7,6 +7,7 @@ use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\CodigoBarraController;
 use App\Http\Controllers\CompraController;
 use App\Http\Controllers\LoteController;
+use App\Http\Controllers\MovimientoExternoCajaController;
 use App\Http\Controllers\PresentacionController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProveedorController;
@@ -53,6 +54,8 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/caja/venta/apertura',[CajaController::class,'abrirVenta']);
     Route::post('/caja/venta/cuadre',[CajaController::class,'cuadrarVenta']);
     Route::patch('/caja/venta/cierre', [CajaController::class, 'cerrarVentaCaja']);
+    Route::patch('/caja/movimientos/{movimiento}/anular',[MovimientoExternoCajaController::class, 'anularMovimiento']);
+    Route::apiResource('caja/movimientoExterno', MovimientoExternoCajaController::class)->only(['index', 'store','show']);
 });
 
 Route::get('/reportes/ventas', [ReporteController::class, 'ventas']);

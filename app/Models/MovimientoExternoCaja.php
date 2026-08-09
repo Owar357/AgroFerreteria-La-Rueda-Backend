@@ -13,8 +13,10 @@ class MovimientoExternoCaja extends Model
         'tipo_movimiento',
         'monto',
         'motivo',
-        'apertura_venta_id',  
-        'user_id'
+        'apertura_venta_id',
+        'user_id',
+        'anulado_por',
+        'anulado_at',
     ];
 
     protected $casts = [
@@ -22,11 +24,13 @@ class MovimientoExternoCaja extends Model
         'monto' => 'decimal:2',
     ];
 
-  public function aperturaVenta(){
-    return $this->belongsTo(AperturaVenta::class,'apertura_venta_id');
-  }
+    public function aperturaVenta()
+    {
+        return $this->belongsTo(AperturaVenta::class, 'apertura_venta_id');
+    }
 
-  public function user(){
-    return $this->belongsTo(User::class,'user_id'); 
-  }
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }
