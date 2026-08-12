@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\Presentaciones\StorePresentacionesRequest;
+use App\Http\Requests\Presentacion\StorePresentacionesRequest;
+use App\Http\Requests\Presentacion\UpdatePresentacionesRequest;
 use App\Models\Presentacion;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Http\Request;
-use App\Http\Requests\Presentaciones\UpdatePresentacionesRequest;
 
 class PresentacionController extends Controller
 {
@@ -26,18 +25,18 @@ class PresentacionController extends Controller
     {
         try {
 
-            $presentaciones =  Presentacion::create([
-                ...$request->safe()
+            $presentaciones = Presentacion::create([
+                ...$request->safe(),
             ]);
 
             return response()->json([
-                "status" => "Ok",
-                "data" => $presentaciones
+                'status' => 'Ok',
+                'data' => $presentaciones,
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
-                "status" => "Error",
-                "message" => "Error interno en el Servidor"
+                'status' => 'Error',
+                'message' => 'Error interno en el Servidor',
             ], 500);
         }
     }
@@ -57,6 +56,12 @@ class PresentacionController extends Controller
     {
         try {
 
+            if (! auth()->check()) {
+                return response()->json([
+                    'message' => 'Sesión expirada o no autenticado.',
+                ], 401);
+            }
+
             if (! auth()->user()->hasRole('ADMIN')) {
                 return response()->json([
                     'message' => 'No autorizado',
@@ -67,7 +72,7 @@ class PresentacionController extends Controller
 
             if (! $presentacion) {
                 return response()->json([
-                    'message' => 'Presentación no encontrada.'
+                    'message' => 'Presentación no encontrada.',
                 ], 404);
             }
             $presentacionData = $request->validated();
@@ -89,7 +94,7 @@ class PresentacionController extends Controller
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Error interno del servidor',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -103,19 +108,18 @@ class PresentacionController extends Controller
 
             $presentacion = Presentacion::findOrFail($id);
 
-            $presentacion->activo = !$presentacion->activo;
+            $presentacion->activo = ! $presentacion->activo;
             $presentacion->save();
-
 
             return response()->json([
                 'status' => 'OK',
-                'activo' =>  $presentacion->activo
+                'activo' => $presentacion->activo,
             ], 200);
         } catch (ModelNotFoundException $m) {
 
             return response()->json([
                 'status' => 'error',
-                'error' => 'La presentacion no existe'
+                'error' => 'La presentacion no existe',
             ], 404);
         }
     }
