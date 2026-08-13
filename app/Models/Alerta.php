@@ -8,9 +8,12 @@ class Alerta extends Model
 {
     protected $fillable = [
         'tipo',
+        'mensaje',
+        'estado',
         'prioridad',
         'leida',
         'leida_por',
+        'ultima_notificacion_at',
         'lote_id',
         'presentacion_id',
         'compra_id',
@@ -18,6 +21,7 @@ class Alerta extends Model
 
     protected $casts = [
         'leida' => 'boolean',
+        'ultima_notificacion_at' => 'datetime',
     ];
 
     public function leidaPor()
