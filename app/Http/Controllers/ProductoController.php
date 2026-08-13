@@ -17,7 +17,7 @@ class ProductoController extends Controller
     public function index(Request $request)
     {
         try {
-            if (! auth()->user()->hasRole(['ADMIN|CAJERO'])) {
+            if (! auth()->user()->hasRole('ADMIN|CAJERO')) {
                 return response()->json([
                     'message' => 'No autorizado',
                 ], 403);
