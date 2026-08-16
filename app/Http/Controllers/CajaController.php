@@ -79,6 +79,31 @@ class CajaController extends Controller
 
     }
 
+    //METODO AGREGADO PARA VERIFICAR SI LA CAJA ESTA ABIERTA
+    //LO AGREGRE PORQUE EL BACKEN NECESITACONSULTAR EL ESTADO ACTUAL DE LA CAJA 
+    //YA QUE ESTO LO APLICO EN EL SERVICE DE LA CAJA
+    public function estadoCaja()
+    {
+        $aperturaCaja = AperturaCaja::where('estado', 'ABIERTO')->first();
+
+        if (!$aperturaCaja) {
+            return response()->json([
+                'caja_abierta'  => false,
+                'venta_abierta' => false,
+            ], 200);
+        }
+
+        $aperturaVenta = AperturaVenta::where('cajero_id', auth()->id())
+            ->where('estado', 'ABIERTA')
+            ->first();
+
+        return response()->json([
+            'caja_abierta'  => true,
+            'venta_abierta' => $aperturaVenta ? true : false,
+            'monto_inicial' => $aperturaVenta?->monto_inicial ?? 0,
+        ], 200);
+    }
+
     public function abrirVenta(AbrirAperturaVentaRequest $request)
     {
         try {
