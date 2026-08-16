@@ -172,7 +172,7 @@ class VentaController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'No hay stock suficiente y no se puedo registrar la venta',
+                'message' => 'No hay stock suficiente y no se puedo registrar la venta' . $e -> getMessage(),
 
             ], 500);
 
