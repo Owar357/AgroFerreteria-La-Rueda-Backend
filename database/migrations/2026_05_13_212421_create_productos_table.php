@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('fabricante',100)->nullable();
             $table->enum('tipo_producto',['UNIDAD FIJA','GRANEL'])->index();
             $table->string('unidad_base',20);
+            $table->decimal('stock_minimo', 15, 3)->nullable();
             $table->boolean('aplica_iva')->default(false);
             $table->foreignId('categoria_id')->constrained('categorias')->restrictOnDelete();
             $table->foreignId('registrado_por')->constrained('users')->restrictOnDelete();

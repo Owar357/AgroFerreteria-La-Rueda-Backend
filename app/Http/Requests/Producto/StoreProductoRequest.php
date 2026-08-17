@@ -4,7 +4,6 @@ namespace App\Http\Requests\Producto;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Override;
 
 class StoreProductoRequest extends FormRequest
 {
@@ -29,6 +28,7 @@ class StoreProductoRequest extends FormRequest
             'fabricante' => 'nullable|max:100',
             'tipo_producto' => 'required|in:UNIDAD FIJA,GRANEL',
             'unidad_base' => 'required',
+            'stock_minimo' => 'nullable|numeric|min:0',
             'categoria_id' => 'required|exists:categorias,id',
             'presentaciones' => 'required|array|min:1',
             'presentaciones.*.nombre' => 'nullable|string|max:150',
@@ -39,7 +39,6 @@ class StoreProductoRequest extends FormRequest
 
         ];
     }
-
 
     public function messages(): array
     {
@@ -61,6 +60,9 @@ class StoreProductoRequest extends FormRequest
             'tipo_producto.in' => 'El tipo de producto seleccionado no es válido.',
 
             'unidad_base.required' => 'Debe seleccionar la unidad base del producto.',
+
+            'stock_minimo.numeric' => 'El stock mínimo solo puede contener valores numéricos',
+            'stock_minimo.min' => 'El stock mínimo no puede ser negativo',
 
             'categoria_id.required' => 'Debe seleccionar una categoría.',
             'categoria_id.exists' => 'La categoría seleccionada no existe.',

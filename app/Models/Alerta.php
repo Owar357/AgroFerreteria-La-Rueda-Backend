@@ -15,7 +15,7 @@ class Alerta extends Model
         'leida_por',
         'ultima_notificacion_at',
         'lote_id',
-        'presentacion_id',
+        'producto_id',
         'compra_id',
     ];
 
@@ -34,9 +34,9 @@ class Alerta extends Model
         return $this->belongsTo(Lote::class);
     }
 
-    public function presentacion()
+    public function producto()
     {
-        return $this->belongsTo(Presentacion::class);
+        return $this->belongsTo(Producto::class);
     }
 
     public function compra()

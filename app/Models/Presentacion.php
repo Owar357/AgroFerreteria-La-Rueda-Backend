@@ -13,6 +13,7 @@ class Presentacion extends Model
         'nombre',
         'factor_conversion',
         'precio_venta',
+        'stock_minimo',
         'activo',
         'producto_id',
     ];

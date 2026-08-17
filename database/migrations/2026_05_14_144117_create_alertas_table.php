@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('alertas', function (Blueprint $table) {
@@ -21,33 +18,30 @@ return new class extends Migration
             $table->boolean('leida')->default(false)->index();
             $table->foreignId('leida_por')->nullable()->constrained('users');
             $table->foreignId('lote_id')->nullable()->constrained('lotes');
-            $table->foreignId('presentacion_id')->nullable()->constrained('presentaciones');
+            $table->foreignId('producto_id')->nullable()->constrained('productos');
             $table->foreignId('compra_id')->nullable()->constrained('compras');
             $table->timestamps();
         });
 
         DB::statement("
-        CREATE UNIQUE INDEX alertas_activa_lote_unique
-        ON alertas (tipo, lote_id)
-        WHERE estado = 'ACTIVA' AND lote_id IS NOT NULL
-    ");
+            CREATE UNIQUE INDEX alertas_activa_lote_unique
+            ON alertas (tipo, lote_id)
+            WHERE estado = 'ACTIVA' AND lote_id IS NOT NULL
+        ");
 
         DB::statement("
-        CREATE UNIQUE INDEX alertas_activa_presentacion_unique
-        ON alertas (tipo, presentacion_id)
-        WHERE estado = 'ACTIVA' AND presentacion_id IS NOT NULL
-    ");
+            CREATE UNIQUE INDEX alertas_activa_producto_unique
+            ON alertas (tipo, producto_id)
+            WHERE estado = 'ACTIVA' AND producto_id IS NOT NULL
+        ");
 
         DB::statement("
-        CREATE UNIQUE INDEX alertas_activa_compra_unique
-        ON alertas (tipo, compra_id)
-        WHERE estado = 'ACTIVA' AND compra_id IS NOT NULL
-    ");
+            CREATE UNIQUE INDEX alertas_activa_compra_unique
+            ON alertas (tipo, compra_id)
+            WHERE estado = 'ACTIVA' AND compra_id IS NOT NULL
+        ");
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('alertas');

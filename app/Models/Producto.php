@@ -16,10 +16,12 @@ class Producto extends Model
         'aplica_iva',
         'categoria_id',
         'registrado_por',
+        'stock_minimo',
     ];
 
     protected $casts = [
         'aplica_iva' => 'boolean',
+        'stock_minimo' => 'decimal:3'
     ];
 
     public function categoria()
@@ -37,3 +39,5 @@ class Producto extends Model
         return $this->hasMany(Presentacion::class);
     }
 }
+
+

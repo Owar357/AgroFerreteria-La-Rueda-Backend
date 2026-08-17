@@ -27,6 +27,7 @@ class UpdateProductoRequest extends FormRequest
             'nombre' => 'sometimes|string|max:100',
             'fabricante' => 'sometimes|nullable|max:100',
             'categoria_id' => 'sometimes|exists:categorias,id',
+            'stock_minimo' => 'sometimes|numeric|min:0',
         ];
     }
 
@@ -43,6 +44,8 @@ class UpdateProductoRequest extends FormRequest
             'nombre.max' => 'El nombre del producto no puede superar los 100 caracteres.',
             'fabricante.max' => 'El fabricante no puede superar los 100 caracteres.',
             'categoria_id.exists' => 'La categoría seleccionada no existe.',
+            'stock_minimo.numeric' => 'El stock mínimo solo puede contener valores numéricos',
+            'stock_minimo.min' => 'El stock mínimo no puede ser negativo',
         ];
     }
 }
