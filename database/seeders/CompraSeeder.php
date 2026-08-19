@@ -232,7 +232,7 @@ class CompraSeeder extends Seeder
 
          
             Lote::create([
-                'lote_interno'          => 'LOT-SUELTO-' . $producto->codigo,
+                'lote_interno'          => 'LOT- ' . $producto->codigo,
                 'lote_fabricante'       => null,
                 'fecha_vencimiento'     => Carbon::now()->addMonths(12),
                 'cantidad_inicial'      => 100,
