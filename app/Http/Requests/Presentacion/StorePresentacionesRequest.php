@@ -2,9 +2,12 @@
 
 namespace App\Http\Requests\Presentacion;
 
+use App\Models\Presentacion;
+use App\Models\Producto;
+use App\Models\UnidadMedida;
 use Illuminate\Foundation\Http\FormRequest;
 
-class StorePresentacionRequest extends FormRequest
+class StorePresentacionesRequest extends FormRequest
 {
     public function authorize(): bool
     {

@@ -6,12 +6,12 @@ use App\Models\Alerta;
 use App\Models\Compra;
 use App\Models\Lote;
 use App\Models\Presentacion;
-use App\Models\Producto;
 use Illuminate\Console\Command;
 
 class GenerarAlertas extends Command
 {
     protected $signature = 'alerta:generar';
+
     protected $description = 'Genera y actualiza alertas de stock, lotes y compras';
 
     public function handle()
@@ -43,6 +43,7 @@ class GenerarAlertas extends Command
                 ->where('compra_id', $compra->id)
                 ->where('estado', 'ACTIVA')
                 ->update(['estado' => 'RESUELTA']);
+
             return;
         }
 
@@ -73,6 +74,7 @@ class GenerarAlertas extends Command
             ]);
 
             $this->reNotificarSiToca($alerta);
+
             return;
         }
 
@@ -164,12 +166,9 @@ class GenerarAlertas extends Command
     // ============================================================
     public function procesarStock()
     {
-       
         $presentaciones = Presentacion::where('stock_minimo', '>', 0)
-            ->with(['producto', 'lotes' => function ($query) {
-                $query->where('estado', 'ACTIVO')
-                    ->selectRaw('presentacion_id, SUM(cantidad_actual) as total_stock')
-                    ->groupBy('presentacion_id');
+            ->with(['producto.unidadMedida', 'lotes' => function ($query) {
+                $query->where('estado', 'ACTIVO');
             }])
             ->get();
 
@@ -182,13 +181,11 @@ class GenerarAlertas extends Command
 
     public function procesarStockPresentacion(Presentacion $presentacion)
     {
-        
+
         $stockActual = $presentacion->lotes->sum('cantidad_actual') ?? 0;
 
-      
         $unidadNombre = $presentacion->producto->unidadMedida->nombre ?? 'unidades';
 
-       
         if ($stockActual > 0 && $stockActual <= $presentacion->stock_minimo) {
             // Cerrar alerta de "AGOTADO" si existe
             Alerta::where('presentacion_id', $presentacion->id)
@@ -208,9 +205,8 @@ class GenerarAlertas extends Command
             $this->reNotificarSiToca($alerta, 24 * 2, false);
         }
 
-      
         if ($stockActual == 0) {
-            
+
             Alerta::where('presentacion_id', $presentacion->id)
                 ->where('tipo', 'STOCK MINIMO')
                 ->where('estado', 'ACTIVA')
@@ -228,7 +224,6 @@ class GenerarAlertas extends Command
             $this->reNotificarSiToca($alerta, 12, false);
         }
 
-        
         if ($stockActual > $presentacion->stock_minimo) {
             Alerta::where('presentacion_id', $presentacion->id)
                 ->whereIn('tipo', ['STOCK MINIMO', 'STOCK AGOTADO'])
@@ -242,7 +237,7 @@ class GenerarAlertas extends Command
     // ============================================================
     private function reNotificarSiToca(Alerta $alerta, int $horasIntervalo = 24, bool $respetarLeidaPor = true)
     {
-        if ($respetarLeidaPor && !is_null($alerta->leida_por)) {
+        if ($respetarLeidaPor && ! is_null($alerta->leida_por)) {
             return;
         }
 

@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Alerta;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Request;
 
 class AlertasController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(Request$request)
     {
         try {
             
