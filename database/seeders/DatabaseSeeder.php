@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             SuperUsuarioSeeder::class,
             CategoriaSeeder::class,
+            UnidadMedidaSeeder::class,
             ProductoSeeder::class,
             PresentacionSeeder::class,
             CodigoBarraSeeder::class,

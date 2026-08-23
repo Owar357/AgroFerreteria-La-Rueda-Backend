@@ -10,16 +10,37 @@ class AlertasController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $alertas = Alerta::where('estado', 'ACTIVA')
-                ->with(['producto', 'lote', 'compra'])
+            
+         $query = Alerta::where('estado', 'ACTIVA')
+                ->with([
+                    'presentacion',      
+                    'presentacion.producto',
+                    'presentacion.unidadMedida',
+                    'lote',
+                    'compra',
+                ]);
+
+           
+
+            if ($request->filled('tipo')) {
+                $query>where('tipo', $request->tipo);
+            }
+
+
+            if ($request->filled('leida')) {
+                $query->where('leida', filter_var($request->leida, FILTER_VALIDATE_BOOLEAN));
+            }
+
+            $alertas = $query
                 ->orderByRaw("CASE WHEN prioridad = 'ALTA' THEN 1 WHEN prioridad = 'MEDIA' THEN 2 ELSE 3 END")
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            $noLeidas = $alertas->where('leida', false)->count();
+
+              $noLeidas = $alertas->where('leida', false)->count();
 
             return response()->json([
                 'status' => 'ok',
@@ -29,11 +50,9 @@ class AlertasController extends Controller
 
         } catch (\Throwable $th) {
 
-            \Log::error('Error al obtener alertas: '.$th->getMessage());
-
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error interno del servidor'.$th->getMessage(),
+                'message' => 'Error interno del servidor',
             ], 500);
         }
     }

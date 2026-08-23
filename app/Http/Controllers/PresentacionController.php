@@ -5,19 +5,13 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Presentacion\StorePresentacionesRequest;
 use App\Http\Requests\Presentacion\UpdatePresentacionesRequest;
 use App\Models\Presentacion;
+use App\Models\Producto;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB;
 
 class PresentacionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
-
     /**
      * Store a newly created resource in storage.
      */
@@ -25,28 +19,33 @@ class PresentacionController extends Controller
     {
         try {
 
-            $presentaciones = Presentacion::create([
-                ...$request->safe(),
-            ]);
+            DB::beginTransaction();
+
+            $data = $request->validated();
+
+            $producto = Producto::find($data['producto_id']);
+
+            if ($producto->aplica_iva && $request->filled('precio_venta')) {
+                $data['precio_venta'] = (float) $data['precio_venta'] * 1.13;
+            }
+
+            $presentacion = Presentacion::create($data);
+
+            DB::commit();
 
             return response()->json([
-                'status' => 'Ok',
-                'data' => $presentaciones,
-            ], 200);
+                'status' => 'ok',
+                'message' => 'Presentación creada exitosamente',
+                'data' => $presentacion,
+            ], 201);
         } catch (\Throwable $th) {
+            DB::rollBack();
+
             return response()->json([
-                'status' => 'Error',
+                'status' => 'error',
                 'message' => 'Error interno en el Servidor',
             ], 500);
         }
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
     }
 
     /**
@@ -55,12 +54,6 @@ class PresentacionController extends Controller
     public function update(UpdatePresentacionesRequest $request, string $id)
     {
         try {
-
-            if (! auth()->check()) {
-                return response()->json([
-                    'message' => 'Sesión expirada o no autenticado.',
-                ], 401);
-            }
 
             if (! auth()->user()->hasRole('ADMIN')) {
                 return response()->json([
@@ -72,9 +65,13 @@ class PresentacionController extends Controller
 
             if (! $presentacion) {
                 return response()->json([
+                    'status' => 'error',
                     'message' => 'Presentación no encontrada.',
                 ], 404);
             }
+
+            DB::beginTransaction();
+
             $presentacionData = $request->validated();
 
             if ($request->filled('precio_venta')) {
@@ -84,17 +81,46 @@ class PresentacionController extends Controller
                 }
             }
 
+            if ($request->filled('factor_conversion')) {
+                if ($presentacion->es_base && (float) $presentacionData['factor_conversion'] !== 1.0) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'La presentación base debe tener factor de conversión mayor a 0',
+                    ], 422);
+                }
+            }
+
+            if ($request->filled('stock_minimo')) {
+                $producto = $presentacion->producto;
+                if ($producto->tipo_producto === 'GRANEL' && ! $presentacion->es_base) {
+                    if ((float) $presentacionData['stock_minimo'] > 0) {
+                        DB::rollBack();
+
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => 'El stock mínimo solo puede asignarse a la presentación base. Las presentaciones derivadas deben tener stock_minimo = 0.',
+                        ], 422);
+                    }
+                }
+            }
+
             $presentacion->update($presentacionData);
 
+            DB::commit();
+
             return response()->json([
+                'status' => 'ok',
                 'message' => 'Presentacion actualizada correctamente',
-                'presentación' => $presentacion->fresh(),
+                'data' => $presentacion->fresh(['producto', 'unidadMedida']),
             ], 200);
 
         } catch (Exception $e) {
+
+            DB::rollBack();
+
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error interno del servidor',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -108,13 +134,22 @@ class PresentacionController extends Controller
 
             $presentacion = Presentacion::findOrFail($id);
 
+            if ($presentacion->lotes()->where('estado', 'ACTIVO')->exists()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No se puede desactivar la presentación porque tiene lotes activos con stock disponible.',
+                ], 422);
+            }
+
             $presentacion->activo = ! $presentacion->activo;
             $presentacion->save();
 
             return response()->json([
-                'status' => 'OK',
+                'status' => 'ok',
+                'message' => $presentacion->activo ? 'Presentación activada correctamente.' : 'Presentación desactivada correctamente.',
                 'activo' => $presentacion->activo,
             ], 200);
+            
         } catch (ModelNotFoundException $m) {
 
             return response()->json([

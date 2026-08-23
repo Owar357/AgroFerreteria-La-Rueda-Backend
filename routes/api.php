@@ -46,7 +46,7 @@ Route::middleware('auth:api')->group(function () {
     Route::patch('usuarios/{id}/desactivar', [UserController::class, 'desactivarUsuario']);
     Route::apiResource('usuarios', UserController::class);
     Route::apiResource('codigosBarra', CodigoBarraController::class);
-    Route::apiResource('presentaciones', PresentacionController::class);
+    Route::apiResource('presentaciones', PresentacionController::class)->only(['store','update','destroy']);
     Route::patch('/proveedores/{id}/desactivar',[ProveedorController::class,'desactivarProveedor' ]);
     Route::get('/proveedor/proveedores', [ProveedorController::class, 'traerNombreProveedores']);
     Route::apiResource('proveedores', ProveedorController::class);
