@@ -13,6 +13,7 @@ use App\Http\Controllers\PresentacionController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\UnidadMedidaController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VentaController;
 use App\Models\Alerta;
@@ -60,6 +61,7 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('caja/movimientoExterno', MovimientoExternoCajaController::class)->only(['index', 'store','show']);
     Route::patch('alertas/{id}/marcar-leida', [AlertasController::class, 'marcarLeida']);
     Route::apiResource('alertas', AlertasController::class)->only('index');
+    Route::apiResource('/unidades', [UnidadMedidaController::class])->only('index');
 });
 
 Route::get('/reportes/ventas', [ReporteController::class, 'ventas']);
