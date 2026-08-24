@@ -14,6 +14,7 @@ use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VentaController;
+
 use Illuminate\Support\Facades\Route;
 
 use function Pest\Laravel\patch;
@@ -60,3 +61,4 @@ Route::middleware('auth:api')->group(function () {
 
 Route::get('/reportes/ventas', [ReporteController::class, 'ventas']);
 Route::get('/reportes/ticket/{id}', [ReporteController::class, 'ticket']);
+Route::get('/reportes/flujo-compras-ventas', [ReporteController::class, 'flujoComprasVentas']);
