@@ -25,7 +25,7 @@ class MovimientoExternoCajaController extends Controller
 
         $query = MovimientoExternoCaja::whereBetween('created_at', [
             $fechaDesde.' 00:00:00',
-            $fechaHasta.' 23:59:59']);
+            $fechaHasta.' 23:59:59']);  
 
         if ($request->filled('tipo_movimiento')) {
             $query->where('tipo_movimiento', $request->tipo_movimiento);
