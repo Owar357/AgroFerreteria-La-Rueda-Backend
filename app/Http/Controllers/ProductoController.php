@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Producto\StoreProductoRequest;
+use App\Http\Requests\Producto\UpdateProductoRequest;
 use App\Models\Presentacion;
 use App\Models\Producto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Http\Requests\Producto\StoreProductoRequest;
-use App\Http\Requests\Producto\UpdateProductoRequest;
 
 class ProductoController extends Controller
 {
@@ -17,8 +17,9 @@ class ProductoController extends Controller
     public function index(Request $request)
     {
         try {
-            if (! auth()->user()->hasRole('ADMIN|CAJERO')) {
+            if (! auth()->user()->hasAnyRole(['ADMIN', 'CAJERO'])) {
                 return response()->json([
+                    'status' => 'error',
                     'message' => 'No autorizado',
                 ], 403);
             }
@@ -26,26 +27,23 @@ class ProductoController extends Controller
             $perPage = $request->input('per_page', 8);
             $page = $request->input('page', 1);
 
-            $productos = Producto::with(['categoria:id,nombre'])
-                ->select('id', 'codigo', 'nombre', 'fabricante', 'tipo_producto', 'unidad_base', 'categoria_id')
-                ->orderby('id', 'desc')
+            $productos = Producto::with(['categoria:id,nombre', 'unidadMedida:id,nombre,abreviatura'])
+                ->select('id', 'codigo', 'nombre', 'fabricante', 'tipo_producto', 'unidad_medida_id', 'categoria_id')
+                ->orderBy('id', 'desc')
                 ->paginate($perPage, ['*'], 'page', $page);
 
-            if ($productos->isEmpty()) {
-                return response()->json([
-                    'message' => 'No se encontraron productos',
-                ], 404);
-            }
-
             return response()->json([
+                'status' => 'ok',
                 'data' => $productos->items(),
                 'total' => $productos->total(),
                 'per_page' => $productos->perPage(),
                 'current_page' => $productos->currentPage(),
                 'last_page' => $productos->lastPage(),
             ], 200);
+
         } catch (\Exception $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error al obtener productos',
             ], 500);
         }
@@ -58,9 +56,9 @@ class ProductoController extends Controller
     {
         try {
 
-            // Solo admins
             if (! auth()->user()->hasRole('ADMIN')) {
                 return response()->json([
+                    'status' => 'error',
                     'message' => 'No autorizado',
                 ], 403);
             }
@@ -78,9 +76,12 @@ class ProductoController extends Controller
                     'nombre' => $presentacionData['nombre'],
                     'factor_conversion' => $presentacionData['factor_conversion'],
                     'precio_venta' => $presentacionData['precio_venta'],
+                    'stock_minimo' => $presentacionData['stock_minimo'],
+                    'es_base' => $presentacionData['es_base'],
+                    'unidad_medida_id' => $presentacionData['unidad_medida_id'],
                 ]);
 
-                foreach ($presentacionData['codigos_barra'] as $codigoData) {
+                foreach ($presentacionData['codigos_barra'] ?? [] as $codigoData) {
 
                     $presentacion->codigosBarras()->create([
                         'codigo' => $codigoData['codigo'],
@@ -91,9 +92,10 @@ class ProductoController extends Controller
             DB::commit();
 
             return response()->json([
+                'status' => 'ok',
                 'message' => 'Producto creado exitosamente',
                 'data' => $producto->load(
-                    'presentaciones.codigosBarras'
+                    'presentaciones.codigosBarras', 'presentaciones.unidadMedida', 'unidadMedida',
                 ),
             ], 201);
         } catch (\Exception $e) {
@@ -112,38 +114,40 @@ class ProductoController extends Controller
     public function show(string $id)
     {
         try {
-            if (! auth()->user()->hasRole('ADMIN|CAJERO')) {
+            if (! auth()->user()->hasAnyRole(['ADMIN', 'CAJERO'])) {
                 return response()->json([
-                    'status' => 'ok',
+                    'status' => 'error',
                     'message' => 'No autorizado',
                 ], 403);
             }
-            $productoId = Producto::where('id', $id)->exists();
 
-            if (! $productoId) {
+            $existeProducto = Producto::where('id', $id)->exists();
+
+            if (! $existeProducto) {
                 return response()->json([
-                    'status' => 'ok',
-                    'data' => 'El producto no existe',
+                    'status' => 'error',
+                    'message' => 'Producto no encontrado',
                 ], 404);
             }
 
-            $presentaciones = Presentacion::select(
+            $presentaciones = Presentacion::select([
                 'id',
                 'nombre',
                 'factor_conversion',
-                'producto_id',
                 'precio_venta',
+                'es_base',
                 'activo',
+                'producto_id',
+                'unidad_medida_id',
                 DB::raw('(
-            SELECT COALESCE(SUM(l.cantidad_actual), 0) + COALESCE(SUM(dc.cantidad_bonificada), 0)
-            FROM lotes l
-            LEFT JOIN detalles_compra dc ON dc.lote_id = l.id
-            WHERE l.presentacion_id = presentaciones.id
-            AND l.estado = \'ACTIVO\'
-        ) as stock')
-            )
-                ->with('producto:id,unidad_base')
+                    SELECT COALESCE(SUM(l.cantidad_actual), 0)
+                    FROM lotes l
+                    WHERE l.presentacion_id = presentaciones.id
+                    AND l.estado = \'ACTIVO\'
+                ) as stock_actual'),
+            ])->with('producto:id', 'unidadMedida:id,nombre,abreviatura')
                 ->where('producto_id', $id)
+                ->orderBy('es_base', 'desc')
                 ->orderBy('factor_conversion', 'asc')
                 ->get();
 
@@ -161,7 +165,7 @@ class ProductoController extends Controller
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => 'ok',
+                'status' => 'error',
                 'message' => 'Error interno del servidor',
             ], 500);
         }
@@ -176,6 +180,7 @@ class ProductoController extends Controller
 
             if (! auth()->user()->hasRole('ADMIN')) {
                 return response()->json([
+                    'status' => 'error',
                     'message' => 'No autorizado',
                 ], 403);
             }
@@ -184,20 +189,22 @@ class ProductoController extends Controller
 
             if (! $producto) {
                 return response()->json([
-                    'message' => 'Producto no encontrado'
+                    'status' => 'error',
+                    'message' => 'Producto no encontrado',
                 ]);
             }
 
             $producto->update($request->validated());
 
             return response()->json([
+                'status' => 'ok',
                 'message' => 'Producto actulizado correctamente.',
-                'Producto' => $producto -> fresh(),
+                'Producto' => $producto->fresh(),
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error al actualizar el producto',
-                'error'   => $e->getMessage(),
             ], 500);
         }
     }
@@ -213,11 +220,14 @@ class ProductoController extends Controller
             }
 
             $productos = Producto::query()
-                ->select('id', 'codigo', 'nombre', 'unidad_base', 'aplica_iva')
-                ->where('nombre', 'ilike', "%{$q}%")
-                ->orWhere('codigo', 'ilike', "%{$q}%")
-                ->orWhereHas('presentaciones.codigosBarras', function ($query) use ($q) {
-                    $query->where('codigo', 'ilike', "%{$q}%");
+                ->select('id', 'codigo', 'nombre', 'unidad_medida_id', 'aplica_iva', 'tipo_producto')
+                ->with(['unidadMedida:id,nombre,abreviatura'])
+                ->where(function ($query) use ($q) {
+                    $query->where('nombre', 'ilike', "%{$q}%")
+                        ->orWhere('codigo', 'ilike', "%{$q}%")
+                        ->orWhereHas('presentaciones.codigosBarras', function ($sub) use ($q) {
+                            $sub->where('codigo', 'ilike', "%{$q}%");
+                        });
                 })
                 ->with(['presentaciones' => function ($query) {
                     $query->where('activo', true)
@@ -227,12 +237,12 @@ class ProductoController extends Controller
                 ->get();
 
             return response()->json([
-                'status' => 'Ok',
+                'status' => 'ok',
                 'data' => $productos,
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => 'Error',
+                'status' => 'error',
                 'message' => 'Error interno en el servidor',
             ], 500);
         }
@@ -249,12 +259,15 @@ class ProductoController extends Controller
             }
 
             $productos = Producto::query()
-                ->select('id', 'codigo', 'nombre', 'unidad_base')
-                ->where('nombre', 'ilike', "%{$q}%")
-                ->orWhere('codigo', 'ilike', "%{$q}%")
-                ->orWhereHas('presentaciones.codigosBarras', function ($query) use ($q) {
-                    $query->where('codigo', 'ilike', "%{$q}%");
-                })
+                ->select('id', 'codigo', 'nombre', 'unidad_medida_id')
+                ->with(['unidadMedida:id,nombre,abreviatura'])
+                 ->where(function ($query) use ($q) {
+                $query->where('nombre', 'ilike', "%{$q}%")
+                    ->orWhere('codigo', 'ilike', "%{$q}%")
+                    ->orWhereHas('presentaciones.codigosBarras', function ($sub) use ($q) {
+                        $sub->where('codigo', 'ilike', "%{$q}%");
+                    });
+            })
                 ->with(['presentaciones' => function ($query) {
                     $query->where('activo', true)
                         ->select('id', 'producto_id', 'nombre', 'factor_conversion');
@@ -263,12 +276,12 @@ class ProductoController extends Controller
                 ->get();
 
             return response()->json([
-                'status' => 'Ok',
+                'status' => 'ok',
                 'data' => $productos,
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => 'Error',
+                'status' => 'error',
                 'message' => 'Error interno en el servidor',
             ], 500);
         }

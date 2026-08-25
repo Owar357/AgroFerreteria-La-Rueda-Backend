@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AlertasController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CajaController;
 use App\Http\Controllers\CategoriaController;
@@ -12,9 +13,11 @@ use App\Http\Controllers\PresentacionController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\UnidadMedidaController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VentaController;
 
+use App\Models\Alerta;
 use Illuminate\Support\Facades\Route;
 
 use function Pest\Laravel\patch;
@@ -45,7 +48,7 @@ Route::middleware('auth:api')->group(function () {
     Route::patch('usuarios/{id}/desactivar', [UserController::class, 'desactivarUsuario']);
     Route::apiResource('usuarios', UserController::class);
     Route::apiResource('codigosBarra', CodigoBarraController::class);
-    Route::apiResource('presentaciones', PresentacionController::class);
+    Route::apiResource('presentaciones', PresentacionController::class)->only(['store','update','destroy']);
     Route::patch('/proveedores/{id}/desactivar',[ProveedorController::class,'desactivarProveedor' ]);
     Route::get('/proveedor/proveedores', [ProveedorController::class, 'traerNombreProveedores']);
     Route::apiResource('proveedores', ProveedorController::class);
@@ -57,6 +60,9 @@ Route::middleware('auth:api')->group(function () {
     Route::patch('/caja/venta/cierre', [CajaController::class, 'cerrarVentaCaja']);
     Route::patch('/caja/movimientos/{movimiento}/anular',[MovimientoExternoCajaController::class, 'anularMovimiento']);
     Route::apiResource('caja/movimientoExterno', MovimientoExternoCajaController::class)->only(['index', 'store','show']);
+    Route::patch('alertas/{id}/marcar-leida', [AlertasController::class, 'marcarLeida']);
+    Route::apiResource('alertas', AlertasController::class)->only('index');
+    Route::apiResource('/unidades', UnidadMedidaController::class)->only('index');
 });
 
 Route::get('/reportes/ventas', [ReporteController::class, 'ventas']);
