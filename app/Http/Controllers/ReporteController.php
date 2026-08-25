@@ -240,4 +240,76 @@ class ReporteController extends Controller
 
         return $pdf->stream('reporte-margen-ganancia.pdf');
     }
+
+        public function resumenVentas(Request $request)
+{
+    $request->validate([
+        'fecha_inicio' => 'required|date',
+        'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
+    ]);
+
+    $fecha_inicio = Carbon::parse($request->fecha_inicio)->startOfDay();
+    $fecha_fin = Carbon::parse($request->fecha_fin)->endOfDay();
+
+    $ventas = Venta::where('estado', 'PROCESADA')
+        ->whereBetween('created_at', [$fecha_inicio, $fecha_fin])
+        ->get();
+
+    $total_vendido = $ventas->sum('total');
+
+    $numero_ventas = $ventas->count();
+
+    $ticket_promedio = $numero_ventas != 0
+        ? $total_vendido / $numero_ventas
+        : 0;
+
+    $duracion = $fecha_inicio->diffInDays($fecha_fin) + 1;
+
+    $serie = [];
+
+    if ($duracion <= 31) {
+
+        $serie = $ventas
+            ->groupBy(function ($venta) {
+                return Carbon::parse($venta->created_at)->format('Y-m-d');
+            })
+            ->map(function ($ventas, $fecha) {
+                return [
+                    'periodo' => $fecha,
+                    'total' => $ventas->sum('total'),
+                    'cantidad_ventas' => $ventas->count(),
+                ];
+            })
+            ->values();
+
+    } else {
+
+        $serie = $ventas
+            ->groupBy(function ($venta) {
+                return Carbon::parse($venta->created_at)->startOfWeek()->format('Y-m-d');
+            })
+            ->map(function ($ventas, $fecha) {
+                return [
+                    'periodo' => $fecha,
+                    'total' => $ventas->sum('total'),
+                    'cantidad_ventas' => $ventas->count(),
+                ];
+            })
+            ->values();
+    }
+
+    return response()->json([
+        'status' => 'ok',
+        'data' => [
+            'fecha_inicio' => $request->fecha_inicio,
+            'fecha_fin' => $request->fecha_fin,
+            'total_vendido' => round($total_vendido, 3),
+            'numero_ventas' => $numero_ventas,
+            'ticket_promedio' => round($ticket_promedio, 3),
+            'tipo_agrupacion' => $duracion <= 31 ? 'diaria' : 'semanal',
+            'serie' => $serie,
+        ]
+    ]);
+}
+
 }

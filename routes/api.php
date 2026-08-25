@@ -63,3 +63,4 @@ Route::get('/reportes/ventas', [ReporteController::class, 'ventas']);
 Route::get('/reportes/ticket/{id}', [ReporteController::class, 'ticket']);
 Route::get('/reportes/flujo-compras-ventas', [ReporteController::class, 'flujoComprasVentas']);
 Route::get('/reportes/margen-ganancia', [ReporteController::class, 'margenGanancia']);
+Route::get('/reportes/resumen-ventas', [ReporteController::class, 'resumenVentas']);
