@@ -54,6 +54,7 @@ Route::middleware('auth:api')->group(function () {
 
 
     Route::post('/caja/apertura',[CajaController::class,'abrirCaja']);
+    Route::get('/caja/estado', [CajaController::class, 'estadoCaja']); //RUTA AGREGADA VERIFICA EL ESTADO DE LA CAJA, ME AYUDA EN EL FRONTEN
     Route::post('/caja/venta/apertura',[CajaController::class,'abrirVenta']);
     Route::post('/caja/venta/cuadre',[CajaController::class,'cuadrarVenta']);
     Route::patch('/caja/venta/cierre', [CajaController::class, 'cerrarVentaCaja']);
