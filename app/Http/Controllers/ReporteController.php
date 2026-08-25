@@ -2,15 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Barryvdh\DomPDF\Facade\Pdf;
-use App\Models\Venta;
-use App\Models\User;
 use App\Models\Compra;
 use App\Models\LoteDetalleVenta;
-use App\Models\Cliente;
-use Illuminate\Http\Request;
+use App\Models\Venta;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
-
+use Illuminate\Http\Request;
 
 class ReporteController extends Controller
 {
@@ -40,7 +37,7 @@ class ReporteController extends Controller
 
             'ventas' => $ventas,
             'fecha_desde' => $request->fecha_desde,
-            'fecha_hasta' => $request->fecha_hasta
+            'fecha_hasta' => $request->fecha_hasta,
 
         ]);
 
@@ -52,15 +49,13 @@ class ReporteController extends Controller
         $venta = Venta::with([
             'cliente',
             'vendidoPor',
-            'detallesVenta'
+            'detallesVenta',
         ])->findOrFail($id);
-
-
 
         $pdf = Pdf::loadView('reportes.ticket', compact('venta'))
             ->setPaper([0, 0, 240.77, 900], 'portrait');
 
-        return $pdf->stream('Ticket-' . $venta->numero_factura . '.pdf');
+        return $pdf->stream('Ticket-'.$venta->numero_factura.'.pdf');
     }
 
     public function flujoComprasVentas(Request $request)
@@ -124,7 +119,7 @@ class ReporteController extends Controller
 
             'variacion_compras' => $variacion_compras,
             'variacion_ventas' => $variacion_ventas,
-            'variacion_flujo' => $variacion_flujo
+            'variacion_flujo' => $variacion_flujo,
 
         ]);
 
@@ -144,7 +139,7 @@ class ReporteController extends Controller
             ->where('estado', 'PROCESADA')
             ->whereBetween('created_at', [
                 Carbon::parse($request->fecha_inicio)->startOfDay(),
-                Carbon::parse($request->fecha_fin)->endOfDay()
+                Carbon::parse($request->fecha_fin)->endOfDay(),
             ])
             ->get();
 
@@ -179,7 +174,7 @@ class ReporteController extends Controller
 
                     $producto = $detalle->nombre_producto;
 
-                    if (!isset($resultado[$producto])) {
+                    if (! isset($resultado[$producto])) {
                         $resultado[$producto] = [
                             'producto' => $producto,
                             'cantidad_total' => 0,
@@ -235,81 +230,82 @@ class ReporteController extends Controller
         $pdf = Pdf::loadView('reportes.margen-ganancia', [
             'resultado' => $resultado,
             'fecha_inicio' => $request->fecha_inicio,
-            'fecha_fin' => $request->fecha_fin
+            'fecha_fin' => $request->fecha_fin,
         ]);
 
         return $pdf->stream('reporte-margen-ganancia.pdf');
     }
 
-        public function resumenVentas(Request $request)
-{
-    $request->validate([
-        'fecha_inicio' => 'required|date',
-        'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
-    ]);
+    public function resumenVentas(Request $request)
+    {
+        $request->validate([
+            'fecha_inicio' => 'required|date',
+            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
+        ]);
 
-    $fecha_inicio = Carbon::parse($request->fecha_inicio)->startOfDay();
-    $fecha_fin = Carbon::parse($request->fecha_fin)->endOfDay();
+        $fecha_inicio = Carbon::parse($request->fecha_inicio)->startOfDay();
+        $fecha_fin = Carbon::parse($request->fecha_fin)->endOfDay();
 
-    $ventas = Venta::where('estado', 'PROCESADA')
-        ->whereBetween('created_at', [$fecha_inicio, $fecha_fin])
-        ->get();
+        $ventas = Venta::where('estado', 'PROCESADA')
+            ->whereBetween('created_at', [$fecha_inicio, $fecha_fin])
+            ->get();
 
-    $total_vendido = $ventas->sum('total');
+        $total_vendido = $ventas->sum('total');
 
-    $numero_ventas = $ventas->count();
+        $numero_ventas = $ventas->count();
 
-    $ticket_promedio = $numero_ventas != 0
-        ? $total_vendido / $numero_ventas
-        : 0;
+        $ticket_promedio = $numero_ventas != 0
+            ? $total_vendido / $numero_ventas
+            : 0;
 
-    $duracion = $fecha_inicio->diffInDays($fecha_fin) + 1;
+        $duracion = $fecha_inicio->diffInDays($fecha_fin) + 1;
 
-    $serie = [];
+        $serie = [];
 
-    if ($duracion <= 31) {
+        if ($duracion <= 31) {
 
-        $serie = $ventas
-            ->groupBy(function ($venta) {
-                return Carbon::parse($venta->created_at)->format('Y-m-d');
-            })
-            ->map(function ($ventas, $fecha) {
-                return [
-                    'periodo' => $fecha,
-                    'total' => $ventas->sum('total'),
-                    'cantidad_ventas' => $ventas->count(),
-                ];
-            })
-            ->values();
+            $serie = $ventas
+                ->groupBy(function ($venta) {
+                    return Carbon::parse($venta->created_at)->format('Y-m-d');
+                })
+                ->map(function ($ventas, $fecha) {
+                    return [
+                        'periodo' => $fecha,
+                        'total' => $ventas->sum('total'),
+                        'cantidad_ventas' => $ventas->count(),
+                    ];
+                })
+                ->values();
 
-    } else {
+        } else {
 
-        $serie = $ventas
-            ->groupBy(function ($venta) {
-                return Carbon::parse($venta->created_at)->startOfWeek()->format('Y-m-d');
-            })
-            ->map(function ($ventas, $fecha) {
-                return [
-                    'periodo' => $fecha,
-                    'total' => $ventas->sum('total'),
-                    'cantidad_ventas' => $ventas->count(),
-                ];
-            })
-            ->values();
-    }
+            $serie = $ventas
+                ->groupBy(function ($venta) {
+                    return Carbon::parse($venta->created_at)->startOfWeek()->format('Y-m-d');
+                })
+                ->map(function ($ventas, $fecha) {
+                    return [
+                        'periodo' => $fecha,
+                        'total' => $ventas->sum('total'),
+                        'cantidad_ventas' => $ventas->count(),
+                    ];
+                })
+                ->values();
+        }
 
-    return response()->json([
-        'status' => 'ok',
-        'data' => [
-            'fecha_inicio' => $request->fecha_inicio,
-            'fecha_fin' => $request->fecha_fin,
-            'total_vendido' => round($total_vendido, 3),
+        $pdf = Pdf::loadView('reportes.resumen-ventas', [
+
+            'fecha_inicio' => $fecha_inicio,
+            'fecha_fin' => $fecha_fin,
+            'total_vendido' => $total_vendido,
             'numero_ventas' => $numero_ventas,
-            'ticket_promedio' => round($ticket_promedio, 3),
+            'ticket_promedio' => $ticket_promedio,
             'tipo_agrupacion' => $duracion <= 31 ? 'diaria' : 'semanal',
             'serie' => $serie,
-        ]
-    ]);
-}
 
+        ]);
+
+        return $pdf->stream('reporte-resumen-ventas.pdf');
+
+    }
 }
