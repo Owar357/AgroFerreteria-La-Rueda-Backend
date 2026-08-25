@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->boolean('es_anulado')->default(false);
             $table->enum('tipo_movimiento', ['ENTRADA', 'SALIDA'])->index();
+            $table->enum('origen', ['CAJA_CHICA','VENTAS'])->index();
             $table->decimal('monto', 15, 2);
             $table->string('motivo', 255);
             $table->foreignId('apertura_venta_id')->constrained('apertura_ventas');
@@ -30,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('movimientos_caja');
+        Schema::dropIfExists('movimientos_externo_cajas');
     }
 };

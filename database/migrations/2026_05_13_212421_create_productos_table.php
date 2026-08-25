@@ -5,25 +5,25 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
-{   
+{
     /**
      * Run the migrations.
      */
     public function up(): void
-    { Schema::create('productos', function (Blueprint $table) {
+    {
+        Schema::create('productos', function (Blueprint $table) {
             $table->id();
-            $table->string('codigo',14)->unique();
-            $table->string('nombre',100)->index();
-            $table->string('fabricante',100)->nullable();
-            $table->enum('tipo_producto',['UNIDAD FIJA','GRANEL'])->index();
-            $table->string('unidad_base',20);
+            $table->string('codigo', 14)->unique();
+            $table->string('nombre', 100)->index();
+            $table->string('fabricante', 100)->nullable();
+            $table->enum('tipo_producto', ['UNIDAD FIJA', 'GRANEL'])->index();
             $table->boolean('aplica_iva')->default(false);
+            $table->foreignId('unidad_medida_id')->constrained('unidad_medidas')->restrictOnDelete();
             $table->foreignId('categoria_id')->constrained('categorias')->restrictOnDelete();
             $table->foreignId('registrado_por')->constrained('users')->restrictOnDelete();
             $table->timestamps();
         });
     }
-       
 
     /**
      * Reverse the migrations.

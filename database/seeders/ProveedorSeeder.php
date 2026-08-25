@@ -12,7 +12,7 @@ class ProveedorSeeder extends Seeder
      */
     public function run(): void
     {
-          $proveedores = [
+        $proveedores = [
             [
                 'nombre' => 'Fertica El Salvador',
                 'direccion' => 'Km 12 Carretera Panamericana, San Salvador',
@@ -43,6 +43,30 @@ class ProveedorSeeder extends Seeder
                 'correo' => null,
                 'telefono' => '78901234',
                 'tipo_persona' => 'NATURAL',
+                'activo' => true,
+            ],
+            [
+                'nombre' => 'Semillas Cristiani',
+                'direccion' => 'Carretera a Santa Tecla, Km 15, San Salvador',
+                'correo' => 'ventas@semillascristiani.com',
+                'telefono' => '2233-4455',
+                'tipo_persona' => 'JURIDICA',
+                'activo' => true,
+            ],
+            [
+                'nombre' => 'AgroNatura',
+                'direccion' => 'Calle del Agricultor, #123, Santa Ana',
+                'correo' => 'info@agronatura.com',
+                'telefono' => '2445-6677',
+                'tipo_persona' => 'JURIDICA',
+                'activo' => true,
+            ],
+            [
+                'nombre' => 'Bayer',
+                'direccion' => 'Zona Franca, Bulevar Sur, San Salvador',
+                'correo' => 'ventas@bayer.com.sv',
+                'telefono' => '2277-8899',
+                'tipo_persona' => 'JURIDICA',
                 'activo' => true,
             ],
         ];

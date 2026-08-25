@@ -12,7 +12,7 @@ class Producto extends Model
         'nombre',
         'fabricante',
         'tipo_producto',
-        'unidad_base',
+        'unidad_medida_id',
         'aplica_iva',
         'categoria_id',
         'registrado_por',
@@ -36,4 +36,12 @@ class Producto extends Model
     {
         return $this->hasMany(Presentacion::class);
     }
+
+    public function unidadMedida()
+    {
+        return $this->belongsTo(UnidadMedida::class, 'unidad_medida_id');
+    }
+
 }
+
+

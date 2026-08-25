@@ -11,6 +11,7 @@ class MovimientoExternoCaja extends Model
     protected $fillable = [
         'es_anulado',
         'tipo_movimiento',
+        'origen',
         'monto',
         'motivo',
         'apertura_venta_id',
