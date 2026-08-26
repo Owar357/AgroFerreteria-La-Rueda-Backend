@@ -12,10 +12,17 @@ use App\Http\Controllers\MovimientoExternoCajaController;
 use App\Http\Controllers\PresentacionController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProveedorController;
-use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\UnidadMedidaController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VentaController;
+
+use App\Http\Controllers\Reportes\ReporteCajaController;
+use App\Http\Controllers\Reportes\ReporteComprasController;
+use App\Http\Controllers\Reportes\ReporteInventarioController;
+use App\Http\Controllers\Reportes\ReporteVentas\ReporteVentasController;
+use App\Http\Controllers\Reportes\ReporteVentas\ReporteFinancieroVentasController;
+use App\Http\Controllers\Reportes\ReporteVentas\ReporteComparativoVentasController;
+use App\Http\Controllers\Reportes\ReporteVentas\ReporteDesempenoVentasController;
 
 use App\Models\Alerta;
 use Illuminate\Support\Facades\Route;
@@ -66,17 +73,27 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('/unidades', UnidadMedidaController::class)->only('index');
 });
 
-Route::get('/reportes/ventas', [ReporteController::class, 'ventas']);
-Route::get('/reportes/ticket/{id}', [ReporteController::class, 'ticket']);
-Route::get('/reportes/flujo-compras-ventas', [ReporteController::class, 'flujoComprasVentas']);
-Route::get('/reportes/margen-ganancia', [ReporteController::class, 'margenGanancia']);
-Route::get('/reportes/resumen-ventas', [ReporteController::class, 'resumenVentas']);
-Route::get('/reportes/ventas-comparativa', [ReporteController::class, 'ventasComparativa']);
-Route::get('/reportes/ventas-por-usuario', [ReporteController::class, 'ventasPorUsuarioPdf']);
-Route::get('/reportes/ventas-por-categoria',[ReporteController::class, 'ventasPorCategoria']);
-Route::get('/reportes/productos-mas-vendidos',[ReporteController::class, 'productosMasVendidosPdf']);
-Route::get('/reportes/productos-menos-vendidos',[ReporteController::class, 'productosMenosVendidos']);
-Route::get('/reportes/inventario-valorizado', [ReporteController::class, 'inventarioValorizado']);
-Route::get('/reportes/productos-por-vencer', [ReporteController::class, 'productosPorVencer']);
-Route::get('/reportes/compras-por-proveedor', [ReporteController::class, 'comprasPorProveedor']);
-Route::get('/reportes/arqueo-caja/{apertura_venta_id}', [ReporteController::class, 'arqueoCaja']);
+
+Route::get('/reportes/ventas', [ReporteVentasController::class, 'ventas']);
+Route::get('/reportes/ticket/{id}', [ReporteVentasController::class, 'ticket']);
+
+
+Route::get('/reportes/flujo-compras-ventas', [ReporteFinancieroVentasController::class, 'flujoComprasVentas']);
+Route::get('/reportes/margen-ganancia', [ReporteFinancieroVentasController::class, 'margenGanancia']);
+
+Route::get('/reportes/resumen-ventas', [ReporteComparativoVentasController::class, 'resumenVentas']);
+Route::get('/reportes/ventas-comparativa', [ReporteComparativoVentasController::class, 'ventasComparativa']);
+
+
+Route::get('/reportes/ventas-por-usuario', [ReporteDesempenoVentasController::class, 'ventasPorUsuarioPdf']);
+Route::get('/reportes/ventas-por-categoria', [ReporteDesempenoVentasController::class, 'ventasPorCategoria']);
+Route::get('/reportes/productos-mas-vendidos', [ReporteDesempenoVentasController::class, 'productosMasVendidosPdf']);
+Route::get('/reportes/productos-menos-vendidos', [ReporteDesempenoVentasController::class, 'productosMenosVendidos']);
+
+Route::get('/reportes/inventario-valorizado', [ReporteInventarioController::class, 'inventarioValorizado']);
+Route::get('/reportes/productos-por-vencer', [ReporteInventarioController::class, 'productosPorVencer']);
+
+Route::get('/reportes/compras-por-proveedor', [ReporteComprasController::class, 'comprasPorProveedor']);
+
+
+Route::get('/reportes/arqueo-caja/{apertura_venta_id}', [ReporteCajaController::class, 'arqueoCaja']);
