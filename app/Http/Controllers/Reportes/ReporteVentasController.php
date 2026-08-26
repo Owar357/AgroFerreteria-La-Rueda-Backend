@@ -1,19 +1,18 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Reportes;
 
+use App\Http\Controllers\Controller;
 use App\Models\Compra;
 use App\Models\Producto;
 use App\Models\LoteDetalleVenta;
 use App\Models\Venta;
-use App\Models\Lote;
-use App\Models\Categoria;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class ReporteController extends Controller
+class ReporteVentasController extends Controller
 {
     public function ventas(Request $request)
     {
@@ -635,193 +634,5 @@ class ReporteController extends Controller
         ]);
 
         return $pdf->stream('reporte-productos-menos-vendidos.pdf');
-    }
-
-    public function inventarioValorizado(Request $request)
-    {
-        $productos = Producto::join('presentaciones', 'productos.id', '=', 'presentaciones.producto_id')
-            ->join('lotes', 'presentaciones.id', '=', 'lotes.presentacion_id')
-            ->where('lotes.cantidad_actual', '>', 0)
-            ->where('lotes.estado', 'ACTIVO')
-            ->select(
-                'productos.id',
-                'productos.nombre',
-                DB::raw('SUM(lotes.cantidad_actual) as cantidad_stock'),
-                DB::raw('SUM(lotes.cantidad_actual * lotes.costo_unitario_compra) / SUM(lotes.cantidad_actual) as costo_promedio'),
-                DB::raw('SUM(lotes.cantidad_actual * lotes.costo_unitario_compra) as valor_costo'),
-                DB::raw('SUM(lotes.cantidad_actual * presentaciones.precio_venta) as valor_venta')
-            )
-            ->groupBy(
-                'productos.id',
-                'productos.nombre'
-            )
-            ->get();
-
-        $totalStock = $productos->sum('cantidad_stock');
-        $totalCosto = $productos->sum('valor_costo');
-        $totalVenta = $productos->sum('valor_venta');
-
-        $fecha_corte = now();
-
-        $pdf = Pdf::loadView('reportes.inventario-valorizado', [
-            'resultado' => $productos,
-            'totalStock' => $totalStock,
-            'totalCosto' => $totalCosto,
-            'totalVenta' => $totalVenta,
-            'fecha_corte' => $fecha_corte
-        ]);
-
-        return $pdf->stream('inventario-valorizado.pdf');
-    }
-
-    public function productosPorVencer(Request $request)
-    {
-        $request->validate([
-            'dias_umbral' => 'nullable|integer|min:1',
-        ]);
-
-        $dias_umbral = (int) ($request->dias_umbral ?? 30);
-
-        $hoy = now()->startOfDay();
-        $fecha_limite = now()->addDays($dias_umbral)->endOfDay();
-
-        $lotes = Lote::join('presentaciones', 'lotes.presentacion_id', '=', 'presentaciones.id')
-            ->join('productos', 'presentaciones.producto_id', '=', 'productos.id')
-            ->where('lotes.cantidad_actual', '>', 0)
-            ->where('lotes.estado', 'ACTIVO')
-            ->whereNotNull('lotes.fecha_vencimiento')
-            ->whereBetween('lotes.fecha_vencimiento', [
-                $hoy->toDateString(),
-                $fecha_limite->toDateString()
-            ])
-            ->select(
-                'lotes.id',
-                'lotes.lote_interno',
-                'lotes.fecha_vencimiento',
-                'lotes.cantidad_actual',
-                'productos.nombre as producto',
-                'presentaciones.nombre as presentacion'
-            )
-            ->orderBy('lotes.fecha_vencimiento', 'asc')
-            ->get();
-
-        $pdf = Pdf::loadView('reportes.productos-por-vencer', [
-            'resultado' => $lotes,
-            'dias_umbral' => $dias_umbral,
-            'fecha_corte' => now()
-        ]);
-
-        return $pdf->stream('productos-por-vencer.pdf');
-    }
-
-    public function comprasPorProveedor(Request $request)
-    {
-        $request->validate([
-            'fecha_inicio' => 'required|date',
-            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
-        ]);
-
-        $fecha_inicio = $request->fecha_inicio;
-        $fecha_fin = $request->fecha_fin;
-
-        $compras = DB::table('compras')
-            ->join('proveedores', 'compras.proveedor_id', '=', 'proveedores.id')
-            ->whereBetween('compras.fecha_emision', [
-                $fecha_inicio,
-                $fecha_fin
-            ])
-            ->where('compras.es_anulado', false)
-            ->select(
-                'proveedores.id',
-                'proveedores.nombre',
-                DB::raw('SUM(compras.monto_total) as monto_total'),
-                DB::raw('COUNT(compras.id) as numero_compras')
-            )
-            ->groupBy(
-                'proveedores.id',
-                'proveedores.nombre'
-            )
-            ->orderBy('monto_total', 'desc')
-            ->get();
-
-        foreach ($compras as $compra) {
-
-            $compra->productos_distintos = DB::table('detalles_compra')
-                ->join('compras', 'detalles_compra.compra_id', '=', 'compras.id')
-                ->where('compras.proveedor_id', $compra->id)
-                ->whereBetween('compras.fecha_emision', [
-                    $fecha_inicio,
-                    $fecha_fin
-                ])
-                ->where('compras.es_anulado', false)
-                ->where('detalles_compra.es_anulado', false)
-                ->distinct()
-                ->count('detalles_compra.lote_id');
-        }
-
-        $pdf = Pdf::loadView('reportes.compras-por-proveedor', [
-            'compras' => $compras,
-            'fecha_inicio' => $fecha_inicio,
-            'fecha_fin' => $fecha_fin
-        ]);
-
-        return $pdf->stream('compras-por-proveedor.pdf');
-    }
-
-    public function arqueoCaja($apertura_venta_id)
-    {
-        $apertura = DB::table('apertura_ventas')
-            ->join('users', 'apertura_ventas.cajero_id', '=', 'users.id')
-            ->where('apertura_ventas.id', $apertura_venta_id)
-            ->select(
-                'apertura_ventas.*',
-                'users.name as cajero'
-            )
-            ->first();
-
-        if (!$apertura) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'No se encontró la apertura de venta.'
-            ], 404);
-        }
-
-        $ventasEfectivo = DB::table('ventas')
-            ->where('apertura_venta_id', $apertura_venta_id)
-            ->where('tipo_pago', 'EFECTIVO')
-            ->where('estado', '!=', 'ANULADA')
-            ->sum('total');
-
-        $montoEsperado = $apertura->monto_inicial + $ventasEfectivo;
-
-        $montoContado = $apertura->monto_contado ?? 0;
-
-        $diferencia = $montoContado - $montoEsperado;
-
-        if ($diferencia > 0) {
-            $estadoArqueo = 'SOBRANTE';
-        } elseif ($diferencia < 0) {
-            $estadoArqueo = 'FALTANTE';
-        } else {
-            $estadoArqueo = 'CUADRADO';
-        }
-
-        $resultado = [
-            'cajero' => $apertura->cajero,
-            'fecha_apertura' => $apertura->fecha_hora_apertura,
-            'fecha_cierre' => $apertura->fecha_hora_cierre,
-            'monto_inicial' => $apertura->monto_inicial,
-            'ventas_efectivo' => $ventasEfectivo,
-            'monto_esperado' => $montoEsperado,
-            'monto_contado' => $montoContado,
-            'diferencia' => $diferencia,
-            'estado_arqueo' => $estadoArqueo
-        ];
-
-        $pdf = Pdf::loadView('reportes.arqueo-caja', [
-            'resultado' => $resultado
-        ]);
-
-        return $pdf->stream('reporte-arqueo-caja.pdf');
     }
 }
