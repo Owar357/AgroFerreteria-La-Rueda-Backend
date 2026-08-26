@@ -76,3 +76,4 @@ Route::get('/reportes/ventas-por-usuario', [ReporteController::class, 'ventasPor
 Route::get('/reportes/ventas-por-categoria',[ReporteController::class, 'ventasPorCategoria']);
 Route::get('/reportes/productos-mas-vendidos',[ReporteController::class, 'productosMasVendidosPdf']);
 Route::get('/reportes/productos-menos-vendidos',[ReporteController::class, 'productosMenosVendidos']);
+Route::get('/reportes/inventario-valorizado', [ReporteController::class, 'inventarioValorizado']);

@@ -583,7 +583,7 @@ class ReporteController extends Controller
         return $pdf->stream('reporte-productos-mas-vendidos.pdf');
     }
 
-        public function productosMenosVendidos(Request $request)
+    public function productosMenosVendidos(Request $request)
     {
         $request->validate([
             'fecha_inicio' => 'required|date',
@@ -635,5 +635,41 @@ class ReporteController extends Controller
 
         return $pdf->stream('reporte-productos-menos-vendidos.pdf');
     }
-}
 
+    public function inventarioValorizado(Request $request)
+    {
+        $productos = Producto::join('presentaciones', 'productos.id', '=', 'presentaciones.producto_id')
+            ->join('lotes', 'presentaciones.id', '=', 'lotes.presentacion_id')
+            ->where('lotes.cantidad_actual', '>', 0)
+            ->where('lotes.estado', 'ACTIVO')
+            ->select(
+                'productos.id',
+                'productos.nombre',
+                DB::raw('SUM(lotes.cantidad_actual) as cantidad_stock'),
+                DB::raw('SUM(lotes.cantidad_actual * lotes.costo_unitario_compra) / SUM(lotes.cantidad_actual) as costo_promedio'),
+                DB::raw('SUM(lotes.cantidad_actual * lotes.costo_unitario_compra) as valor_costo'),
+                DB::raw('SUM(lotes.cantidad_actual * presentaciones.precio_venta) as valor_venta')
+            )
+            ->groupBy(
+                'productos.id',
+                'productos.nombre'
+            )
+            ->get();
+
+        $totalStock = $productos->sum('cantidad_stock');
+        $totalCosto = $productos->sum('valor_costo');
+        $totalVenta = $productos->sum('valor_venta');
+
+        $fecha_corte = now();
+
+        $pdf = Pdf::loadView('reportes.inventario-valorizado', [
+            'resultado' => $productos,
+            'totalStock' => $totalStock,
+            'totalCosto' => $totalCosto,
+            'totalVenta' => $totalVenta,
+            'fecha_corte' => $fecha_corte
+        ]);
+
+        return $pdf->stream('inventario-valorizado.pdf');
+    }
+}
