@@ -72,3 +72,4 @@ Route::get('/reportes/flujo-compras-ventas', [ReporteController::class, 'flujoCo
 Route::get('/reportes/margen-ganancia', [ReporteController::class, 'margenGanancia']);
 Route::get('/reportes/resumen-ventas', [ReporteController::class, 'resumenVentas']);
 Route::get('/reportes/ventas-comparativa', [ReporteController::class, 'ventasComparativa']);
+Route::get('/reportes/ventas-por-usuario', [ReporteController::class, 'ventasPorUsuarioPdf']);

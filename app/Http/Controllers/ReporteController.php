@@ -370,4 +370,60 @@ class ReporteController extends Controller
 
         return $pdf->stream('reporte-ventas-comparativa.pdf');
     }
+
+    public function ventasPorUsuarioPdf(Request $request)
+    {
+        $request->validate([
+            'fecha_inicio' => 'required|date',
+            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
+        ]);
+
+        $ventas = Venta::where('estado', 'PROCESADA')
+            ->whereBetween('created_at', [
+                Carbon::parse($request->fecha_inicio)->startOfDay(),
+                Carbon::parse($request->fecha_fin)->endOfDay()
+            ])
+            ->with('vendidoPor')
+            ->get();
+
+        $resultado = [];
+
+        foreach ($ventas as $venta) {
+
+            $usuario = $venta->vendidoPor;
+
+            $nombre = $usuario ? $usuario->name : 'Usuario eliminado';
+
+            if (!isset($resultado[$nombre])) {
+                $resultado[$nombre] = [
+                    'usuario' => $nombre,
+                    'total_vendido' => 0,
+                    'numero_ventas' => 0,
+                    'ticket_promedio' => 0,
+                ];
+            }
+
+            $resultado[$nombre]['total_vendido'] += $venta->total;
+            $resultado[$nombre]['numero_ventas']++;
+        }
+
+        foreach ($resultado as &$usuario) {
+
+            $usuario['ticket_promedio'] = $usuario['numero_ventas'] > 0
+                ? $usuario['total_vendido'] / $usuario['numero_ventas']
+                : 0;
+        }
+
+        usort($resultado, function ($a, $b) {
+            return $b['total_vendido'] <=> $a['total_vendido'];
+        });
+
+        $pdf = Pdf::loadView('reportes.ventas-por-usuario', [
+            'resultado' => $resultado,
+            'fecha_inicio' => $request->fecha_inicio,
+            'fecha_fin' => $request->fecha_fin,
+        ]);
+
+        return $pdf->stream('reporte-ventas-por-usuario.pdf');
+    }
 }
