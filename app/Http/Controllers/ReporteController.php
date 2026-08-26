@@ -55,7 +55,7 @@ class ReporteController extends Controller
         $pdf = Pdf::loadView('reportes.ticket', compact('venta'))
             ->setPaper([0, 0, 240.77, 900], 'portrait');
 
-        return $pdf->stream('Ticket-'.$venta->numero_factura.'.pdf');
+        return $pdf->stream('Ticket-' . $venta->numero_factura . '.pdf');
     }
 
     public function flujoComprasVentas(Request $request)
@@ -276,7 +276,6 @@ class ReporteController extends Controller
                     ];
                 })
                 ->values();
-
         } else {
 
             $serie = $ventas
@@ -306,6 +305,69 @@ class ReporteController extends Controller
         ]);
 
         return $pdf->stream('reporte-resumen-ventas.pdf');
+    }
 
+    public function ventasComparativa(Request $request)
+    {
+        $request->validate([
+            'fecha_inicio_1' => 'required|date',
+            'fecha_fin_1' => 'required|date|after_or_equal:fecha_inicio_1',
+
+            'fecha_inicio_2' => 'required|date',
+            'fecha_fin_2' => 'required|date|after_or_equal:fecha_inicio_2',
+        ]);
+
+        $inicio1 = Carbon::parse($request->fecha_inicio_1)->startOfDay();
+        $fin1 = Carbon::parse($request->fecha_fin_1)->endOfDay();
+
+        $inicio2 = Carbon::parse($request->fecha_inicio_2)->startOfDay();
+        $fin2 = Carbon::parse($request->fecha_fin_2)->endOfDay();
+
+        $ventas1 = Venta::where('estado', 'PROCESADA')
+            ->whereBetween('created_at', [$inicio1, $fin1])
+            ->get();
+
+        $ventas2 = Venta::where('estado', 'PROCESADA')
+            ->whereBetween('created_at', [$inicio2, $fin2])
+            ->get();
+
+        $total1 = $ventas1->sum('total');
+        $total2 = $ventas2->sum('total');
+
+        $cantidad1 = $ventas1->count();
+        $cantidad2 = $ventas2->count();
+
+        $promedio1 = $cantidad1 > 0 ? $total1 / $cantidad1 : 0;
+        $promedio2 = $cantidad2 > 0 ? $total2 / $cantidad2 : 0;
+
+        $variacion = $total1 != 0
+            ? (($total2 - $total1) / $total1) * 100
+            : 0;
+
+        $dias1 = $inicio1->diffInDays($fin1) + 1;
+        $dias2 = $inicio2->diffInDays($fin2) + 1;
+
+        $pdf = Pdf::loadView('reportes.ventas-comparativa', [
+            'inicio1' => $inicio1,
+            'fin1' => $fin1,
+            'inicio2' => $inicio2,
+            'fin2' => $fin2,
+
+            'total1' => $total1,
+            'total2' => $total2,
+
+            'cantidad1' => $cantidad1,
+            'cantidad2' => $cantidad2,
+
+            'promedio1' => $promedio1,
+            'promedio2' => $promedio2,
+
+            'variacion' => $variacion,
+
+            'dias1' => $dias1,
+            'dias2' => $dias2,
+        ]);
+
+        return $pdf->stream('reporte-ventas-comparativa.pdf');
     }
 }
