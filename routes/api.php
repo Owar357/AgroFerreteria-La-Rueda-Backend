@@ -74,3 +74,4 @@ Route::get('/reportes/resumen-ventas', [ReporteController::class, 'resumenVentas
 Route::get('/reportes/ventas-comparativa', [ReporteController::class, 'ventasComparativa']);
 Route::get('/reportes/ventas-por-usuario', [ReporteController::class, 'ventasPorUsuarioPdf']);
 Route::get('/reportes/ventas-por-categoria',[ReporteController::class, 'ventasPorCategoria']);
+Route::get('/reportes/productos-mas-vendidos',[ReporteController::class, 'productosMasVendidosPdf']);

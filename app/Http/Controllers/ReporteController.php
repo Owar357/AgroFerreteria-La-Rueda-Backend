@@ -511,4 +511,73 @@ class ReporteController extends Controller
 
         return $pdf->stream('reporte-ventas-por-categoria.pdf');
     }
+
+    public function productosMasVendidosPdf(Request $request)
+    {
+        $request->validate([
+            'fecha_inicio' => 'required|date',
+            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
+            'limite' => 'nullable|integer|min:1',
+        ]);
+
+        $limite = $request->limite ?? 10;
+
+        $ventas = Venta::with('detallesVenta')
+            ->where('estado', 'PROCESADA')
+            ->whereBetween('created_at', [
+                Carbon::parse($request->fecha_inicio)->startOfDay(),
+                Carbon::parse($request->fecha_fin)->endOfDay()
+            ])
+            ->get();
+
+        $resultado = [];
+
+        foreach ($ventas as $venta) {
+
+            foreach ($venta->detallesVenta as $detalle) {
+
+                $lotes = LoteDetalleVenta::where(
+                    'detalle_venta_id',
+                    $detalle->id
+                )->get();
+
+                foreach ($lotes as $loteDetalle) {
+
+                    $producto = $detalle->nombre_producto;
+                    $cantidad = $loteDetalle->cantidad_tomada;
+                    $monto = $cantidad * $detalle->precio_unitario;
+
+                    if (!isset($resultado[$producto])) {
+                        $resultado[$producto] = [
+                            'producto' => $producto,
+                            'unidades_vendidas' => 0,
+                            'monto_total' => 0,
+                            'numero_ventas' => 0,
+                        ];
+                    }
+
+                    $resultado[$producto]['unidades_vendidas'] += $cantidad;
+                    $resultado[$producto]['monto_total'] += $monto;
+                }
+
+                if (isset($resultado[$producto])) {
+                    $resultado[$producto]['numero_ventas']++;
+                }
+            }
+        }
+
+        usort($resultado, function ($a, $b) {
+            return $b['unidades_vendidas'] <=> $a['unidades_vendidas'];
+        });
+
+        $resultado = array_slice($resultado, 0, $limite);
+
+        $pdf = Pdf::loadView('reportes.productos-mas-vendidos', [
+            'resultado' => $resultado,
+            'fecha_inicio' => $request->fecha_inicio,
+            'fecha_fin' => $request->fecha_fin,
+        ]);
+
+        return $pdf->stream('reporte-productos-mas-vendidos.pdf');
+    }
 }
