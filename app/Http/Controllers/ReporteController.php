@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Compra;
 use App\Models\LoteDetalleVenta;
 use App\Models\Venta;
+use App\Models\Categoria;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -425,5 +426,89 @@ class ReporteController extends Controller
         ]);
 
         return $pdf->stream('reporte-ventas-por-usuario.pdf');
+    }
+
+    public function ventasPorCategoria(Request $request)
+    {
+        $request->validate([
+            'fecha_inicio' => 'required|date',
+            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
+        ]);
+
+        $ventas = Venta::with('detallesVenta')
+            ->where('estado', 'PROCESADA')
+            ->whereBetween('created_at', [
+                Carbon::parse($request->fecha_inicio)->startOfDay(),
+                Carbon::parse($request->fecha_fin)->endOfDay()
+            ])
+            ->get();
+
+        $resultado = [];
+
+        foreach ($ventas as $venta) {
+
+            foreach ($venta->detallesVenta as $detalle) {
+
+                $lotes = LoteDetalleVenta::with('lote.presentacion.producto')
+                    ->where('detalle_venta_id', $detalle->id)
+                    ->get();
+
+                foreach ($lotes as $loteDetalle) {
+
+                    $producto = $loteDetalle->lote->presentacion->producto;
+                    $categoria = $producto->categoria;
+
+                    $nombreCategoria = $categoria
+                        ? $categoria->nombre
+                        : 'Sin clasificar';
+
+                    if (!isset($resultado[$nombreCategoria])) {
+                        $resultado[$nombreCategoria] = [
+                            'categoria' => $nombreCategoria,
+                            'total_vendido' => 0,
+                            'cantidad_unidades' => 0,
+                        ];
+                    }
+
+                    $cantidad = $loteDetalle->cantidad_tomada;
+                    $precioVenta = $detalle->precio_unitario;
+
+                    $resultado[$nombreCategoria]['cantidad_unidades'] += $cantidad;
+                    $resultado[$nombreCategoria]['total_vendido'] +=
+                        $cantidad * $precioVenta;
+                }
+            }
+        }
+
+        $totalGeneral = array_sum(
+            array_column($resultado, 'total_vendido')
+        );
+
+        foreach ($resultado as &$categoria) {
+
+            $categoria['porcentaje_total'] = $totalGeneral != 0
+                ? round(
+                    ($categoria['total_vendido'] / $totalGeneral) * 100,
+                    3
+                )
+                : 0;
+
+            $categoria['total_vendido'] = round(
+                $categoria['total_vendido'],
+                3
+            );
+        }
+
+        usort($resultado, function ($a, $b) {
+            return $b['total_vendido'] <=> $a['total_vendido'];
+        });
+
+        $pdf = Pdf::loadView('reportes.ventas-por-categoria', [
+            'resultado' => $resultado,
+            'fecha_inicio' => $request->fecha_inicio,
+            'fecha_fin' => $request->fecha_fin,
+        ]);
+
+        return $pdf->stream('reporte-ventas-por-categoria.pdf');
     }
 }
