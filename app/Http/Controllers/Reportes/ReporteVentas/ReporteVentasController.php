@@ -1,16 +1,13 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Reportes\ReporteVentas;
 
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Http\Controllers\Controller;
 use App\Models\Venta;
-use App\Models\User;
-use App\Models\Cliente;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
-
-class ReporteController extends Controller
+class ReporteVentasController extends Controller
 {
     public function ventas(Request $request)
     {
@@ -38,7 +35,7 @@ class ReporteController extends Controller
 
             'ventas' => $ventas,
             'fecha_desde' => $request->fecha_desde,
-            'fecha_hasta' => $request->fecha_hasta
+            'fecha_hasta' => $request->fecha_hasta,
 
         ]);
 
@@ -50,14 +47,12 @@ class ReporteController extends Controller
         $venta = Venta::with([
             'cliente',
             'vendidoPor',
-            'detallesVenta'
+            'detallesVenta',
         ])->findOrFail($id);
-
-
 
         $pdf = Pdf::loadView('reportes.ticket', compact('venta'))
             ->setPaper([0, 0, 240.77, 900], 'portrait');
 
-        return $pdf->stream('Ticket-' . $venta->numero_factura . '.pdf');
+        return $pdf->stream('Ticket-'.$venta->numero_factura.'.pdf');
     }
 }

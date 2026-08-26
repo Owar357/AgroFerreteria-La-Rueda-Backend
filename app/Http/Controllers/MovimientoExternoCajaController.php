@@ -21,16 +21,19 @@ class MovimientoExternoCajaController extends Controller
     {
         $fechaDesde = $request->fecha_desde ?? Carbon::now()->toDateString();
         $fechaHasta = $request->fecha_hasta ?? Carbon::now()->toDateString();
+        $perPage = $request->per_page ?? 7;
 
         $query = MovimientoExternoCaja::whereBetween('created_at', [
             $fechaDesde.' 00:00:00',
-            $fechaHasta.' 23:59:59']);
+            $fechaHasta.' 23:59:59']);  
 
         if ($request->filled('tipo_movimiento')) {
             $query->where('tipo_movimiento', $request->tipo_movimiento);
         }
 
-        $movimientos = $query->orderBy('created_at','asc')->get();
+         $movimientos = $query->with('user:id,name')
+        ->orderBy('created_at', 'desc')
+        ->paginate($perPage);
 
         return response()->json($movimientos, 200);
     }

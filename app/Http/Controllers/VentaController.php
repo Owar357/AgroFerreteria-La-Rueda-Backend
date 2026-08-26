@@ -52,7 +52,7 @@ class VentaController extends Controller
 
             $ventas = $resultados
                 ->orderBy('created_at', 'desc')
-                ->paginate($request->per_page ?? 12);
+                ->paginate($request->input('per_page', 8));
 
             return response()->json($ventas);
 
@@ -70,6 +70,18 @@ class VentaController extends Controller
     public function store(StoreVentaRequest $request)
     {
         try {
+
+        //AGREGE ESTE CANDADO PARA QEU VERIFIQUE LA CAJA GENERAL
+        // PAA QUE UN ACAJERO NO VEDA SIN UNA CAJA APERTURADA POR EL ADMIN
+        $cajaGeneralAbierta = \App\Models\AperturaCaja::where('estado', 'ABIERTO')->exists();
+
+        if (!$cajaGeneralAbierta) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No se pueden registrar ventas. La caja general del negocio está cerrada.',
+            ], 422);
+        }
+
 
             $aperturaVenta = AperturaVenta::where('cajero_id', auth()->id())
                 ->where('estado', 'ABIERTA')
