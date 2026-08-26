@@ -78,3 +78,4 @@ Route::get('/reportes/productos-mas-vendidos',[ReporteController::class, 'produc
 Route::get('/reportes/productos-menos-vendidos',[ReporteController::class, 'productosMenosVendidos']);
 Route::get('/reportes/inventario-valorizado', [ReporteController::class, 'inventarioValorizado']);
 Route::get('/reportes/productos-por-vencer', [ReporteController::class, 'productosPorVencer']);
+Route::get('/reportes/compras-por-proveedor', [ReporteController::class, 'comprasPorProveedor']);
