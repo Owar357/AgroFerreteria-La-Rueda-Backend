@@ -21,6 +21,7 @@ class ProductoSeeder extends Seeder
                 ['codigo' => 'FER-URE-01', 'nombre' => 'Urea Agrícola 46%', 'fabricante' => 'Fertica', 'tipo_producto' => 'GRANEL', 'unidad_base_nombre' => 'Libra', 'aplica_iva' => true],
             ],
             'Insecticidas y Fungicidas' => [
+                
                 ['codigo' => 'INS-LOR-01', 'nombre' => 'Insecticida Lorsban 4E', 'fabricante' => 'Corteva', 'tipo_producto' => 'UNIDAD FIJA', 'unidad_base_nombre' => 'Unidad', 'aplica_iva' => true],
                 ['codigo' => 'FUN-CUP-01', 'nombre' => 'Fungicida Cupravit', 'fabricante' => 'Bayer', 'tipo_producto' => 'UNIDAD FIJA', 'unidad_base_nombre' => 'Unidad', 'aplica_iva' => true],
             ],
