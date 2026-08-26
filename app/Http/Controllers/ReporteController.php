@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Compra;
+use App\Models\Producto;
 use App\Models\LoteDetalleVenta;
 use App\Models\Venta;
 use App\Models\Categoria;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ReporteController extends Controller
 {
@@ -580,4 +582,58 @@ class ReporteController extends Controller
 
         return $pdf->stream('reporte-productos-mas-vendidos.pdf');
     }
+
+        public function productosMenosVendidos(Request $request)
+    {
+        $request->validate([
+            'fecha_inicio' => 'required|date',
+            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
+            'limite' => 'nullable|integer|min:1',
+        ]);
+
+        $fecha_inicio = $request->fecha_inicio;
+        $fecha_fin = $request->fecha_fin;
+        $limite = $request->limite ?? 20;
+
+        $resultado = Producto::join('detalles_venta', function ($join) use ($fecha_inicio, $fecha_fin) {
+
+            $join->on('productos.nombre', '=', 'detalles_venta.nombre_producto')
+                ->whereBetween('detalles_venta.created_at', [
+                    $fecha_inicio . ' 00:00:00',
+                    $fecha_fin . ' 23:59:59'
+                ]);
+        })
+
+            ->join('ventas', function ($join) {
+
+                $join->on('detalles_venta.venta_id', '=', 'ventas.id')
+                    ->where('ventas.estado', '!=', 'ANULADA');
+            })
+
+            ->select(
+                'productos.id',
+                'productos.nombre',
+                DB::raw('SUM(detalles_venta.cantidad) as unidades_vendidas'),
+                DB::raw('SUM(detalles_venta.subtotal) as monto_total'),
+                DB::raw('COUNT(DISTINCT ventas.id) as numero_transacciones')
+            )
+
+            ->groupBy(
+                'productos.id',
+                'productos.nombre'
+            )
+
+            ->orderBy('unidades_vendidas', 'asc')
+            ->limit($limite)
+            ->get();
+
+        $pdf = Pdf::loadView('reportes.productos-menos-vendidos', [
+            'resultado' => $resultado,
+            'fecha_inicio' => $fecha_inicio,
+            'fecha_fin' => $fecha_fin,
+        ]);
+
+        return $pdf->stream('reporte-productos-menos-vendidos.pdf');
+    }
 }
+
