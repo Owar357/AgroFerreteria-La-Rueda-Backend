@@ -17,7 +17,6 @@ return new class extends Migration
             $table->boolean('activo')->default(true)->index();
             $table->foreignid('creado_por')->constrained('users');
             $table->timestamps();
-            
         });
     }
 
