@@ -42,6 +42,9 @@ class Producto extends Model
         return $this->belongsTo(UnidadMedida::class, 'unidad_medida_id');
     }
 
+    public function kardex(){
+        return $this->hasMany(Kardex::class);
+    }
 }
 
 
