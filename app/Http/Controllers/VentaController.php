@@ -3,19 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Venta\StoreVentaRequest;
+use App\Models\AperturaCaja;
 use App\Models\AperturaVenta;
 use App\Models\DetalleVenta;
 use App\Models\Lote;
 use App\Models\LoteDetalleVenta;
+use App\Models\Presentacion;
 use App\Models\Venta;
+use App\Services\KardexService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class VentaController extends Controller
 {
-
-
     /**
      * Display a listing of the resource.
      */
@@ -69,117 +70,144 @@ class VentaController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreVentaRequest $request)
-    {
-        try {
+    
+    public function store(StoreVentaRequest $request, KardexService $kardexService)
+{
+    try {
+        $cajaGeneralAbierta = AperturaCaja::where('estado', 'ABIERTO')->exists();
 
-        //AGREGE ESTE CANDADO PARA QEU VERIFIQUE LA CAJA GENERAL
-        // PAA QUE UN ACAJERO NO VEDA SIN UNA CAJA APERTURADA POR EL ADMIN
-        $cajaGeneralAbierta = \App\Models\AperturaCaja::where('estado', 'ABIERTO')->exists();
-
-        if (!$cajaGeneralAbierta) {
+        if (! $cajaGeneralAbierta) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'No se pueden registrar ventas. La caja general del negocio está cerrada.',
             ], 422);
         }
 
+        $aperturaVenta = AperturaVenta::where('cajero_id', auth()->id())
+            ->where('estado', 'ABIERTA')
+            ->first();
 
-            $aperturaVenta = AperturaVenta::where('cajero_id', auth()->id())
-                ->where('estado', 'ABIERTA')
-                ->first();
+        DB::transaction(function () use ($request, &$aperturaVenta, $kardexService) {
 
-            DB::transaction(function () use ($request, &$aperturaVenta) {
+            $venta = Venta::create([
+                ...$request->safe()->except(['detalles']),
+                'numero_factura' => $this->numeroFactura(),
+                'apertura_venta_id' => $aperturaVenta?->id,
+                'vendido_por' => auth()->id(),
+            ]);
 
-                $venta = Venta::create([
-                    ...$request->safe()->except(['detalles']),
-                    'numero_factura' => $this->numeroFactura(),
-                    'apertura_venta_id' => $aperturaVenta?->id,
-                    'vendido_por' => auth()->id(),
+            foreach ($request->validated()['detalles'] as $detalles) {
+
+                $detalleVenta = DetalleVenta::create([
+                    'venta_id' => $venta->id,
+                    'nombre_producto' => $detalles['nombre_producto'],
+                    'presentacion' => $detalles['presentacion'],
+                    'cantidad' => $detalles['cantidad'],
+                    'precio_unitario' => $detalles['precio_unitario'],
+                    'subtotal' => $detalles['subtotal'],
+                    'iva_aplicado' => $detalles['iva_aplicado'],
+                    'unidad_base' => $detalles['unidad_base'],
+                    'descuento_aplicado' => $detalles['descuento_aplicado'],
                 ]);
 
-                foreach ($request->validated()['detalles'] as $detalles) {
+                $cantidadSolicitada = $detalles['cantidad'];
 
-                    $detalleVenta = DetalleVenta::create([
-                        'venta_id' => $venta->id,
-                        'nombre_producto' => $detalles['nombre_producto'],
-                        'presentacion' => $detalles['presentacion'],
-                        'cantidad' => $detalles['cantidad'],
-                        'precio_unitario' => $detalles['precio_unitario'],
-                        'subtotal' => $detalles['subtotal'],
-                        'iva_aplicado' => $detalles['iva_aplicado'],
-                        'unidad_base' => $detalles['unidad_base'],
-                        'descuento_aplicado' => $detalles['descuento_aplicado'],
+            
+                $presentacion = Presentacion::with('producto')->findOrFail($detalles['presentacion_id']);
+                $producto = $presentacion->producto;
 
-                    ]);
+                while ($cantidadSolicitada > 0) {
 
-                    $cantidadSolicitada = $detalles['cantidad'];
+                    $lote = Lote::whereHas('presentacion', function ($query) use ($producto) {
+                            $query->where('producto_id', $producto->id);
+                        })
+                        ->where('cantidad_actual', '>', 0)
+                        ->where('estado', 'ACTIVO')
+                        ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
+                        ->orderBy('created_at', 'ASC')
+                        ->lockForUpdate()
+                        ->first();
 
-                    while ($cantidadSolicitada > 0) {
+            
+                    if (! $lote) {
+                        throw new \Exception("No hay stock disponible para el producto {$producto->nombre}.");
+                    }
 
-                        $lote = Lote::where('presentacion_id', $detalles['presentacion_id'])
-                            ->where('cantidad_actual', '>', 0)
-                            ->where('estado', 'ACTIVO')
-                            ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
-                            ->orderBy('created_at', 'ASC')
-                            ->lockForUpdate()
-                            ->firstOrFail();
+                    if ($lote->cantidad_actual >= $cantidadSolicitada) {
 
-                        if ($lote->cantidad_actual >= $cantidadSolicitada) {
+                        $cantidadTomada = $cantidadSolicitada;
 
-                            LoteDetalleVenta::create([
-                                'detalle_venta_id' => $detalleVenta->id,
-                                'lote_id' => $lote->id,
-                                'cantidad_tomada' => $cantidadSolicitada,
-                            ]);
+                        LoteDetalleVenta::create([
+                            'detalle_venta_id' => $detalleVenta->id,
+                            'lote_id' => $lote->id,
+                            'cantidad_tomada' => $cantidadTomada,
+                        ]);
 
-                            $lote->cantidad_actual = bcsub($lote->cantidad_actual, $cantidadSolicitada, 3);
+                        $lote->cantidad_actual = bcsub($lote->cantidad_actual, $cantidadTomada, 3);
 
-                            if ($lote->cantidad_actual == 0) {
-                                $lote->estado = 'AGOTADO';
-                            }
-                            $lote->save();
-                            $cantidadSolicitada = 0;
-
-                        } else {
-
-                            $stockEntregado = $lote->cantidad_actual;
-
-                            LoteDetalleVenta::create([
-                                'detalle_venta_id' => $detalleVenta->id,
-                                'lote_id' => $lote->id,
-                                'cantidad_tomada' => $stockEntregado,
-                            ]);
-
-                            $lote->cantidad_actual = 0;
+                        if ($lote->cantidad_actual == 0) {
                             $lote->estado = 'AGOTADO';
-                            $lote->update();
-
-                            $cantidadSolicitada = bcsub($cantidadSolicitada, $stockEntregado, 3);
-
                         }
+                        $lote->save();
+
+                        $kardexService->registrarSalida(
+                            $presentacion,
+                            $lote,
+                            (float) $cantidadTomada,
+                            $venta,
+                            $venta->numero_factura,
+                            'Salida por Venta '.$venta->numero_factura
+                        );
+
+                        $cantidadSolicitada = 0;
+
+                    } else {
+
+                        $stockEntregado = $lote->cantidad_actual;
+
+                        LoteDetalleVenta::create([
+                            'detalle_venta_id' => $detalleVenta->id,
+                            'lote_id' => $lote->id,
+                            'cantidad_tomada' => $stockEntregado,
+                        ]);
+
+                        $lote->cantidad_actual = 0;
+                        $lote->estado = 'AGOTADO';
+                        $lote->update();
+
+                        $kardexService->registrarSalida(
+                            $presentacion,
+                            $lote,
+                            (float) $stockEntregado,
+                            $venta,
+                            $venta->numero_factura,
+                            'Salida parcial por Venta '.$venta->numero_factura
+                        );
+
+                        $cantidadSolicitada = bcsub($cantidadSolicitada, $stockEntregado, 4);
 
                     }
 
                 }
 
-            });
+            }
 
-            return response()->json([
-                'status' => 'ok',
-                'message' => 'Venta registrada con éxito',
-                'apertura_pendiente' => is_null($aperturaVenta),
-            ], 201);
+        });
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'No hay stock suficiente y no se puedo registrar la venta' . $e -> getMessage(),
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Venta registrada con éxito',
+            'apertura_pendiente' => is_null($aperturaVenta),
+        ], 201);
 
-            ], 500);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'No se pudo registrar la venta: ' . $e->getMessage(),
+        ], 500);
 
-        }
     }
+}
 
     /**
      * Display the specified resource.

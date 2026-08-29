@@ -9,13 +9,15 @@ use App\Models\Presentacion;
 use App\Models\Producto;
 use App\Models\Proveedor;
 use App\Models\User;
+use App\Services\KardexService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class CompraSeeder extends Seeder
 {
-    public function run(): void
+    // 🔹 Inyectamos KardexService en el método run
+    public function run(KardexService $kardexService): void
     {
         $usuario = User::where('email', 'admin@test.com')->firstOrFail();
 
@@ -33,7 +35,6 @@ class CompraSeeder extends Seeder
                 ],
                 'fecha_vencimiento_lotes' => Carbon::now()->addMonths(12),
             ],
-            
             [
                 'proveedor' => 'Distribuidora Agrícola Corteva',
                 'tipo_dte' => '03',
@@ -47,8 +48,6 @@ class CompraSeeder extends Seeder
                 ],
                 'fecha_vencimiento_lotes' => Carbon::now()->addMonths(6),
             ],
-          
-
             [
                 'proveedor' => 'Ferretería y Suministros Truper SV',
                 'tipo_dte' => '01',
@@ -61,7 +60,6 @@ class CompraSeeder extends Seeder
                 ],
                 'fecha_vencimiento_lotes' => Carbon::now()->addMonths(6),
             ],
-          
             [
                 'proveedor' => 'Semillas Cristiani',
                 'tipo_dte' => '03',
@@ -74,7 +72,6 @@ class CompraSeeder extends Seeder
                 ],
                 'fecha_vencimiento_lotes' => Carbon::now()->addMonths(8),
             ],
-            
             [
                 'proveedor' => 'AgroNatura',
                 'tipo_dte' => '03',
@@ -87,8 +84,6 @@ class CompraSeeder extends Seeder
                 ],
                 'fecha_vencimiento_lotes' => Carbon::now()->addDays(15),
             ],
-        
-            
             [
                 'proveedor' => 'Bayer',
                 'tipo_dte' => '03',
@@ -153,13 +148,23 @@ class CompraSeeder extends Seeder
                     'es_anulado'             => false,
                     'cantidad_facturada'     => $item['cantidad'],
                     'cantidad_bonificada'    => 0,
-                    'precio_unitario_factura'=> $item['precio'],
+                    'precio_unitario_factura' => $item['precio'],
                     'iva_linea'              => null,
                     'descuento_linea'        => 0,
                     'sub_total'              => $subTotal,
                     'compra_id'              => $compra->id,
                     'lote_id'                => $lote->id,
                 ]);
+
+                // 🔹 IMPACTO EN EL KARDEX: Registra la entrada física
+                $kardexService->registrarEntrada(
+                    $presentacion,
+                    $lote,
+                    (float) $item['cantidad'],
+                    $compra,
+                    $compra->numero_documento,
+                    'Compra Seeder ' . $compra->numero_documento
+                );
             }
         }
 
@@ -168,10 +173,8 @@ class CompraSeeder extends Seeder
 
     private function ajustarStockParaAlertas(): void
     {
-       
         $producto = Producto::where('codigo', 'FER-TRI15-01')->first();
         if ($producto) {
-            
             $presentacionBase = $producto->presentaciones()->where('stock_minimo', '>', 0)->first();
             if ($presentacionBase) {
                 Lote::where('presentacion_id', $presentacionBase->id)

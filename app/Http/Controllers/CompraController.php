@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Compra\StoreCompraRequest;
 use App\Models\Compra;
 use App\Models\Lote;
+use App\Models\Presentacion;
+use App\Services\KardexService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -12,6 +14,13 @@ use Illuminate\Support\Facades\DB;
 
 class CompraController extends Controller
 {
+    protected KardexService $kardexService;
+
+    public function __construct(KardexService $kardexService)
+    {
+        $this->kardexService = $kardexService;
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -76,7 +85,6 @@ class CompraController extends Controller
                 'total' => $compras->total(),
             ], 200);
 
-            
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
@@ -116,6 +124,19 @@ class CompraController extends Controller
                         'sub_total' => $detalle['sub_total'],
                         'lote_id' => $lote->id,
                     ]);
+
+                    $presentacion = Presentacion::with('producto')->findOrFail($detalle['lote']['presentacion_id']);
+
+                    $cantidadFisicaIngresada = (float) ($detalle['cantidad_facturada'] + ($detalle['cantidad_bonificada'] ?? 0));
+
+                    $this->kardexService->registrarEntrada(
+                        $presentacion,
+                        $lote,
+                        $cantidadFisicaIngresada,
+                        $compra,
+                        $compra->numero_documento ?? $compra->id,
+                        'Entrada por Compra '.($compra->numero_documento ?? ('#'.$compra->id))
+                    );
                 }
             });
 
@@ -127,7 +148,7 @@ class CompraController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error interno del servidor'
+                'message' => 'Error interno del servidor',
             ], 500);
         }
     }
@@ -150,7 +171,7 @@ class CompraController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error interno en el Servidor'
+                'message' => 'Error interno en el Servidor',
             ], 500);
         }
     }
@@ -220,6 +241,19 @@ class CompraController extends Controller
 
                 $item['lote']->estado = 'ANULADO';
                 $item['lote']->save();
+
+                $presentacion = Presentacion::with('producto')->findOrFail($item['lote']->presentacion_id);
+                $cantidadFisicaOriginal = (float) ($item['detalle']->cantidad_facturada + ($item['detalle']->cantidad_bonificada ?? 0));
+
+                $this->kardexService->registrarAnulacionCompra(
+                    $presentacion,
+                    $item['lote'],
+                    $cantidadFisicaOriginal,
+                    $compra,
+                    $compra->numero_documento ?? $compra->id,
+                    'Anulación de Compra '.($compra->numero_documento ?? ('#'.$compra->id))
+                );
+
             }
 
             $compra->es_anulado = true;

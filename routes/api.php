@@ -7,6 +7,7 @@ use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\CodigoBarraController;
 use App\Http\Controllers\CompraController;
+use App\Http\Controllers\KardexController;
 use App\Http\Controllers\LoteController;
 use App\Http\Controllers\MovimientoExternoCajaController;
 use App\Http\Controllers\PresentacionController;
@@ -71,8 +72,12 @@ Route::middleware('auth:api')->group(function () {
     Route::patch('alertas/{id}/marcar-leida', [AlertasController::class, 'marcarLeida']);
     Route::apiResource('alertas', AlertasController::class)->only('index');
     Route::apiResource('/unidades', UnidadMedidaController::class)->only('index');
+
+
+    
 });
 
+Route::get('/kardex', KardexController::class);
 
 Route::get('/reportes/ventas', [ReporteVentasController::class, 'ventas']);
 Route::get('/reportes/ticket/{id}', [ReporteVentasController::class, 'ticket']);
