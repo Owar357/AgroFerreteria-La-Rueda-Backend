@@ -396,4 +396,54 @@ class KardexService
             'monto_saldo' => $nuevoSaldoMonto,
         ]);
     }
+
+    /**
+     * Registrar Auditoría por Cambio de Factor de Conversión en una Presentación
+     */
+    public function registrarCambioFactorConversion(
+        Presentacion $presentacion,
+        float $factorAnterior,
+        float $factorNuevo,
+        ?string $observacion = null
+    ): ?Kardex {
+        $producto = $this->obtenerProducto($presentacion);
+
+        $ultimoRegistro = Kardex::where('producto_id', $producto->id)
+            ->when($producto->tipo_producto === 'UNIDAD FIJA', function ($query) use ($presentacion) {
+                return $query->where('presentacion_id', $presentacion->id);
+            })
+            ->latest('id')
+            ->lockForUpdate()
+            ->first();
+
+        if (! $ultimoRegistro) {
+            return null;
+        }
+
+        $concepto = "Ajuste por Cambio de Factor de Conversión ({$factorAnterior} -> {$factorNuevo})";
+        if ($observacion) {
+            $concepto .= ": {$observacion}";
+        }
+
+        return Kardex::create([
+            'producto_id' => $producto->id,
+            'presentacion_id' => $presentacion->id,
+            'lote_id' => $ultimoRegistro->lote_id,
+            'usuario_id' => auth()->id() ?? 1,
+            'tipo_movimiento' => 'CAMBIO_PRESENTACION',
+            'origen_id' => $presentacion->id,
+            'origen_type' => Presentacion::class,
+            'numero_documento' => 'AUD-'.now()->format('YmdHis'),
+            'concepto' => $concepto,
+            'factor_conversion' => $factorNuevo,
+            'cantidad_entrada' => 0.0000,
+            'cantidad_salida' => 0.0000,
+            'cantidad_saldo' => $ultimoRegistro->cantidad_saldo,
+            'costo_unitario' => $ultimoRegistro->costo_unitario,
+            'costo_promedio_ponderado' => $ultimoRegistro->costo_promedio_ponderado,
+            'monto_entrante' => 0.00,
+            'monto_saliente' => 0.00,
+            'monto_saldo' => $ultimoRegistro->monto_saldo,
+        ]);
+    }
 }

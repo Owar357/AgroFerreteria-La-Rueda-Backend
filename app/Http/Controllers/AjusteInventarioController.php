@@ -18,13 +18,16 @@ class AjusteInventarioController extends Controller
     public function __invoke(StoreAjusteRequest $request, KardexService $kardexService)
     {
         try {
+
             DB::beginTransaction();
 
             $numeroAjuste = 'AJU-' . now()->format('YmdHis');
 
             $ajuste = AjusteInventario::create([
-                ...$request->safe()->except(['detalles']),
                 'numero_ajuste' => $numeroAjuste,
+                'tipo_ajuste'   => $request->tipo_ajuste,
+                'motivo'        => $request->motivo,
+                'observaciones' => $request->observaciones,
                 'usuario_id'    => auth()->id() ?? 1,
             ]);
 
@@ -108,7 +111,7 @@ class AjusteInventarioController extends Controller
                     }
                 }
 
-              
+                // Guardar línea de detalle del ajuste
                 DetalleAjusteInventario::create([
                     'ajuste_inventario_id' => $ajuste->id,
                     'lote_id'              => $lote->id,
@@ -134,7 +137,7 @@ class AjusteInventarioController extends Controller
 
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Error al procesar el ajuste de inventario: ' . $e->getMessage(),
+                'message' => 'Error al procesar el ajuste de inventario:' 
             ], 500);
         }
     }

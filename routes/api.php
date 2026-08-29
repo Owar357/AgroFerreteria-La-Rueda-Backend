@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AjusteInventarioController;
 use App\Http\Controllers\AlertasController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CajaController;
@@ -47,7 +48,7 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('clientes', ClienteController::class);
     Route::apiResource('ventas', VentaController::class);
     Route::apiResource('categorias', CategoriaController::class);
-    Route::apiResource('lotes', LoteController::class);
+    Route::apiResource('lotes', LoteController::class)->only('index');
 
     Route::get('productos/buscar-venta', [ProductoController::class, 'buscarVenta']);
     Route::get('productos/buscar-producto/compra', [ProductoController::class, 'busquedaParaCompra']);
@@ -73,11 +74,12 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('alertas', AlertasController::class)->only('index');
     Route::apiResource('/unidades', UnidadMedidaController::class)->only('index');
 
-
+   Route::get('/kardex', KardexController::class);
+   Route::post('/ajuste-nventario', AjusteInventarioController::class);
     
 });
 
-Route::get('/kardex', KardexController::class);
+
 
 Route::get('/reportes/ventas', [ReporteVentasController::class, 'ventas']);
 Route::get('/reportes/ticket/{id}', [ReporteVentasController::class, 'ticket']);
