@@ -14,6 +14,27 @@ use Illuminate\Database\Eloquent\Model;
 class KardexService
 {
     /**
+     * Obtener el Producto de una presentacionff
+     */
+    private function obtenerProducto(Presentacion $presentacion)
+    {
+        return $presentacion->relationLoaded('producto')
+        ? $presentacion->producto
+        : $presentacion->producto()->first();
+    }
+
+    /**
+     * Obtener el ID  del Usuario por medio de HTTPS , Seeders ...
+     */
+    private function obtenerUsuarioPorId(Model $origenModel)
+    {
+        return auth()->id()
+         ?? $origenModel->usuario_id
+              ?? $origenModel
+              ?? 1;
+    }
+
+    /**
      * Registrar una Salida en el Kardex
      */
     public function registrarSalida(
@@ -25,7 +46,7 @@ class KardexService
         ?string $concepto = null
     ): Kardex {
 
-        $producto = $presentacion->producto;
+        $producto = $this->obtenerProducto($presentacion);
 
         // Verificamos si el producto es granel o unidad fija
         $factorConversion = ($producto->tipo_producto === 'GRANEL') ? (float) ($presentacion->factor_conversion ?? 1.0000) : 1.0000;
@@ -67,7 +88,7 @@ class KardexService
             'producto_id' => $producto->id,
             'presentacion_id' => $presentacion->id,
             'lote_id' => $lote->id,
-            'usuario_id' => auth()->id() ?? $origen->usuario_id ?? $origen->vendido_por ?? 1,
+            'usuario_id' => $this->obtenerUsuarioPorId($origenModel),
             'tipo_movimiento' => 'SALIDA_VENTA',
             'origen_id' => $origenModel->id,
             'origen_type' => get_class($origenModel),
@@ -96,7 +117,7 @@ class KardexService
         ?string $numeroDocumento = null,
         ?string $concepto = null
     ) {
-        $producto = $presentacion->producto;
+        $producto = $this->obtenerProducto($presentacion);
 
         // Verifcamos si es Granel o UNIDAD FIJA
         $factorConversion = ($producto->tipo_producto === 'GRANEL')
@@ -128,7 +149,7 @@ class KardexService
             'producto_id' => $producto->id,
             'presentacion_id' => $presentacion->id,
             'lote_id' => $lote->id,
-            'usuario_id' => auth()->id() ?? $origen->usuario_id ?? $origen->vendido_por ?? 1,
+            'usuario_id' => $this->obtenerUsuarioPorId($origenModel),
             'tipo_movimiento' => 'ENTRADA_COMPRA',
             'origen_id' => $origenModel->id,
             'origen_type' => get_class($origenModel),
@@ -156,7 +177,7 @@ class KardexService
 
     ): Kardex {
 
-        $producto = $presentacion->producto;
+        $producto = $this->obtenerProducto($presentacion);
 
         $factorConversion = ($producto->tipo_producto === 'GRANEL') ? (float) ($presentacion->factor_conversion ?? 1.0000) : 1.0000;
 
@@ -190,7 +211,7 @@ class KardexService
             'producto_id' => $producto->id,
             'presentacion_id' => $presentacion->id,
             'lote_id' => $lote->id,
-            'usuario_id' => auth()->id() ?? $origen->usuario_id ?? $origen->vendido_por ?? 1,
+            'usuario_id' => $this->obtenerUsuarioPorId($origenModel),
             'tipo_movimiento' => 'ANULACION_COMPRA',
             'origen_id' => $origenModel->id,
             'origen_type' => get_class($origenModel),
@@ -208,4 +229,171 @@ class KardexService
         ]);
     }
 
+    /**
+     * Registrar un Ajuste de Entrada
+     */
+    public function RegistrarAjusteEntrada(
+        Presentacion $presentacion,
+        Lote $lote,
+        float $cantidadAjuste,
+        Model $origenModel,
+        ?string $numeroDocumento = null,
+        ?string $concepto = null
+    ): Kardex {
+        $producto = $this->obtenerProducto($presentacion);
+
+        $factorConversion = ($producto->tipo_producto === 'GRANEL')
+        ? (float) ($presentacion->factor_conversion ?? 1.0000)
+        : 1.0000;
+
+        $cantidadEntradaBase = $cantidadAjuste * $factorConversion;
+
+        $ultimoRegistro = Kardex::where('producto_id', $producto->id)
+            ->when($producto->tipo_producto === 'UNIDAD FIJA', function ($query) use ($presentacion) {
+                return $query->where('presentacion_id', $presentacion->id);
+            })
+            ->latest('id')
+            ->lockForUpdate()
+            ->first();
+
+        $saldoCantidadAnterior = $ultimoRegistro ? (float) $ultimoRegistro->cantidad_saldo : 0.0000;
+        $saldoMontoAnterior = $ultimoRegistro ? (float) $ultimoRegistro->monto_saldo : 0.00;
+
+        $costoUnitario = (float) $lote->costo_unitario_compra;
+        $montoEntrante = $cantidadEntradaBase * $costoUnitario;
+
+        $nuevoSaldoCantidad = $saldoCantidadAnterior + $cantidadEntradaBase;
+        $nuevoSaldoMonto = $saldoMontoAnterior + $montoEntrante;
+
+        $cpp = $nuevoSaldoCantidad > 0 ? ($nuevoSaldoMonto / $nuevoSaldoCantidad) : 0.0000;
+
+        return Kardex::create([
+            'producto_id' => $producto->id,
+            'presentacion_id' => $presentacion->id,
+            'lote_id' => $lote->id,
+            'usuario_id' => $this->obtenerUsuarioId($origenModel),
+            'tipo_movimiento' => 'AJUSTE_POSITIVO',
+            'origen_id' => $origenModel->id,
+            'origen_type' => get_class($origenModel),
+            'numero_documento' => $numeroDocumento,
+            'concepto' => $concepto ?? 'Ajuste de Inventario (Sobrante)',
+            'factor_conversion' => $factorConversion,
+            'cantidad_entrada' => $cantidadEntradaBase,
+            'cantidad_salida' => 0.0000,
+            'cantidad_saldo' => $nuevoSaldoCantidad,
+            'costo_unitario' => $costoUnitario,
+            'costo_promedio_ponderado' => $cpp,
+            'monto_entrante' => $montoEntrante,
+            'monto_saliente' => 0.00,
+            'monto_saldo' => $nuevoSaldoMonto,
+        ]);
+    }
+
+    /**
+     * Registrar Ajuste de Salida
+     */
+    public function registrarAjusteSalida(
+        Presentacion $presentacion,
+        Lote $lote,
+        float $cantidadAjuste,
+        Model $origenModel,
+        ?string $numeroDocumento = null,
+        ?string $concepto = null
+    ): Kardex {
+        $producto = $this->obtenerProducto($presentacion);
+
+        $factorConversion = ($producto->tipo_producto === 'GRANEL') ? (float) ($presentacion->factor_conversion ?? 1.0000) : 1.0000;
+        $cantidadSalidaBase = $cantidadAjuste * $factorConversion;
+
+        $ultimoRegistro = Kardex::where('producto_id', $producto->id)
+            ->when($producto->tipo_producto === 'UNIDAD FIJA', function ($query) use ($presentacion) {
+                return $query->where('presentacion_id', $presentacion->id);
+            })
+            ->latest('id')
+            ->lockForUpdate()
+            ->first();
+
+        $saldoCantidadAnterior = $ultimoRegistro ? (float) $ultimoRegistro->cantidad_saldo : 0.0000;
+        $saldoMontoAnterior = $ultimoRegistro ? (float) $ultimoRegistro->monto_saldo : 0.00;
+
+        $costoUnitario = (float) $lote->costo_unitario_compra;
+        $montoSaliente = $cantidadSalidaBase * $costoUnitario;
+
+        $nuevoSaldoCantidad = $saldoCantidadAnterior - $cantidadSalidaBase;
+        $nuevoSaldoMonto = $saldoMontoAnterior - $montoSaliente;
+
+        $cpp = $nuevoSaldoCantidad > 0 ? ($nuevoSaldoMonto / $nuevoSaldoCantidad) : 0.0000;
+
+        return Kardex::create([
+            'producto_id' => $producto->id,
+            'presentacion_id' => $presentacion->id,
+            'lote_id' => $lote->id,
+            'usuario_id' => $this->obtenerUsuarioId($origenModel),
+            'tipo_movimiento' => 'AJUSTE_NEGATIVO',
+            'origen_id' => $origenModel->id,
+            'origen_type' => get_class($origenModel),
+            'numero_documento' => $numeroDocumento,
+            'concepto' => $concepto ?? 'Ajuste de Inventario (Faltante/Merma)',
+            'factor_conversion' => $factorConversion,
+            'cantidad_entrada' => 0.0000,
+            'cantidad_salida' => $cantidadSalidaBase,
+            'cantidad_saldo' => $nuevoSaldoCantidad,
+            'costo_unitario' => $costoUnitario,
+            'costo_promedio_ponderado' => $cpp,
+            'monto_entrante' => 0.00,
+            'monto_saliente' => $montoSaliente,
+            'monto_saldo' => $nuevoSaldoMonto,
+        ]);
+    }
+
+    /**
+     * Registrar Reevaluación de Costo (Ajuste monetario sin alterar física)
+     */
+    public function registrarReevaluacion(
+        Presentacion $presentacion,
+        Lote $lote,
+        float $costoNuevo,
+        Model $origenModel,
+        ?string $numeroDocumento = null,
+        ?string $concepto = null
+    ): Kardex {
+        $producto = $this->obtenerProducto($presentacion);
+
+        $factorConversion = ($producto->tipo_producto === 'GRANEL') ? (float) ($presentacion->factor_conversion ?? 1.0000) : 1.0000;
+
+        $ultimoRegistro = Kardex::where('producto_id', $producto->id)
+            ->when($producto->tipo_producto === 'UNIDAD FIJA', function ($query) use ($presentacion) {
+                return $query->where('presentacion_id', $presentacion->id);
+            })
+            ->latest('id')
+            ->lockForUpdate()
+            ->first();
+
+        $saldoCantidadActual = $ultimoRegistro ? (float) $ultimoRegistro->cantidad_saldo : (float) $lote->cantidad_actual;
+
+        $nuevoSaldoMonto = $saldoCantidadActual * $costoNuevo;
+
+        $cpp = $saldoCantidadActual > 0 ? ($nuevoSaldoMonto / $saldoCantidadActual) : 0.0000;
+
+        return Kardex::create([
+            'producto_id' => $producto->id,
+            'presentacion_id' => $presentacion->id,
+            'lote_id' => $lote->id,
+            'usuario_id' => $this->obtenerUsuarioId($origenModel),
+            'tipo_movimiento' => 'REEVALUACION_COSTO',
+            'origen_id' => $origenModel->id,
+            'origen_type' => get_class($origenModel),
+            'numero_documento' => $numeroDocumento,
+            'concepto' => $concepto ?? 'Reevaluación de Costo de Lote',
+            'factor_conversion' => $factorConversion,
+            'cantidad_entrada' => 0.0000,
+            'cantidad_salida' => 0.0000,
+            'cantidad_saldo' => $saldoCantidadActual,
+            'costo_unitario' => $costoNuevo,
+            'costo_promedio_ponderado' => $cpp,
+            'monto_entrante' => 0.00,
+            'monto_saliente' => 0.00,
+            'monto_saldo' => $nuevoSaldoMonto,
+        ]);
+    }
 }

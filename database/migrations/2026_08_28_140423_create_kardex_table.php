@@ -18,10 +18,11 @@ return new class extends Migration
                 'SALIDA_VENTA',
                 'ANULACION_COMPRA',
                 'ANULACION_VENTA',
-                'AJUSTE_POSITIVO',
-                'AJUSTE_NEGATIVO',
+                'AJUSTE_POSITIVO',  
+                'AJUSTE_NEGATIVO',   
+                'REEVALUACION_COSTO', 
+                'CAMBIO_PRESENTACION', 
             ])->index();
-
             $table->string('numero_documento', 50)->nullable()->index();
             $table->string('concepto', 255)->nullable();
 
@@ -44,7 +45,6 @@ return new class extends Migration
 
             $table->timestamps();
 
-            
             $table->index(['producto_id', 'created_at']);
             $table->index(['presentacion_id', 'created_at']);
         });
