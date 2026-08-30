@@ -70,7 +70,6 @@ class VentaController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    
     public function store(StoreVentaRequest $request, KardexService $kardexService)
 {
     try {
@@ -80,7 +79,7 @@ class VentaController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'No se pueden registrar ventas. La caja general del negocio está cerrada.',
-            ], 422);
+            ], 400);
         }
 
         $aperturaVenta = AperturaVenta::where('cajero_id', auth()->id())
@@ -110,27 +109,36 @@ class VentaController extends Controller
                     'descuento_aplicado' => $detalles['descuento_aplicado'],
                 ]);
 
-                $cantidadSolicitada = $detalles['cantidad'];
-
-            
                 $presentacion = Presentacion::with('producto')->findOrFail($detalles['presentacion_id']);
                 $producto = $presentacion->producto;
 
+                $esGranel = ($producto->tipo_producto === 'GRANEL');
+                $factorConversion = (float) ($presentacion->factor_conversion ?? 1);
+
+                $cantidadSolicitada = $esGranel
+                    ? bcmul($detalles['cantidad'], $factorConversion, 4)
+                    : $detalles['cantidad'];
+
                 while ($cantidadSolicitada > 0) {
 
-                    $lote = Lote::whereHas('presentacion', function ($query) use ($producto) {
-                            $query->where('producto_id', $producto->id);
-                        })
+                    $queryLote = Lote::query()
                         ->where('cantidad_actual', '>', 0)
-                        ->where('estado', 'ACTIVO')
+                        ->where('estado', 'ACTIVO');
+
+                    if ($esGranel) {
+                        $queryLote->where('producto_id', $producto->id);
+                    } else {
+                        $queryLote->where('presentacion_id', $presentacion->id);
+                    }
+
+                    $lote = $queryLote
                         ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
                         ->orderBy('created_at', 'ASC')
                         ->lockForUpdate()
                         ->first();
 
-            
                     if (! $lote) {
-                        throw new \Exception("No hay stock disponible para el producto {$producto->nombre}.");
+                        throw new \Exception("No hay stock suficiente en los lotes activos para el producto {$producto->nombre}.");
                     }
 
                     if ($lote->cantidad_actual >= $cantidadSolicitada) {
@@ -153,7 +161,7 @@ class VentaController extends Controller
                         $kardexService->registrarSalida(
                             $presentacion,
                             $lote,
-                            (float) $cantidadTomada,
+                            (float) $detalles['cantidad'],
                             $venta,
                             $venta->numero_factura,
                             'Salida por Venta '.$venta->numero_factura
@@ -175,10 +183,14 @@ class VentaController extends Controller
                         $lote->estado = 'AGOTADO';
                         $lote->update();
 
+                        $cantidadEntregadaEnPresentacion = $esGranel 
+                            ? ($stockEntregado / $factorConversion) 
+                            : $stockEntregado;
+
                         $kardexService->registrarSalida(
                             $presentacion,
                             $lote,
-                            (float) $stockEntregado,
+                            (float) $cantidadEntregadaEnPresentacion,
                             $venta,
                             $venta->numero_factura,
                             'Salida parcial por Venta '.$venta->numero_factura
@@ -203,9 +215,8 @@ class VentaController extends Controller
     } catch (\Exception $e) {
         return response()->json([
             'status' => 'error',
-            'message' => 'No se pudo registrar la venta: ' . $e->getMessage(),
-        ], 500);
-
+            'message' => $e->getMessage(),
+        ], 400);
     }
 }
 
