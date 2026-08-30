@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Lote\updateLoteDescuentoRequest;
 use App\Models\Lote;
 use App\Models\Presentacion;
-
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Ramsey\Uuid\Type\Integer;
 
 class LoteController extends Controller
 {
@@ -15,7 +17,7 @@ class LoteController extends Controller
     public function index(Request $request)
     {
         try {
-            if (! auth()->user()->hasAnyRole(['ADMIN','CAJERO'])) {
+            if (! auth()->user()->hasAnyRole(['ADMIN', 'CAJERO'])) {
                 return response()->json([
                     'message' => 'No autorizado',
                 ], 403);
@@ -26,22 +28,20 @@ class LoteController extends Controller
             if (! $presentacion) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Presentación inexistente'
+                    'message' => 'Presentación inexistente',
                 ], 404);
             }
 
             $perPage = $request->get('per_page', 5);
             $page = $request->get('page', 1);
 
-      
             $consultarLotes = Lote::query();
-          
 
-           if($presentacion->producto?->tipo_producto === 'GRANEL'){
-                $consultarLotes->where('producto_id' , $presentacion->producto_id);
-           }else{
-              $consultarLotes->where('presentacion_id', $presentacion->id);
-           }
+            if ($presentacion->producto?->tipo_producto === 'GRANEL') {
+                $consultarLotes->where('producto_id', $presentacion->producto_id);
+            } else {
+                $consultarLotes->where('presentacion_id', $presentacion->id);
+            }
 
             $lotes = $consultarLotes
                 ->select(
@@ -75,35 +75,54 @@ class LoteController extends Controller
         }
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function actualizarDescuento(updateLoteDescuentoRequest $request, Integer $id)
     {
-        //
-    }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
+        try {
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
+            $lote = Lote::findOrFail($id);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+            if (! $lote->estado === 'ACTIVO') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Solo se puede asignar descuentos  a lotes con estado ACTIVO. ',
+                ], 422);
+            }
+
+            if (! $lote->cantidad_actual <= 0) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No se puede asignar descuento a un lote sin stock disponible.',
+                ], 422);
+            }
+
+            $nuevoPorcentaje = $request->porcentaje_descuento > 0
+               ? $request->porcentaje_descuento
+               : null;
+
+            $lote->porcentaje_descuento = $nuevoPorcentaje;
+            $lote->save();
+
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Porcentaje de descuento actualizado correctamente en el lote.',
+                'data' => [
+                    'lote_id' => $lote->id,
+                    'lote_interno' => $lote->lote_interno,
+                    'porcentaje_descuento' => $lote->porcentaje_descuento,
+                ],
+            ], 200);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'El lote especificado no existe.',
+            ], 494);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error al actualizar el descuento del lote',
+            ], 500);
+        }
     }
 }

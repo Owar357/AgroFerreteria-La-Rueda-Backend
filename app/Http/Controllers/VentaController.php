@@ -108,27 +108,19 @@ class VentaController extends Controller
 
                 foreach ($request->validated()['detalles'] as $detalles) {
 
-                    $detalleVenta = DetalleVenta::create([
-                        'venta_id' => $venta->id,
-                        'nombre_producto' => $detalles['nombre_producto'],
-                        'presentacion' => $detalles['presentacion'],
-                        'cantidad' => $detalles['cantidad'],
-                        'precio_unitario' => $detalles['precio_unitario'],
-                        'subtotal' => $detalles['subtotal'],
-                        'iva_aplicado' => $detalles['iva_aplicado'],
-                        'unidad_base' => $detalles['unidad_base'],
-                        'descuento_aplicado' => $detalles['descuento_aplicado'],
-                    ]);
-
                     $presentacion = Presentacion::with('producto')->findOrFail($detalles['presentacion_id']);
                     $producto = $presentacion->producto;
 
                     $esGranel = ($producto->tipo_producto === 'GRANEL');
                     $factorConversion = (float) ($presentacion->factor_conversion ?? 1);
+                    $precioUnitario = (float) $detalles['precio_unitario'];
 
                     $cantidadSolicitada = $esGranel
                         ? bcmul($detalles['cantidad'], $factorConversion, 4)
                         : $detalles['cantidad'];
+
+                    $descuentoTotalAcumulado = 0.00;
+                    $lotesConsumidos = [];
 
                     while ($cantidadSolicitada > 0) {
 
@@ -149,34 +141,36 @@ class VentaController extends Controller
                             ->first();
 
                         if (! $lote) {
-                            throw new \Exception("No hay stock suficiente en los lotes activos para el producto {$producto->nombre}.");
+                            throw new \DomainException("No hay stock suficiente en los lotes activos para el producto {$producto->nombre}.");
                         }
+
+                        // --- CÁLCULO DE DESCUENTO POR LOTE ---
+                        $porcentajeDescLote = (float) ($lote->porcentaje_descuento ?? 0);
+                        $descuentoUnitarioDolar = $precioUnitario * ($porcentajeDescLote / 100);
 
                         if ($lote->cantidad_actual >= $cantidadSolicitada) {
 
                             $cantidadTomada = $cantidadSolicitada;
 
-                            LoteDetalleVenta::create([
-                                'detalle_venta_id' => $detalleVenta->id,
-                                'lote_id' => $lote->id,
+                            $cantidadEnPresentacion = $esGranel
+                                ? ($cantidadTomada / $factorConversion)
+                                : $cantidadTomada;
+
+                            $descuentoTramo = $descuentoUnitarioDolar * $cantidadEnPresentacion;
+                            $descuentoTotalAcumulado += $descuentoTramo;
+
+                            $lotesConsumidos[] = [
+                                'lote' => $lote,
                                 'cantidad_tomada' => $cantidadTomada,
-                            ]);
+                                'cantidad_presentacion' => $cantidadEnPresentacion,
+                                'es_parcial' => false,
+                            ];
 
                             $lote->cantidad_actual = bcsub($lote->cantidad_actual, $cantidadTomada, 3);
-
                             if ($lote->cantidad_actual == 0) {
                                 $lote->estado = 'AGOTADO';
                             }
                             $lote->save();
-
-                            $kardexService->registrarSalida(
-                                $presentacion,
-                                $lote,
-                                (float) $detalles['cantidad'],
-                                $venta,
-                                $venta->numero_factura,
-                                'Salida por Venta '.$venta->numero_factura
-                            );
 
                             $cantidadSolicitada = 0;
 
@@ -184,35 +178,68 @@ class VentaController extends Controller
 
                             $stockEntregado = $lote->cantidad_actual;
 
-                            LoteDetalleVenta::create([
-                                'detalle_venta_id' => $detalleVenta->id,
-                                'lote_id' => $lote->id,
+                            // Calcular descuento de esta porción parcial
+                            $cantidadEntregadaEnPresentacion = $esGranel
+                                ? ($stockEntregado / $factorConversion)
+                                : $stockEntregado;
+
+                            $descuentoTramo = $descuentoUnitarioDolar * $cantidadEntregadaEnPresentacion;
+                            $descuentoTotalAcumulado += $descuentoTramo;
+
+                            $lotesConsumidos[] = [
+                                'lote' => $lote,
                                 'cantidad_tomada' => $stockEntregado,
-                            ]);
+                                'cantidad_presentacion' => $cantidadEntregadaEnPresentacion,
+                                'es_parcial' => true,
+                            ];
 
                             $lote->cantidad_actual = 0;
                             $lote->estado = 'AGOTADO';
                             $lote->update();
 
-                            $cantidadEntregadaEnPresentacion = $esGranel
-                                ? ($stockEntregado / $factorConversion)
-                                : $stockEntregado;
-
-                            $kardexService->registrarSalida(
-                                $presentacion,
-                                $lote,
-                                (float) $cantidadEntregadaEnPresentacion,
-                                $venta,
-                                $venta->numero_factura,
-                                'Salida parcial por Venta '.$venta->numero_factura
-                            );
-
                             $cantidadSolicitada = bcsub($cantidadSolicitada, $stockEntregado, 4);
-
                         }
-
                     }
 
+                    // REDONDEAR Y ASIGNAR SUBTOTAL CON DESCUENTO
+                    $descuentoTotalAcumulado = round($descuentoTotalAcumulado, 2);
+                    $subtotalBruto = (float) $detalles['cantidad'] * $precioUnitario;
+                    $subtotalFinal = $subtotalBruto - $descuentoTotalAcumulado;
+
+                    // CREACIÓN DEL DETALLE DE VENTA CON SU DESCUENTO
+                    $detalleVenta = DetalleVenta::create([
+                        'venta_id' => $venta->id,
+                        'nombre_producto' => $detalles['nombre_producto'],
+                        'presentacion' => $detalles['presentacion'],
+                        'cantidad' => $detalles['cantidad'],
+                        'precio_unitario' => $detalles['precio_unitario'],
+                        'subtotal' => $subtotalFinal,
+                        'iva_aplicado' => $detalles['iva_aplicado'],
+                        'unidad_base' => $detalles['unidad_base'],
+                        'descuento_aplicado' => $descuentoTotalAcumulado,
+                    ]);
+
+                    // REGISTRO DE LOTES Y KARDEX CON LOS DATOS ACUMULADOS
+                    foreach ($lotesConsumidos as $item) {
+                        LoteDetalleVenta::create([
+                            'detalle_venta_id' => $detalleVenta->id,
+                            'lote_id' => $item['lote']->id,
+                            'cantidad_tomada' => $item['cantidad_tomada'],
+                        ]);
+
+                        $concepto = $item['es_parcial']
+                            ? 'Salida parcial por Venta '.$venta->numero_factura
+                            : 'Salida por Venta '.$venta->numero_factura;
+
+                        $kardexService->registrarSalida(
+                            $presentacion,
+                            $item['lote'],
+                            (float) $item['cantidad_presentacion'],
+                            $venta,
+                            $venta->numero_factura,
+                            $concepto
+                        );
+                    }
                 }
 
             });
@@ -223,11 +250,21 @@ class VentaController extends Controller
                 'apertura_pendiente' => is_null($aperturaVenta),
             ], 201);
 
-        } catch (\Exception $e) {
+        } catch (\DomainException $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => $e->getMessage(),
             ], 400);
+        } catch (\Throwable $e) {
+            Log::error('Error crítico al procesar venta: '.$e->getMessage(), [
+                'exception' => $e,
+                'usuario_id' => auth()->id(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ocurrió un error interno al procesar la venta. Por favor intente nuevamente o contacte a soporte.',
+            ], 500);
         }
     }
 
