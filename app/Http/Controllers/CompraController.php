@@ -99,7 +99,6 @@ class CompraController extends Controller
     public function store(StoreCompraRequest $request)
     {
         try {
-
             DB::transaction(function () use ($request) {
 
                 $compra = Compra::create([
@@ -125,12 +124,13 @@ class CompraController extends Controller
                         'lote_id' => $lote->id,
                     ]);
 
-                    $presentacion = Presentacion::with('producto')->findOrFail($detalle['lote']['presentacion_id']);
+                    $presentacionId = $detalle['presentacion_id'] ?? $detalle['lote']['presentacion_id'];
+                    $presentacionKardex = Presentacion::with('producto')->findOrFail($presentacionId);
 
                     $cantidadFisicaIngresada = (float) ($detalle['cantidad_facturada'] + ($detalle['cantidad_bonificada'] ?? 0));
 
                     $this->kardexService->registrarEntrada(
-                        $presentacion,
+                        $presentacionKardex,
                         $lote,
                         $cantidadFisicaIngresada,
                         $compra,
@@ -144,11 +144,17 @@ class CompraController extends Controller
                 'status' => 'ok',
                 'message' => 'Documento de compra y Detalles de los lotes han sido guardados',
             ], 201);
-        } catch (\Exception $e) {
 
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'El producto o la presentación especificada en el detalle no existe en el sistema.',
+            ], 404);
+        } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error interno del servidor',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

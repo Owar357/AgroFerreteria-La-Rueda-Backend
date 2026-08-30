@@ -16,6 +16,7 @@ class Lote extends Model
         'porcentaje_descuento',
         'estado',
         'presentacion_id',
+        'producto_id',
     ];
 
         protected $casts = [
@@ -36,4 +37,8 @@ class Lote extends Model
     {
         return $this->hasMany(DetalleCompra::class);
     }
+
+        public function producto(){
+            return $this->belongsTo(Producto::class);
+        }
 }

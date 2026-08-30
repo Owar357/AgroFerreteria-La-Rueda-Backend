@@ -19,8 +19,8 @@ return new class extends Migration
             $table->decimal('costo_anterior', 12, 4);
             $table->decimal('costo_nuevo', 12,4);
             $table->decimal('monto_impacto', 12,2);
-            $table->foreignId('ajuste_inventario_id')->constrained('ajuste_inventario')->onDelete('cascadde');
-            $table->foreignId('lote_id')->constrained('lote');
+            $table->foreignId('ajuste_inventario_id')->constrained('ajustes_inventario')->onDelete('cascade');
+            $table->foreignId('lote_id')->constrained('lotes');
             $table->timestamps();
         });
     }

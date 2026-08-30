@@ -15,13 +15,13 @@ class LoteController extends Controller
     public function index(Request $request)
     {
         try {
-            if (! auth()->user()->hasRole(['ADMIN|CAJERO'])) {
+            if (! auth()->user()->hasAnyRole(['ADMIN','CAJERO'])) {
                 return response()->json([
                     'message' => 'No autorizado',
                 ], 403);
             }
 
-            $presentacion = Presentacion::find($request->presentacion_id);
+            $presentacion = Presentacion::with('producto')->find($request->presentacion_id);
 
             if (! $presentacion) {
                 return response()->json([
@@ -33,8 +33,19 @@ class LoteController extends Controller
             $perPage = $request->get('per_page', 5);
             $page = $request->get('page', 1);
 
-            $lotes = Lote::where('presentacion_id', $request->presentacion_id)
+      
+            $consultarLotes = Lote::query();
+          
+
+           if($presentacion->producto?->tipo_producto === 'GRANEL'){
+                $consultarLotes->where('producto_id' , $presentacion->producto_id);
+           }else{
+              $consultarLotes->where('presentacion_id', $presentacion->id);
+           }
+
+            $lotes = $consultarLotes
                 ->select(
+                    'id',
                     'lote_interno',
                     'lote_fabricante',
                     'fecha_vencimiento',

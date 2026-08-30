@@ -260,7 +260,7 @@ class ProductoController extends Controller
             }
 
             $productos = Producto::query()
-                ->select('id', 'codigo', 'nombre', 'unidad_medida_id')
+                ->select('id', 'codigo', 'nombre', 'unidad_medida_id', 'tipo_producto')
                 ->with(['unidadMedida:id,nombre,abreviatura'])
                  ->where(function ($query) use ($q) {
                 $query->where('nombre', 'ilike', "%{$q}%")
