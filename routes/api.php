@@ -74,12 +74,12 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('alertas', AlertasController::class)->only('index');
     Route::apiResource('/unidades', UnidadMedidaController::class)->only('index');
 
-   Route::get('/kardex', KardexController::class);
+   
    Route::post('/ajuste-nventario', AjusteInventarioController::class);
     
 });
 
-
+Route::get('/kardex/{producto}', KardexController::class);
 
 Route::get('/reportes/ventas', [ReporteVentasController::class, 'ventas']);
 Route::get('/reportes/ticket/{id}', [ReporteVentasController::class, 'ticket']);

@@ -2,140 +2,184 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\Inventario\StoreAjusteRequest;
-use App\Models\AjusteInventario;
-use App\Models\DetalleAjusteInventario;
-use App\Models\Lote;
-use App\Services\KardexService;
+use Illuminate\Http\Request;
+use App\Models\Proveedor;
 use Exception;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Proveedor\StoreProveedorRequest;
+use App\Http\Requests\Proveedor\UpdateProveedorRequest;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
-class AjusteInventarioController extends Controller
+class ProveedorController extends Controller
 {
     /**
-     * Handle the incoming request.
+     * Display a listing of the resource.
      */
-    public function __invoke(StoreAjusteRequest $request, KardexService $kardexService)
+    public function index()
     {
         try {
-            DB::beginTransaction();
 
-            $numeroAjuste = 'AJU-' . now()->format('YmdHis');
-
-            $ajuste = AjusteInventario::create([
-                ...$request->safe()->except(['detalles']),
-                'numero_ajuste' => $numeroAjuste,
-                'usuario_id'    => auth()->id() ?? 1,
-            ]);
-
-            foreach ($request->detalles as $item) {
-                $lote = Lote::with('presentacion')->lockForUpdate()->findOrFail($item['lote_id']);
-                $presentacion = $lote->presentacion;
-
-                $cantidadSistema = (float) $lote->cantidad_actual;
-                $costoAnterior   = (float) $lote->costo_unitario_compra;
-
-                if ($request->tipo_ajuste === 'REEVALUACION') {
-
-                    // --- CASO 1: REEVALUACION DE COSTO ---
-                    $costoNuevo = (float) $item['costo_nuevo'];
-                    $cantidadFisica = $cantidadSistema;
-                    $diferencia = 0.0000;
-                    $montoImpacto = ($costoNuevo - $costoAnterior) * $cantidadSistema;
-
-                    // Actualizar el costo del lote
-                    $lote->costo_unitario_compra = $costoNuevo;
-                    $lote->save();
-
-                    // Registrar en Kardex
-                    $kardexService->registrarReevaluacion(
-                        $presentacion,
-                        $lote,
-                        $costoNuevo,
-                        $ajuste,
-                        $numeroAjuste,
-                        $request->motivo
-                    );
-
-                } else {
-
-                    // --- CASO 2: INCREMENTO O DISMINUCION FISICA ---
-                    $cantidadFisica = (float) $item['cantidad_fisica'];
-                    $diferencia = $cantidadFisica - $cantidadSistema;
-                    $costoNuevo = $costoAnterior;
-                    $montoImpacto = $diferencia * $costoAnterior;
-
-                    if ($request->tipo_ajuste === 'INCREMENTO') {
-                        $cantidadAjuste = abs($diferencia);
-                        $lote->cantidad_actual = bcadd($lote->cantidad_actual, $cantidadAjuste, 4);
-                        if ($lote->cantidad_actual > 0 && $lote->estado === 'AGOTADO') {
-                            $lote->estado = 'ACTIVO';
-                        }
-                        $lote->save();
-
-                        $kardexService->registrarAjusteEntrada(
-                            $presentacion,
-                            $lote,
-                            $cantidadAjuste,
-                            $ajuste,
-                            $numeroAjuste,
-                            $request->motivo
-                        );
-
-                    } else {
-
-                        // DISMINUCION
-                        $cantidadAjuste = abs($diferencia);
-
-                        if ($cantidadAjuste > $lote->cantidad_actual) {
-                            throw new Exception("La cantidad a descontar sobrepasa el stock disponible en el lote {$lote->lote_interno}.");
-                        }
-
-                        $lote->cantidad_actual = bcsub($lote->cantidad_actual, $cantidadAjuste, 4);
-                        if ($lote->cantidad_actual == 0) {
-                            $lote->estado = 'AGOTADO';
-                        }
-                        $lote->save();
-
-                        $kardexService->registrarAjusteSalida(
-                            $presentacion,
-                            $lote,
-                            $cantidadAjuste,
-                            $ajuste,
-                            $numeroAjuste,
-                            $request->motivo
-                        );
-                    }
-                }
-
-              
-                DetalleAjusteInventario::create([
-                    'ajuste_inventario_id' => $ajuste->id,
-                    'lote_id'              => $lote->id,
-                    'cantidad_sistema'     => $cantidadSistema,
-                    'cantidad_fisica'      => $cantidadFisica,
-                    'diferencia'           => $diferencia,
-                    'costo_anterior'       => $costoAnterior,
-                    'costo_nuevo'          => $costoNuevo,
-                    'monto_impacto'        => $montoImpacto,
-                ]);
+            if (! auth()->user()->hasRole('ADMIN')) {
+                return response()->json([
+                    'message' => 'No autorizado',
+                ], 403);
             }
 
+            $paginator = Proveedor::orderBy('id', 'desc')
+              ->paginate(7);
+
+            if ($paginator->isEmpty()) {
+                return response()->json([
+                    'message' => 'No se encontraron proveedores',
+                ], 404);
+            }
+
+
+            $proveedoresFormateados = collect($paginator->items())->map(function ($proveedor) {
+                return [
+                    'id' => $proveedor->id,
+                    'nombre' => $proveedor->nombre,
+                    'correo' => $proveedor->correo ?? '—',
+                    'telefono' => $proveedor->telefono,
+                    'activo' => $proveedor->activo,
+                    'direccion' => $proveedor->direccion,
+                    'tipo_persona' => $proveedor->tipo_persona,
+                ];
+        });
+
+            // Retornamos la estructura limpia para PrimeVue
+            return response()->json([
+                'proveedores' => $proveedoresFormateados,
+                'total' => $paginator->total(),
+                'per_page' => $paginator->perPage(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage()
+            ], 200);
+
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al obtener proveedores',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(StoreProveedorRequest $request)
+    {
+
+      if (! auth()->user()->hasRole('ADMIN')) {
+                return response()->json([
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
+        DB::beginTransaction();
+        try {
+            $proveedor = Proveedor::create([
+            ...$request->validated()  ]);
             DB::commit();
 
             return response()->json([
-                'status'  => 'ok',
-                'message' => 'Ajuste de inventario procesado correctamente.',
-                'data'    => $ajuste->load('detalles.lote'),
-            ], 201);
+                'status' => 'success',
+                'message' => 'Proveedor registrado exitosamente',
+                'data' => $proveedor
+            ], 210);
 
         } catch (Exception $e) {
             DB::rollBack();
 
             return response()->json([
-                'status'  => 'error',
-                'message' => 'Error al procesar el ajuste de inventario: ' . $e->getMessage(),
-            ], 500);
+                'status' => 'error',
+                'message' => 'Ocurrió un error y no se pudo registrar el proveedor',
+                'errorMessage' => $e->getMessage()
+            ],500);
         }
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        //
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(UpdateProveedorRequest $request, Proveedor $proveedore)
+    {
+        try {
+
+        $proveedore->update($request->validated());
+          
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'proveedor editado correctamente',
+            'data' => $proveedore,
+        ],200);
+          
+        } catch (\Throwable $th) {
+            return response()->json([
+            'status' => 'error',
+            'message' => 'Error interno del servidor'
+        ],500);
+        }
+    }   
+
+    
+    public function traerNombreProveedores(){
+        try {
+
+           $proveedores = Proveedor::select('id','nombre')->where('activo', true)
+           ->get();
+
+
+           return response()->json([
+            'status' => 'ok',
+            'data' => $proveedores
+           ],200);
+
+
+        } catch (\Throwable $th) {
+            return response()->json([
+            'status' => 'error',
+            'message' => 'Error interno del servidor'
+           ],500);
+        }
+    }
+
+    public function desactivarProveedor(int $id){
+
+       try {
+
+          $proveedor = Proveedor::findOrFail($id);
+
+          $proveedor->activo = false;
+          $proveedor->save();
+
+
+          return  response()->json([
+            "status" => "ok",
+            "message" => "Proveedor desactivado correctamente"
+          ],200);
+          
+       } catch (ModelNotFoundException $mdn) {
+          return  response()->json([
+            "status" => "error",
+            "message" => "El proveedor no existe"
+          ],404);
+       }catch ( \Throwable $e) {
+        return  response()->json([
+            "status" => "error",
+            "message" => "Error interno en el servidor"
+          ],500);
+       }
+
     }
 }
