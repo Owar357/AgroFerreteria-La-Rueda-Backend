@@ -71,154 +71,165 @@ class VentaController extends Controller
      * Store a newly created resource in storage.
      */
     public function store(StoreVentaRequest $request, KardexService $kardexService)
-{
-    try {
-        $cajaGeneralAbierta = AperturaCaja::where('estado', 'ABIERTO')->exists();
+    {
+        try {
+            $cajaGeneralAbierta = AperturaCaja::where('estado', 'ABIERTO')->exists();
 
-        if (! $cajaGeneralAbierta) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'No se pueden registrar ventas. La caja general del negocio está cerrada.',
-            ], 400);
-        }
+            if (! $cajaGeneralAbierta) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No se pueden registrar ventas. La caja general del negocio está cerrada.',
+                ], 400);
+            }
 
-        $aperturaVenta = AperturaVenta::where('cajero_id', auth()->id())
-            ->where('estado', 'ABIERTA')
-            ->first();
+            $datosVenta = $request->safe()->except(['detalles']);
+            $datosVenta['cliente_id'] = $datosVenta['cliente_id'] ?? 1;
 
-        DB::transaction(function () use ($request, &$aperturaVenta, $kardexService) {
+            $tipoFactura = $datosVenta['tipo_factura'] ?? null;
+            if (($tipoFactura === '03' || $tipoFactura === 'CCF') && (int) $datosVenta['cliente_id'] === 1) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Para emitir Comprobante de Crédito Fiscal debe seleccionar un cliente registrado.',
+                ], 400);
+            }
 
-            $venta = Venta::create([
-                ...$request->safe()->except(['detalles']),
-                'numero_factura' => $this->numeroFactura(),
-                'apertura_venta_id' => $aperturaVenta?->id,
-                'vendido_por' => auth()->id(),
-            ]);
+            $aperturaVenta = AperturaVenta::where('cajero_id', auth()->id())
+                ->where('estado', 'ABIERTA')
+                ->first();
 
-            foreach ($request->validated()['detalles'] as $detalles) {
+            DB::transaction(function () use ($request, &$aperturaVenta, $kardexService, $datosVenta) {
 
-                $detalleVenta = DetalleVenta::create([
-                    'venta_id' => $venta->id,
-                    'nombre_producto' => $detalles['nombre_producto'],
-                    'presentacion' => $detalles['presentacion'],
-                    'cantidad' => $detalles['cantidad'],
-                    'precio_unitario' => $detalles['precio_unitario'],
-                    'subtotal' => $detalles['subtotal'],
-                    'iva_aplicado' => $detalles['iva_aplicado'],
-                    'unidad_base' => $detalles['unidad_base'],
-                    'descuento_aplicado' => $detalles['descuento_aplicado'],
+                $venta = Venta::create([
+                    ...$datosVenta,
+                    'numero_factura' => $this->numeroFactura(),
+                    'apertura_venta_id' => $aperturaVenta?->id,
+                    'vendido_por' => auth()->id(),
                 ]);
 
-                $presentacion = Presentacion::with('producto')->findOrFail($detalles['presentacion_id']);
-                $producto = $presentacion->producto;
+                foreach ($request->validated()['detalles'] as $detalles) {
 
-                $esGranel = ($producto->tipo_producto === 'GRANEL');
-                $factorConversion = (float) ($presentacion->factor_conversion ?? 1);
+                    $detalleVenta = DetalleVenta::create([
+                        'venta_id' => $venta->id,
+                        'nombre_producto' => $detalles['nombre_producto'],
+                        'presentacion' => $detalles['presentacion'],
+                        'cantidad' => $detalles['cantidad'],
+                        'precio_unitario' => $detalles['precio_unitario'],
+                        'subtotal' => $detalles['subtotal'],
+                        'iva_aplicado' => $detalles['iva_aplicado'],
+                        'unidad_base' => $detalles['unidad_base'],
+                        'descuento_aplicado' => $detalles['descuento_aplicado'],
+                    ]);
 
-                $cantidadSolicitada = $esGranel
-                    ? bcmul($detalles['cantidad'], $factorConversion, 4)
-                    : $detalles['cantidad'];
+                    $presentacion = Presentacion::with('producto')->findOrFail($detalles['presentacion_id']);
+                    $producto = $presentacion->producto;
 
-                while ($cantidadSolicitada > 0) {
+                    $esGranel = ($producto->tipo_producto === 'GRANEL');
+                    $factorConversion = (float) ($presentacion->factor_conversion ?? 1);
 
-                    $queryLote = Lote::query()
-                        ->where('cantidad_actual', '>', 0)
-                        ->where('estado', 'ACTIVO');
+                    $cantidadSolicitada = $esGranel
+                        ? bcmul($detalles['cantidad'], $factorConversion, 4)
+                        : $detalles['cantidad'];
 
-                    if ($esGranel) {
-                        $queryLote->where('producto_id', $producto->id);
-                    } else {
-                        $queryLote->where('presentacion_id', $presentacion->id);
-                    }
+                    while ($cantidadSolicitada > 0) {
 
-                    $lote = $queryLote
-                        ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
-                        ->orderBy('created_at', 'ASC')
-                        ->lockForUpdate()
-                        ->first();
+                        $queryLote = Lote::query()
+                            ->where('cantidad_actual', '>', 0)
+                            ->where('estado', 'ACTIVO');
 
-                    if (! $lote) {
-                        throw new \Exception("No hay stock suficiente en los lotes activos para el producto {$producto->nombre}.");
-                    }
-
-                    if ($lote->cantidad_actual >= $cantidadSolicitada) {
-
-                        $cantidadTomada = $cantidadSolicitada;
-
-                        LoteDetalleVenta::create([
-                            'detalle_venta_id' => $detalleVenta->id,
-                            'lote_id' => $lote->id,
-                            'cantidad_tomada' => $cantidadTomada,
-                        ]);
-
-                        $lote->cantidad_actual = bcsub($lote->cantidad_actual, $cantidadTomada, 3);
-
-                        if ($lote->cantidad_actual == 0) {
-                            $lote->estado = 'AGOTADO';
+                        if ($esGranel) {
+                            $queryLote->where('producto_id', $producto->id);
+                        } else {
+                            $queryLote->where('presentacion_id', $presentacion->id);
                         }
-                        $lote->save();
 
-                        $kardexService->registrarSalida(
-                            $presentacion,
-                            $lote,
-                            (float) $detalles['cantidad'],
-                            $venta,
-                            $venta->numero_factura,
-                            'Salida por Venta '.$venta->numero_factura
-                        );
+                        $lote = $queryLote
+                            ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
+                            ->orderBy('created_at', 'ASC')
+                            ->lockForUpdate()
+                            ->first();
 
-                        $cantidadSolicitada = 0;
+                        if (! $lote) {
+                            throw new \Exception("No hay stock suficiente en los lotes activos para el producto {$producto->nombre}.");
+                        }
 
-                    } else {
+                        if ($lote->cantidad_actual >= $cantidadSolicitada) {
 
-                        $stockEntregado = $lote->cantidad_actual;
+                            $cantidadTomada = $cantidadSolicitada;
 
-                        LoteDetalleVenta::create([
-                            'detalle_venta_id' => $detalleVenta->id,
-                            'lote_id' => $lote->id,
-                            'cantidad_tomada' => $stockEntregado,
-                        ]);
+                            LoteDetalleVenta::create([
+                                'detalle_venta_id' => $detalleVenta->id,
+                                'lote_id' => $lote->id,
+                                'cantidad_tomada' => $cantidadTomada,
+                            ]);
 
-                        $lote->cantidad_actual = 0;
-                        $lote->estado = 'AGOTADO';
-                        $lote->update();
+                            $lote->cantidad_actual = bcsub($lote->cantidad_actual, $cantidadTomada, 3);
 
-                        $cantidadEntregadaEnPresentacion = $esGranel 
-                            ? ($stockEntregado / $factorConversion) 
-                            : $stockEntregado;
+                            if ($lote->cantidad_actual == 0) {
+                                $lote->estado = 'AGOTADO';
+                            }
+                            $lote->save();
 
-                        $kardexService->registrarSalida(
-                            $presentacion,
-                            $lote,
-                            (float) $cantidadEntregadaEnPresentacion,
-                            $venta,
-                            $venta->numero_factura,
-                            'Salida parcial por Venta '.$venta->numero_factura
-                        );
+                            $kardexService->registrarSalida(
+                                $presentacion,
+                                $lote,
+                                (float) $detalles['cantidad'],
+                                $venta,
+                                $venta->numero_factura,
+                                'Salida por Venta '.$venta->numero_factura
+                            );
 
-                        $cantidadSolicitada = bcsub($cantidadSolicitada, $stockEntregado, 4);
+                            $cantidadSolicitada = 0;
+
+                        } else {
+
+                            $stockEntregado = $lote->cantidad_actual;
+
+                            LoteDetalleVenta::create([
+                                'detalle_venta_id' => $detalleVenta->id,
+                                'lote_id' => $lote->id,
+                                'cantidad_tomada' => $stockEntregado,
+                            ]);
+
+                            $lote->cantidad_actual = 0;
+                            $lote->estado = 'AGOTADO';
+                            $lote->update();
+
+                            $cantidadEntregadaEnPresentacion = $esGranel
+                                ? ($stockEntregado / $factorConversion)
+                                : $stockEntregado;
+
+                            $kardexService->registrarSalida(
+                                $presentacion,
+                                $lote,
+                                (float) $cantidadEntregadaEnPresentacion,
+                                $venta,
+                                $venta->numero_factura,
+                                'Salida parcial por Venta '.$venta->numero_factura
+                            );
+
+                            $cantidadSolicitada = bcsub($cantidadSolicitada, $stockEntregado, 4);
+
+                        }
 
                     }
 
                 }
 
-            }
+            });
 
-        });
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Venta registrada con éxito',
+                'apertura_pendiente' => is_null($aperturaVenta),
+            ], 201);
 
-        return response()->json([
-            'status' => 'ok',
-            'message' => 'Venta registrada con éxito',
-            'apertura_pendiente' => is_null($aperturaVenta),
-        ], 201);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $e->getMessage(),
-        ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 400);
+        }
     }
-}
 
     /**
      * Display the specified resource.
