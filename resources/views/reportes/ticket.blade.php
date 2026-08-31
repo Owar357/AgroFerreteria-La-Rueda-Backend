@@ -116,7 +116,7 @@ td{
 <b>Factura:</b> {{ $venta->numero_factura }}<br>
 <b>Fecha:</b> {{ $venta->created_at->format('d/m/Y h:i:s A') }}<br>
 <b>Cliente:</b> {{ $venta->cliente?->nombre ?? 'Consumidor Final' }}<br>
-<b>Tipo de Pago:</b> {{ ucfirst($venta->tipo_pago ?? 'Efectivo') }}<br>
+<b>Tipo de Pago:</b> {{ $venta->tipo_pago }}<br>
 <b>Atendió:</b> {{ $venta->vendidoPor->name ?? 'Cajero' }}
 </div>
 
@@ -153,46 +153,50 @@ td{
 
 <table>
 
-@if($venta->detallesVenta->sum('descuento_aplicado') > 0)
+{{-- 1. DESCUENTO GLOBAL (SI EXISTE) --}}
+@if(($venta->detallesVenta->sum('descuento_aplicado') ?? 0) > 0)
 <tr>
     <td>Descuento Total</td>
     <td class="right">-${{ number_format($venta->detallesVenta->sum('descuento_aplicado'), 2) }}</td>
 </tr>
 @endif
 
-@if(($venta->exento ?? 0) > 0)
+{{-- 2. VENTA GRAVADA (BASE IMPONIBLE SIN IVA) --}}
 <tr>
-    <td>Ventas Exentas</td>
+    <td>Venta Gravada</td>
+    <td class="right">${{ number_format($venta->gravado, 2) }}</td>
+</tr>
+
+{{-- 3. VENTA EXENTA (PRODUCTOS SIN IVA, EJ. MEDICAMENTOS O LEYES ESPECIALES) --}}
+<tr>
+    <td>Venta Exenta</td>
     <td class="right">${{ number_format($venta->exento, 2) }}</td>
 </tr>
-@endif
 
-<tr>
-    <td>Ventas Gravadas</td>
-    <td class="right">${{ number_format($venta->gravado ?? 0, 2) }}</td>
-</tr>
-
-<tr>
-    <td>Subtotal</td>
-    <td class="right">${{ number_format(($venta->gravado ?? 0) + ($venta->exento ?? 0), 2) }}</td>
-</tr>
-
+{{-- 4. MONTO DE IVA (13%) --}}
 <tr>
     <td>IVA (13%)</td>
-    <td class="right">${{ number_format($venta->iva ?? 0, 2) }}</td>
+    <td class="right">${{ number_format($venta->iva, 2) }}</td>
 </tr>
 
+{{-- 5. SUB-TOTAL FISCAL --}}
+<tr>
+    <td>Subtotal</td>
+    <td class="right">${{ number_format($venta->gravado + $venta->exento + $venta->iva, 2) }}</td>
+</tr>
+
+{{-- 6. TOTAL FINAL A PAGAR --}}
 <tr class="total">
-    <td>TOTAL</td>
+    <td>TOTAL A PAGAR</td>
     <td class="right">${{ number_format($venta->total, 2) }}</td>
 </tr>
 
-@if(strtoupper($venta->tipo_pago ?? '') === 'EFECTIVO' || !isset($venta->tipo_pago))
+{{-- 7. DETALLE DE PAGO (SOLO SI ES EN EFECTIVO) --}}
+@if($venta->tipo_pago === 'EFECTIVO')
 <tr>
     <td>Efectivo Recibido</td>
     <td class="right">${{ number_format($venta->efectivo_recibido ?? 0, 2) }}</td>
 </tr>
-
 <tr>
     <td>Cambio</td>
     <td class="right">${{ number_format($venta->cambio ?? 0, 2) }}</td>
