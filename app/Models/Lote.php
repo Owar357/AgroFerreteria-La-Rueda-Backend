@@ -21,8 +21,8 @@ class Lote extends Model
 
         protected $casts = [
             'fecha_vencimiento'     => 'date',
-            'cantidad_inicial'      => 'decimal:3',
-            'cantidad_actual'       => 'decimal:3',
+            'cantidad_inicial'      => 'decimal:4',
+            'cantidad_actual'       => 'decimal:4',
             'costo_unitario_compra' => 'decimal:4',
             'porcentaje_descuento'  => 'decimal:2',
         ];

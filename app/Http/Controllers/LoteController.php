@@ -7,7 +7,6 @@ use App\Models\Lote;
 use App\Models\Presentacion;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-use Ramsey\Uuid\Type\Integer;
 
 class LoteController extends Controller
 {
@@ -52,7 +51,8 @@ class LoteController extends Controller
                     'cantidad_inicial',
                     'cantidad_actual',
                     'costo_unitario_compra',
-                    'estado'
+                    'estado',
+                    'porcentaje_descuento'
                 )
                 ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
                 ->paginate($perPage, ['*'], 'page', $page);
@@ -75,37 +75,36 @@ class LoteController extends Controller
         }
     }
 
-    public function actualizarDescuento(updateLoteDescuentoRequest $request, Integer $id)
+    public function actualizarDescuento(updateLoteDescuentoRequest $request, $id)
     {
-
         try {
-
             $lote = Lote::findOrFail($id);
 
-            if (! $lote->estado === 'ACTIVO') {
+            if ($lote->estado !== 'ACTIVO') {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Solo se puede asignar descuentos  a lotes con estado ACTIVO. ',
+                    'message' => 'Solo se puede asignar descuento a lotes en estado ACTIVO.',
                 ], 422);
             }
 
-            if (! $lote->cantidad_actual <= 0) {
+            if ((float) $lote->cantidad_actual <= 0) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'No se puede asignar descuento a un lote sin stock disponible.',
                 ], 422);
             }
 
-            $nuevoPorcentaje = $request->porcentaje_descuento > 0
-               ? $request->porcentaje_descuento
-               : null;
+            $valorInput = $request->validated()['porcentaje_descuento'] ?? $request->input('porcentaje_descuento');
 
-            $lote->porcentaje_descuento = $nuevoPorcentaje;
+            $lote->porcentaje_descuento = ($valorInput !== null && (float) $valorInput > 0)
+                ? (float) $valorInput
+                : null;
+
             $lote->save();
 
             return response()->json([
                 'status' => 'ok',
-                'message' => 'Porcentaje de descuento actualizado correctamente en el lote.',
+                'message' => 'Porcentaje de descuento actualizado correctamente.',
                 'data' => [
                     'lote_id' => $lote->id,
                     'lote_interno' => $lote->lote_interno,
@@ -117,11 +116,11 @@ class LoteController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'El lote especificado no existe.',
-            ], 494);
-        } catch (\Exception $e) {
+            ], 404);
+        } catch (\Throwable $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error al actualizar el descuento del lote',
+                'message' => 'Error al actualizar el descuento:',
             ], 500);
         }
     }

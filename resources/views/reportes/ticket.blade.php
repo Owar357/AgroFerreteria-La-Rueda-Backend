@@ -5,10 +5,10 @@
 <title>Ticket de Venta</title>
 
 <style>
-@page{
+@page {
     size: 80mm auto;
-    margin-left: 10mm;
-    margin-right: 10mm;
+    margin-left: 5mm;
+    margin-right: 5mm;
     margin-top: 5mm;
     margin-bottom: 5mm;
 }
@@ -26,7 +26,7 @@ body{
 }
 
 .ticket{
-    width: calc(100% - 8mm);
+    width: 100%;
     margin: 0 auto;
 }
 
@@ -41,7 +41,7 @@ body{
 }
 
 .logo h2{
-    font-size:15px;
+    font-size:14px;
     margin-bottom:2px;
 }
 
@@ -65,24 +65,12 @@ hr{
 }
 
 .detalle strong{
-    font-size:11px;
+    font-size:10px;
 }
 
 .detalle small{
     font-size:8px;
-    color:#555;
-}
-
-.linea{
-    overflow:hidden;
-}
-
-.izq{
-    float:left;
-}
-
-.der{
-    float:right;
+    color:#333;
 }
 
 table{
@@ -109,7 +97,7 @@ td{
 .footer{
     text-align:center;
     margin-top:10px;
-    font-size:10px;
+    font-size:9px;
 }
 </style>
 </head>
@@ -128,86 +116,96 @@ td{
 <b>Factura:</b> {{ $venta->numero_factura }}<br>
 <b>Fecha:</b> {{ $venta->created_at->format('d/m/Y h:i:s A') }}<br>
 <b>Cliente:</b> {{ $venta->cliente?->nombre ?? 'Consumidor Final' }}<br>
-<b>Atendió:</b> {{ $venta->vendidoPor->name }}
+<b>Tipo de Pago:</b> {{ ucfirst($venta->tipo_pago ?? 'Efectivo') }}<br>
+<b>Atendió:</b> {{ $venta->vendidoPor->name ?? 'Cajero' }}
 </div>
 
 <hr>
 
 @foreach($venta->detallesVenta as $detalle)
-
 <div class="detalle">
+    <strong>{{ $detalle->nombre_producto }}</strong><br>
+    
+    <small>
+        Presentación: {{ $detalle->presentacion }} 
+        @if(isset($detalle->unidad_medida))
+            ({{ $detalle->unidad_medida }})
+        @endif
+    </small>
 
-<strong>{{ $detalle->nombre_producto }}</strong><br>
-
-<small>{{ $detalle->presentacion }}</small>
-
-<table style="width:100%; border:none; margin-top:2px;">
-    <tr>
-        <td style="border:none; width:70%;">
-            {{ number_format($detalle->cantidad,2) }}
-            x
-            ${{ number_format($detalle->precio_unitario,2) }}
-        </td>
-
-        <td style="border:none; width:30%; text-align:right;">
-            ${{ number_format($detalle->subtotal,2) }}
-        </td>
-    </tr>
-</table>
-
+    <table style="width:100%; border:none; margin-top:2px;">
+        <tr>
+            <td style="border:none; width:70%;">
+                {{ number_format($detalle->cantidad, 2) }} x ${{ number_format($detalle->precio_unitario, 2) }}
+                @if(($detalle->descuento_aplicado ?? 0) > 0)
+                    <br><small style="color:#555;">(Desc. -${{ number_format($detalle->descuento_aplicado, 2) }})</small>
+                @endif
+            </td>
+            <td style="border:none; width:30%; text-align:right; vertical-align:top;">
+                ${{ number_format($detalle->subtotal, 2) }}
+            </td>
+        </tr>
+    </table>
+</div>
 @endforeach
 
 <hr>
 
 <table>
 
+@if($venta->detallesVenta->sum('descuento_aplicado') > 0)
 <tr>
-<td>Descuento</td>
-<td class="right">${{ number_format($venta->detallesVenta->sum('descuento_aplicado'),2) }}</td>
+    <td>Descuento Total</td>
+    <td class="right">-${{ number_format($venta->detallesVenta->sum('descuento_aplicado'), 2) }}</td>
+</tr>
+@endif
+
+@if(($venta->exento ?? 0) > 0)
+<tr>
+    <td>Ventas Exentas</td>
+    <td class="right">${{ number_format($venta->exento, 2) }}</td>
+</tr>
+@endif
+
+<tr>
+    <td>Ventas Gravadas</td>
+    <td class="right">${{ number_format($venta->gravado ?? 0, 2) }}</td>
 </tr>
 
 <tr>
-<td>Ventas Exentas</td>
-<td class="right">${{ number_format($venta->exento,2) }}</td>
+    <td>Subtotal</td>
+    <td class="right">${{ number_format(($venta->gravado ?? 0) + ($venta->exento ?? 0), 2) }}</td>
 </tr>
 
 <tr>
-<td>Ventas Gravadas</td>
-<td class="right">${{ number_format($venta->gravado,2) }}</td>
-</tr>
-
-<tr>
-<td>Subtotal</td>
-<td class="right">${{ number_format($venta->gravado + $venta->exento,2) }}</td>
-</tr>
-
-<tr>
-<td>IVA</td>
-<td class="right">${{ number_format($venta->iva,2) }}</td>
+    <td>IVA (13%)</td>
+    <td class="right">${{ number_format($venta->iva ?? 0, 2) }}</td>
 </tr>
 
 <tr class="total">
-<td>TOTAL</td>
-<td class="right">${{ number_format($venta->total,2) }}</td>
+    <td>TOTAL</td>
+    <td class="right">${{ number_format($venta->total, 2) }}</td>
+</tr>
+
+@if(strtoupper($venta->tipo_pago ?? '') === 'EFECTIVO' || !isset($venta->tipo_pago))
+<tr>
+    <td>Efectivo Recibido</td>
+    <td class="right">${{ number_format($venta->efectivo_recibido ?? 0, 2) }}</td>
 </tr>
 
 <tr>
-<td>Efectivo</td>
-<td class="right">${{ number_format($venta->efectivo_recibido ?? 0,2) }}</td>
+    <td>Cambio</td>
+    <td class="right">${{ number_format($venta->cambio ?? 0, 2) }}</td>
 </tr>
-
-<tr>
-<td>Cambio</td>
-<td class="right">${{ number_format($venta->cambio,2) }}</td>
-</tr>
+@endif
 
 </table>
 
 <hr>
 
 <div class="footer">
-<strong>¡Gracias por preferirnos!</strong><br>
-Agroferretería La Rueda
+    <strong>¡Gracias por preferirnos!</strong><br>
+    Agroferretería La Rueda
 </div>
 
 </div>
