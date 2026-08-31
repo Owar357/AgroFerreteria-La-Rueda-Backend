@@ -65,6 +65,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/caja/estado', [CajaController::class, 'estadoCaja']); //RUTA AGREGADA VERIFICA EL ESTADO DE LA CAJA, ME AYUDA EN EL FRONTEN
     Route::post('/caja/venta/apertura', [CajaController::class, 'abrirVenta']);
     Route::post('/caja/venta/cuadre', [CajaController::class, 'cuadrarVenta']);
+    Route::get('/caja/resumen-turno', [CajaController::class, 'resumenTurno']); //RUTA AGREGADA
     Route::patch('/caja/venta/cierre', [CajaController::class, 'cerrarVentaCaja']);
     Route::patch('/caja/movimientos/{movimiento}/anular', [MovimientoExternoCajaController::class, 'anularMovimiento']);
     Route::apiResource('caja/movimientoExterno', MovimientoExternoCajaController::class)->only(['index', 'store', 'show']);

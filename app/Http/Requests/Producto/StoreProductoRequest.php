@@ -16,7 +16,7 @@ class StoreProductoRequest extends FormRequest
     {
         return [
             'codigo' => 'required|string|min:2|max:14|unique:productos,codigo|regex:/^[A-Za-z0-9-]+$/',
-            'nombre' => 'required|string|max:100|unique:producto,nombre',
+            'nombre' => 'required|string|max:100|unique:productos,nombre',
             'fabricante' => 'nullable|string|max:100',
             'tipo_producto' => 'required|in:UNIDAD FIJA,GRANEL',
             'unidad_medida_id' => 'required|exists:unidad_medidas,id',

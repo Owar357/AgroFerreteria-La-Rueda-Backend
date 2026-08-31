@@ -172,13 +172,21 @@ class CajaController extends Controller
                 ->with('cajero:id,name')
                 ->firstOrFail();
 
-            $totalVentaEfectivo = Venta::where('apertura_venta_id', $aperturaVenta->id)
-                ->where('tipo_pago', 'EFECTIVO')
-                ->selectRaw('COALESCE(SUM(efectivo_recibido - cambio), 0) as total')
-                ->value('total');
+          $totalVentaEfectivo = Venta::where('apertura_venta_id', $aperturaVenta->id)
+            ->where('tipo_pago', 'EFECTIVO')
+            ->where('estado', 'PROCESADA')
+            ->selectRaw('COALESCE(SUM(efectivo_recibido - cambio), 0) as total')
+            ->value('total');
 
+
+        $totalVentaTarjeta = Venta::where('apertura_venta_id', $aperturaVenta->id)
+                ->where('tipo_pago', 'TARJETA')
+                ->where('estado', 'PROCESADA')
+                ->sum('total');
+                
             $totalVentaTransferencia = Venta::where('apertura_venta_id', $aperturaVenta->id)
                 ->where('tipo_pago', 'TRANSFERENCIA')
+                ->where('estado', 'PROCESADA')
                 ->sum('total');
 
             $movimientos = MovimientoExternoCaja::where('apertura_venta_id', $aperturaVenta->id)
@@ -227,6 +235,7 @@ class CajaController extends Controller
                 'total_entradas' => $movimientos->total_entradas,
                 'total_salidas' => $movimientos->total_salidas,
                 'total_ventas_efectivo' => $totalVentaEfectivo,
+                'total_ventas_tarjeta' => $totalVentaTarjeta,
                 'total_ventas_transferencia' => $totalVentaTransferencia,
                 'token_autorizacion' => $token,
                 'monto_esperado' => $montoEsperado,
@@ -349,4 +358,81 @@ class CajaController extends Controller
             ], 500);
         }
     }
+
+    public function resumenTurno()
+{
+    try {
+        $aperturaVenta = AperturaVenta::where('cajero_id', auth()->id())
+            ->where('estado', 'ABIERTA')
+            ->first();
+
+        if (! $aperturaVenta) {
+            return response()->json([
+                'status' => 'ok',
+                'monto_inicial' => 0,
+                'ventas_contado' => 0,
+                'ventas_tarjeta' => 0,
+                'ventas_transferencia' => 0,
+                'total_entradas' => 0,
+                'total_salidas' => 0,
+                'monto_en_caja' => 0,
+                'monto_esperado' => 0,
+                'total_en_caja' => 0,
+            ], 200);
+        }
+
+        $ventasPorTipo = Venta::where('apertura_venta_id', $aperturaVenta->id)
+            ->where('estado', 'PROCESADA')
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN tipo_pago = 'EFECTIVO' THEN (efectivo_recibido - cambio) ELSE 0 END), 0) as ventas_contado,
+                COALESCE(SUM(CASE WHEN tipo_pago = 'TARJETA' THEN total ELSE 0 END), 0) as ventas_tarjeta,
+                COALESCE(SUM(CASE WHEN tipo_pago = 'TRANSFERENCIA' THEN total ELSE 0 END), 0) as ventas_transferencia
+            ")
+            ->first();
+
+        $movimientos = MovimientoExternoCaja::where('apertura_venta_id', $aperturaVenta->id)
+            ->where('es_anulado', false)
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN tipo_movimiento = 'ENTRADA' THEN monto ELSE 0 END), 0) as total_entradas,
+                COALESCE(SUM(CASE WHEN tipo_movimiento = 'SALIDA' THEN monto ELSE 0 END), 0) as total_salidas
+            ")
+            ->first();
+
+        $movimientosNetos = bcsub($movimientos->total_entradas, $movimientos->total_salidas, 2);
+
+        
+        $montoEnCaja = bcadd(
+            bcadd($aperturaVenta->monto_inicial, $ventasPorTipo->ventas_contado, 2),
+            $movimientosNetos,
+            2
+        );
+
+        $totalIngresos = bcadd(
+            bcadd($ventasPorTipo->ventas_contado, $ventasPorTipo->ventas_tarjeta, 2),
+            $ventasPorTipo->ventas_transferencia,
+            2
+        );
+        $totalIngresos = bcadd($totalIngresos, $movimientos->total_entradas, 2);
+        $totalEnCaja = bcsub($totalIngresos, $movimientos->total_salidas, 2);
+
+        return response()->json([
+            'status' => 'ok',
+            'monto_inicial' => $aperturaVenta->monto_inicial,
+            'ventas_contado' => $ventasPorTipo->ventas_contado,
+            'ventas_tarjeta' => $ventasPorTipo->ventas_tarjeta,
+            'ventas_transferencia' => $ventasPorTipo->ventas_transferencia,
+            'total_entradas' => $movimientos->total_entradas,
+            'total_salidas' => $movimientos->total_salidas,
+            'monto_en_caja' => $montoEnCaja,
+            'monto_esperado' => $montoEnCaja, // mismo valor mientras el turno sigue abierto
+            'total_en_caja' => $totalEnCaja,
+        ], 200);
+
+    } catch (\Throwable $th) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error interno del servidor',
+        ], 500);
+    }
+}
 }
