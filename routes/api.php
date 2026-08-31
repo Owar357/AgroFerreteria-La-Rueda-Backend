@@ -70,7 +70,7 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('alertas', AlertasController::class)->only('index');
     Route::apiResource('/unidades', UnidadMedidaController::class)->only('index');
 
-    Route::post('/ajuste-nventario', AjusteInventarioController::class);
+    Route::post('/ajuste-inventario', AjusteInventarioController::class);
 
 });
 

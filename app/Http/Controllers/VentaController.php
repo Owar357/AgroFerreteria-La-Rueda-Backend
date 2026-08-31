@@ -97,7 +97,8 @@ class VentaController extends Controller
                 ->where('estado', 'ABIERTA')
                 ->first();
 
-            DB::transaction(function () use ($request, &$aperturaVenta, $kardexService, $datosVenta) {
+            // 1. ASIGNAMOS EL RESULTADO DE LA TRANSACCIÓN A $venta
+            $venta = DB::transaction(function () use ($request, &$aperturaVenta, $kardexService, $datosVenta) {
 
                 $venta = Venta::create([
                     ...$datosVenta,
@@ -242,28 +243,25 @@ class VentaController extends Controller
                     }
                 }
 
+                return $venta;
             });
-
             return response()->json([
                 'status' => 'ok',
                 'message' => 'Venta registrada con éxito',
                 'apertura_pendiente' => is_null($aperturaVenta),
+                'id' => $venta->id,
+                'num_documento' => $venta->numero_factura,
             ], 201);
 
         } catch (\DomainException $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => $e->getMessage(),
-            ], 400);
+            ], 422);
         } catch (\Throwable $e) {
-            Log::error('Error crítico al procesar venta: '.$e->getMessage(), [
-                'exception' => $e,
-                'usuario_id' => auth()->id(),
-            ]);
-
             return response()->json([
                 'status' => 'error',
-                'message' => 'Ocurrió un error interno al procesar la venta. Por favor intente nuevamente o contacte a soporte.',
+                'message' => 'Error interno al procesar la venta.',
             ], 500);
         }
     }
