@@ -2,11 +2,9 @@
 
 namespace App\Http\Requests\Compra;
 
-
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Override;
 
 class StoreCompraRequest extends FormRequest
 {
@@ -35,14 +33,16 @@ class StoreCompraRequest extends FormRequest
             'monto_total' => 'nullable|numeric|min:0',
             'estado_pago' => 'required|in:PAGADO,PENDIENTE,ABONADO,VENCIDO',
             'fecha_vencimiento_pago' => 'nullable|date|after_or_equal:fecha_emision',
-            'proveedor_id' => ['required',
-            Rule::exists('proveedores', 'id')->where(function ($query){
-                $query->where('activo',true);
-            }),
-            ], 
+            'proveedor_id' => [
+                'required',
+                Rule::exists('proveedores', 'id')->where(function ($query) {
+                    $query->where('activo', true);
+                }),
+            ],
 
             // DetalleCompra
             'detalles' => 'required|array|min:1',
+            'detalles.*.presentacion_id' => 'required|exists:presentaciones,id', 
             'detalles.*.cantidad_facturada' => 'nullable|numeric|min:0',
             'detalles.*.cantidad_bonificada' => 'nullable|numeric|min:0',
             'detalles.*.precio_unitario_factura' => 'nullable|numeric|min:0',
@@ -56,11 +56,11 @@ class StoreCompraRequest extends FormRequest
             'detalles.*.lote.cantidad_inicial' => 'nullable|numeric|min:0',
             'detalles.*.lote.costo_unitario_compra' => 'nullable|numeric|min:0',
             'detalles.*.lote.porcentaje_descuento' => 'nullable|numeric|min:0',
-            'detalles.*.lote.presentacion_id' => 'required|exists:presentaciones,id',
+            'detalles.*.lote.presentacion_id' => 'nullable|required_without:detalles.*.lote.producto_id|exists:presentaciones,id',
+            'detalles.*.lote.producto_id' => 'nullable|required_without:detalles.*.lote.presentacion_id|exists:productos,id',
         ];
     }
 
-    
     public function messages(): array
     {
         return [
@@ -105,8 +105,10 @@ class StoreCompraRequest extends FormRequest
             'detalles.*.lote.costo_unitario_compra.min' => 'El costo unitario de compra no puede ser negativo',
             'detalles.*.lote.porcentaje_descuento.numeric' => 'El porcentaje de descuento debe ser un valor numérico',
             'detalles.*.lote.porcentaje_descuento.min' => 'El porcentaje de descuento no puede ser negativo',
-            'detalles.*.lote.presentacion_id.required' => 'La presentación del lote es obligatoria',
-            'detalles.*.lote.presentacion_id.exists' => 'La presentación indicada del lote no existe',
+            'detalles.*.lote.presentacion_id.exists' => 'La presentación indicada del lote no existe.',
+            'detalles.*.lote.producto_id.exists' => 'El producto indicado del lote no existe.',
+            'detalles.*.lote.presentacion_id.required_without' => 'Debe asociar el lote a una presentación o a un producto.',
+            'detalles.*.lote.producto_id.required_without' => 'Debe asociar el lote a una presentación o a un producto.',
         ];
 
     }

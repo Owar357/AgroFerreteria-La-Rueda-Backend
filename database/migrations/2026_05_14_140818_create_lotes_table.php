@@ -21,7 +21,8 @@ return new class extends Migration
             $table->decimal('costo_unitario_compra',15,4);
             $table->decimal('porcentaje_descuento', 15,2)->nullable();
             $table->enum('estado', ['ACTIVO','DAÑADO','AGOTADO','VENCIDO','ANULADO'])->default('ACTIVO')->index();
-            $table->foreignId('presentacion_id')->constrained('presentaciones');         
+            $table->foreignId('presentacion_id')->nullable()->constrained('presentaciones')->nullOnDelete();
+            $table->foreignId('producto_id')->nullable()->constrained('productos')->nullOnDelete();         
             $table->timestamps();
         });
     }

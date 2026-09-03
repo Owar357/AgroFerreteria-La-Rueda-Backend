@@ -50,9 +50,30 @@ class ReporteVentasController extends Controller
             'detallesVenta',
         ])->findOrFail($id);
 
+        $anchoTicket = 226.77;
+
+        $alturaBase = 380;
+
+        $alturaPorProducto = 45;
+        $cantidadProductos = $venta->detallesVenta->count();
+
+        $tieneDescuento = $venta->detallesVenta->sum('descuento_aplicado') > 0;
+        $esEfectivo = $venta->tipo_pago === 'EFECTIVO';
+        $extraDescuento = $tieneDescuento ? 16 : 0;   // fila "Descuento Total"
+        $extraEfectivo = $esEfectivo ? 32 : 0;        // filas "Efectivo Recibido" + "Cambio"
+
+        $alturaCalculada = $alturaBase
+            + ($cantidadProductos * $alturaPorProducto)
+            + $extraDescuento
+            + $extraEfectivo;
+
+        $alturaMinima = 420;
+        $alturaFinal = max($alturaCalculada, $alturaMinima);
+
         $pdf = Pdf::loadView('reportes.ticket', compact('venta'))
-            ->setPaper([0, 0, 240.77, 900], 'portrait');
+            ->setPaper([0, 0, $anchoTicket, $alturaFinal], 'portrait');
 
         return $pdf->stream('Ticket-'.$venta->numero_factura.'.pdf');
+
     }
 }

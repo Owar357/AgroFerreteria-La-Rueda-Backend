@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Venta\StoreVentaRequest;
+use App\Models\AperturaCaja;
 use App\Models\AperturaVenta;
 use App\Models\DetalleVenta;
 use App\Models\Lote;
 use App\Models\LoteDetalleVenta;
+use App\Models\Presentacion;
 use App\Models\Venta;
+use App\Services\KardexService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -67,30 +70,38 @@ class VentaController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreVentaRequest $request)
+    public function store(StoreVentaRequest $request, KardexService $kardexService)
     {
         try {
+            $cajaGeneralAbierta = AperturaCaja::where('estado', 'ABIERTO')->exists();
 
-        //AGREGE ESTE CANDADO PARA QEU VERIFIQUE LA CAJA GENERAL
-        // PAA QUE UN ACAJERO NO VEDA SIN UNA CAJA APERTURADA POR EL ADMIN
-        $cajaGeneralAbierta = \App\Models\AperturaCaja::where('estado', 'ABIERTO')->exists();
+            if (! $cajaGeneralAbierta) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No se pueden registrar ventas. La caja general del negocio está cerrada.',
+                ], 400);
+            }
 
-        if (!$cajaGeneralAbierta) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'No se pueden registrar ventas. La caja general del negocio está cerrada.',
-            ], 422);
-        }
+            $datosVenta = $request->safe()->except(['detalles']);
+            $datosVenta['cliente_id'] = $datosVenta['cliente_id'] ?? 1;
 
+            $tipoFactura = $datosVenta['tipo_factura'] ?? null;
+            if (($tipoFactura === '03' || $tipoFactura === 'CCF') && (int) $datosVenta['cliente_id'] === 1) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Para emitir Comprobante de Crédito Fiscal debe seleccionar un cliente registrado.',
+                ], 400);
+            }
 
             $aperturaVenta = AperturaVenta::where('cajero_id', auth()->id())
                 ->where('estado', 'ABIERTA')
                 ->first();
 
-            DB::transaction(function () use ($request, &$aperturaVenta) {
+            // 1. ASIGNAMOS EL RESULTADO DE LA TRANSACCIÓN A $venta
+            $venta = DB::transaction(function () use ($request, &$aperturaVenta, $kardexService, $datosVenta) {
 
                 $venta = Venta::create([
-                    ...$request->safe()->except(['detalles']),
+                    ...$datosVenta,
                     'numero_factura' => $this->numeroFactura(),
                     'apertura_venta_id' => $aperturaVenta?->id,
                     'vendido_por' => auth()->id(),
@@ -98,84 +109,160 @@ class VentaController extends Controller
 
                 foreach ($request->validated()['detalles'] as $detalles) {
 
-                    $detalleVenta = DetalleVenta::create([
-                        'venta_id' => $venta->id,
-                        'nombre_producto' => $detalles['nombre_producto'],
-                        'presentacion' => $detalles['presentacion'],
-                        'cantidad' => $detalles['cantidad'],
-                        'precio_unitario' => $detalles['precio_unitario'],
-                        'subtotal' => $detalles['subtotal'],
-                        'iva_aplicado' => $detalles['iva_aplicado'],
-                        'unidad_base' => $detalles['unidad_base'],
-                        'descuento_aplicado' => $detalles['descuento_aplicado'],
+                    $presentacion = Presentacion::with('producto')->findOrFail($detalles['presentacion_id']);
+                    $producto = $presentacion->producto;
 
-                    ]);
+                    $esGranel = ($producto->tipo_producto === 'GRANEL');
+                    $factorConversion = (float) ($presentacion->factor_conversion ?? 1);
+                    $precioUnitario = (float) $detalles['precio_unitario'];
 
-                    $cantidadSolicitada = $detalles['cantidad'];
+                    $cantidadSolicitada = $esGranel
+                        ? bcmul($detalles['cantidad'], $factorConversion, 4)
+                        : $detalles['cantidad'];
+
+                    $descuentoTotalAcumulado = 0.00;
+                    $lotesConsumidos = [];
 
                     while ($cantidadSolicitada > 0) {
 
-                        $lote = Lote::where('presentacion_id', $detalles['presentacion_id'])
+                        $queryLote = Lote::query()
                             ->where('cantidad_actual', '>', 0)
-                            ->where('estado', 'ACTIVO')
+                            ->where('estado', 'ACTIVO');
+
+                        if ($esGranel) {
+                            $queryLote->where('producto_id', $producto->id);
+                        } else {
+                            $queryLote->where('presentacion_id', $presentacion->id);
+                        }
+
+                        $lote = $queryLote
                             ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
                             ->orderBy('created_at', 'ASC')
                             ->lockForUpdate()
-                            ->firstOrFail();
+                            ->first();
+
+                        if (! $lote) {
+                            throw new \DomainException("No hay stock suficiente en los lotes activos para el producto {$producto->nombre}.");
+                        }
+
+                        // --- CÁLCULO DE DESCUENTO POR LOTE ---
+                        $porcentajeDescLote = (float) ($lote->porcentaje_descuento ?? 0);
+                        $descuentoUnitarioDolar = $precioUnitario * ($porcentajeDescLote / 100);
 
                         if ($lote->cantidad_actual >= $cantidadSolicitada) {
 
-                            LoteDetalleVenta::create([
-                                'detalle_venta_id' => $detalleVenta->id,
-                                'lote_id' => $lote->id,
-                                'cantidad_tomada' => $cantidadSolicitada,
-                            ]);
+                            $cantidadTomada = $cantidadSolicitada;
 
-                            $lote->cantidad_actual = bcsub($lote->cantidad_actual, $cantidadSolicitada, 3);
+                            $cantidadEnPresentacion = $esGranel
+                                ? ($cantidadTomada / $factorConversion)
+                                : $cantidadTomada;
 
+                            $descuentoTramo = $descuentoUnitarioDolar * $cantidadEnPresentacion;
+                            $descuentoTotalAcumulado += $descuentoTramo;
+
+                            $lotesConsumidos[] = [
+                                'lote' => $lote,
+                                'cantidad_tomada' => $cantidadTomada,
+                                'cantidad_presentacion' => $cantidadEnPresentacion,
+                                'es_parcial' => false,
+                            ];
+
+                            $lote->cantidad_actual = bcsub($lote->cantidad_actual, $cantidadTomada, 3);
                             if ($lote->cantidad_actual == 0) {
                                 $lote->estado = 'AGOTADO';
                             }
                             $lote->save();
+
                             $cantidadSolicitada = 0;
 
                         } else {
 
                             $stockEntregado = $lote->cantidad_actual;
 
-                            LoteDetalleVenta::create([
-                                'detalle_venta_id' => $detalleVenta->id,
-                                'lote_id' => $lote->id,
+                            // Calcular descuento de esta porción parcial
+                            $cantidadEntregadaEnPresentacion = $esGranel
+                                ? ($stockEntregado / $factorConversion)
+                                : $stockEntregado;
+
+                            $descuentoTramo = $descuentoUnitarioDolar * $cantidadEntregadaEnPresentacion;
+                            $descuentoTotalAcumulado += $descuentoTramo;
+
+                            $lotesConsumidos[] = [
+                                'lote' => $lote,
                                 'cantidad_tomada' => $stockEntregado,
-                            ]);
+                                'cantidad_presentacion' => $cantidadEntregadaEnPresentacion,
+                                'es_parcial' => true,
+                            ];
 
                             $lote->cantidad_actual = 0;
                             $lote->estado = 'AGOTADO';
                             $lote->update();
 
-                            $cantidadSolicitada = bcsub($cantidadSolicitada, $stockEntregado, 3);
-
+                            $cantidadSolicitada = bcsub($cantidadSolicitada, $stockEntregado, 4);
                         }
-
                     }
 
+                    // REDONDEAR Y ASIGNAR SUBTOTAL CON DESCUENTO
+                    $descuentoTotalAcumulado = round($descuentoTotalAcumulado, 2);
+                    $subtotalBruto = (float) $detalles['cantidad'] * $precioUnitario;
+                    $subtotalFinal = $subtotalBruto - $descuentoTotalAcumulado;
+
+                    // CREACIÓN DEL DETALLE DE VENTA CON SU DESCUENTO
+                    $detalleVenta = DetalleVenta::create([
+                        'venta_id' => $venta->id,
+                        'nombre_producto' => $detalles['nombre_producto'],
+                        'presentacion' => $detalles['presentacion'],
+                        'cantidad' => $detalles['cantidad'],
+                        'precio_unitario' => $detalles['precio_unitario'],
+                        'subtotal' => $subtotalFinal,
+                        'iva_aplicado' => $detalles['iva_aplicado'],
+                        'unidad_base' => $detalles['unidad_base'],
+                        'descuento_aplicado' => $descuentoTotalAcumulado,
+                    ]);
+
+                    // REGISTRO DE LOTES Y KARDEX CON LOS DATOS ACUMULADOS
+                    foreach ($lotesConsumidos as $item) {
+                        LoteDetalleVenta::create([
+                            'detalle_venta_id' => $detalleVenta->id,
+                            'lote_id' => $item['lote']->id,
+                            'cantidad_tomada' => $item['cantidad_tomada'],
+                        ]);
+
+                        $concepto = $item['es_parcial']
+                            ? 'Salida parcial por Venta '.$venta->numero_factura
+                            : 'Salida por Venta '.$venta->numero_factura;
+
+                        $kardexService->registrarSalida(
+                            $presentacion,
+                            $item['lote'],
+                            (float) $item['cantidad_presentacion'],
+                            $venta,
+                            $venta->numero_factura,
+                            $concepto
+                        );
+                    }
                 }
 
+                return $venta;
             });
-
             return response()->json([
                 'status' => 'ok',
                 'message' => 'Venta registrada con éxito',
                 'apertura_pendiente' => is_null($aperturaVenta),
+                'id' => $venta->id,
+                'num_documento' => $venta->numero_factura,
             ], 201);
 
-        } catch (\Exception $e) {
+        } catch (\DomainException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'No hay stock suficiente y no se puedo registrar la venta' . $e -> getMessage(),
-
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno al procesar la venta.',
             ], 500);
-
         }
     }
 

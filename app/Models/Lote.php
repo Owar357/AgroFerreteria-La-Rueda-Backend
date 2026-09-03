@@ -16,12 +16,13 @@ class Lote extends Model
         'porcentaje_descuento',
         'estado',
         'presentacion_id',
+        'producto_id',
     ];
 
         protected $casts = [
             'fecha_vencimiento'     => 'date',
-            'cantidad_inicial'      => 'decimal:3',
-            'cantidad_actual'       => 'decimal:3',
+            'cantidad_inicial'      => 'decimal:4',
+            'cantidad_actual'       => 'decimal:4',
             'costo_unitario_compra' => 'decimal:4',
             'porcentaje_descuento'  => 'decimal:2',
         ];
@@ -36,4 +37,8 @@ class Lote extends Model
     {
         return $this->hasMany(DetalleCompra::class);
     }
+
+        public function producto(){
+            return $this->belongsTo(Producto::class);
+        }
 }
