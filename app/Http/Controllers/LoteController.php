@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Lote\updateLoteDescuentoRequest;
 use App\Models\Lote;
 use App\Models\Presentacion;
-
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 
 class LoteController extends Controller
@@ -15,33 +16,43 @@ class LoteController extends Controller
     public function index(Request $request)
     {
         try {
-            if (! auth()->user()->hasRole(['ADMIN|CAJERO'])) {
+            if (! auth()->user()->hasAnyRole(['ADMIN', 'CAJERO'])) {
                 return response()->json([
                     'message' => 'No autorizado',
                 ], 403);
             }
 
-            $presentacion = Presentacion::find($request->presentacion_id);
+            $presentacion = Presentacion::with('producto')->find($request->presentacion_id);
 
             if (! $presentacion) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Presentación inexistente'
+                    'message' => 'Presentación inexistente',
                 ], 404);
             }
 
             $perPage = $request->get('per_page', 5);
             $page = $request->get('page', 1);
 
-            $lotes = Lote::where('presentacion_id', $request->presentacion_id)
+            $consultarLotes = Lote::query();
+
+            if ($presentacion->producto?->tipo_producto === 'GRANEL') {
+                $consultarLotes->where('producto_id', $presentacion->producto_id);
+            } else {
+                $consultarLotes->where('presentacion_id', $presentacion->id);
+            }
+
+            $lotes = $consultarLotes
                 ->select(
+                    'id',
                     'lote_interno',
                     'lote_fabricante',
                     'fecha_vencimiento',
                     'cantidad_inicial',
                     'cantidad_actual',
                     'costo_unitario_compra',
-                    'estado'
+                    'estado',
+                    'porcentaje_descuento'
                 )
                 ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
                 ->paginate($perPage, ['*'], 'page', $page);
@@ -64,35 +75,53 @@ class LoteController extends Controller
         }
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function actualizarDescuento(updateLoteDescuentoRequest $request, $id)
     {
-        //
-    }
+        try {
+            $lote = Lote::findOrFail($id);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
+            if ($lote->estado !== 'ACTIVO') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Solo se puede asignar descuento a lotes en estado ACTIVO.',
+                ], 422);
+            }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
+            if ((float) $lote->cantidad_actual <= 0) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No se puede asignar descuento a un lote sin stock disponible.',
+                ], 422);
+            }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+            $valorInput = $request->validated()['porcentaje_descuento'] ?? $request->input('porcentaje_descuento');
+
+            $lote->porcentaje_descuento = ($valorInput !== null && (float) $valorInput > 0)
+                ? (float) $valorInput
+                : null;
+
+            $lote->save();
+
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Porcentaje de descuento actualizado correctamente.',
+                'data' => [
+                    'lote_id' => $lote->id,
+                    'lote_interno' => $lote->lote_interno,
+                    'porcentaje_descuento' => $lote->porcentaje_descuento,
+                ],
+            ], 200);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'El lote especificado no existe.',
+            ], 404);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error al actualizar el descuento:',
+            ], 500);
+        }
     }
 }

@@ -16,14 +16,14 @@ class StoreProductoRequest extends FormRequest
     {
         return [
             'codigo' => 'required|string|min:2|max:14|unique:productos,codigo|regex:/^[A-Za-z0-9-]+$/',
-            'nombre' => 'required|string|max:100',
+            'nombre' => 'required|string|max:100|unique:productos,nombre',
             'fabricante' => 'nullable|string|max:100',
             'tipo_producto' => 'required|in:UNIDAD FIJA,GRANEL',
             'unidad_medida_id' => 'required|exists:unidad_medidas,id',
             'categoria_id' => 'required|exists:categorias,id',
 
             'presentaciones' => 'required|array|min:1',
-            'presentaciones.*.nombre' => 'required|string|max:150', // ← AHORA ES REQUIRED
+            'presentaciones.*.nombre' => 'required|string|max:150', 
             'presentaciones.*.factor_conversion' => 'required|numeric|min:0.0001',
             'presentaciones.*.stock_minimo' => 'nullable|numeric|min:0',
             'presentaciones.*.es_base' => 'boolean',
@@ -138,6 +138,7 @@ class StoreProductoRequest extends FormRequest
             'nombre.required' => 'El nombre del producto es obligatorio.',
             'nombre.string' => 'El nombre del producto debe ser un texto.',
             'nombre.max' => 'El nombre del producto no puede superar los 100 caracteres.',
+            'nombre.uique' => 'Ya existe un producto con el mismo nombre',
 
             'fabricante.max' => 'El fabricante no puede superar los 100 caracteres.',
 

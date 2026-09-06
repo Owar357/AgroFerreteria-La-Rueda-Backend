@@ -7,6 +7,9 @@ use App\Models\User;
 
 class Producto extends Model
 {
+
+    protected $table = 'productos';
+    
     protected $fillable = [
         'codigo',
         'nombre',
@@ -42,6 +45,9 @@ class Producto extends Model
         return $this->belongsTo(UnidadMedida::class, 'unidad_medida_id');
     }
 
+    public function kardex(){
+        return $this->hasMany(Kardex::class);
+    }
 }
 
 

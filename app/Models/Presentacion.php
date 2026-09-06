@@ -47,4 +47,8 @@ class Presentacion extends Model
     {
         return $this->hasMany(Lote::class);
     }
+
+     public function kardex(){
+        return $this->hasMany(Kardex::class);
+    }
 }

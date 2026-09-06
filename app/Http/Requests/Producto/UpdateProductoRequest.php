@@ -20,9 +20,7 @@ class UpdateProductoRequest extends FormRequest
             'codigo' => 'sometimes|string|min:2|max:14|unique:productos,codigo,'.$productoId.'|regex:/^[A-Za-z0-9-]+$/',
             'nombre' => 'sometimes|string|max:100',
             'fabricante' => 'nullable|string|max:100',
-            'categoria_id' => 'sometimes|exists:categorias,id',
-            'unidad_medida_id' => 'sometimes|exists:unidad_medidas,id',
-            'aplica_iva' => 'sometimes|boolean',
+            'categoria_id' => 'sometimes|exists:categorias,id'
         ];
     }
 
