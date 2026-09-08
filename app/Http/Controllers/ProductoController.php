@@ -16,40 +16,57 @@ class ProductoController extends Controller
      * Display a listing of the resource.
      */
     public function index(Request $request)
-    {
-        try {
-            if (! auth()->user()->hasAnyRole(['ADMIN', 'CAJERO'])) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'No autorizado',
-                ], 403);
-            }
-
-            $perPage = $request->input('per_page', 8);
-            $page = $request->input('page', 1);
-
-            $productos = Producto::with(['categoria:id,nombre', 'unidadMedida:id,nombre,abreviatura'])
-                ->select('id', 'codigo', 'nombre', 'fabricante', 'tipo_producto', 'unidad_medida_id', 'categoria_id')
-                ->orderBy('id', 'desc')
-                ->paginate($perPage, ['*'], 'page', $page);
-
-            return response()->json([
-                'status' => 'ok',
-                'data' => $productos->items(),
-                'total' => $productos->total(),
-                'per_page' => $productos->perPage(),
-                'current_page' => $productos->currentPage(),
-                'last_page' => $productos->lastPage(),
-            ], 200);
-
-        } catch (\Exception $e) {
+{
+    try {
+        if (! auth()->user()->hasAnyRole(['ADMIN', 'CAJERO'])) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error al obtener productos',
-            ], 500);
+                'message' => 'No autorizado',
+            ], 403);
         }
-    }
 
+        $perPage = $request->input('per_page', 8);
+        $page = $request->input('page', 1);
+        $search = trim($request->input('q', ''));
+        $categoria = $request->input('categoria', null);
+
+        // Construcción de la consulta base
+        $query = Producto::with(['categoria:id,nombre', 'unidadMedida:id,nombre,abreviatura'])
+            ->select('id', 'codigo', 'nombre', 'fabricante', 'tipo_producto', 'unidad_medida_id', 'categoria_id');
+
+        if (! empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nombre', 'ILIKE', "%{$search}%")
+                  ->orWhere('codigo', 'ILIKE', "%{$search}%")
+                  ->orWhere('fabricante', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        if (! empty($categoria)) {
+            $query->whereHas('categoria', function ($q) use ($categoria) {
+                $q->where('nombre', $categoria);
+            });
+        }
+
+        $productos = $query->orderBy('id', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'status' => 'ok',
+            'data' => $productos->items(),
+            'total' => $productos->total(),
+            'per_page' => $productos->perPage(),
+            'current_page' => $productos->currentPage(),
+            'last_page' => $productos->lastPage(),
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error al obtener productos',
+        ], 500);
+    }
+}
     /**
      * Store a newly created resource in storage.
      */
