@@ -14,6 +14,7 @@ use App\Http\Controllers\MovimientoExternoCajaController;
 use App\Http\Controllers\PresentacionController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProveedorController;
+use App\Http\Controllers\Reportes\Caja\ArqueoCajaReporteController;
 use App\Http\Controllers\Reportes\ReporteCajaController;
 use App\Http\Controllers\Reportes\ReporteComprasController;
 use App\Http\Controllers\Reportes\ReporteInventarioController;
@@ -51,8 +52,10 @@ Route::middleware('auth:api')->group(function () {
     Route::get('productos/buscar-producto/compra', [ProductoController::class, 'busquedaParaCompra']);
     Route::apiResource('productos', ProductoController::class);
 
+    Route::get('usuarios/cajeros',[UserController::class,'ListarUsuariosRolCajero' ]);
     Route::patch('usuarios/{id}/desactivar', [UserController::class, 'desactivarUsuario']);
     Route::apiResource('usuarios', UserController::class);
+
     Route::apiResource('codigosBarra', CodigoBarraController::class);
     Route::apiResource('presentaciones', PresentacionController::class)->only(['store', 'update', 'destroy']);
     Route::patch('/proveedores/{id}/desactivar', [ProveedorController::class, 'desactivarProveedor']);
@@ -96,4 +99,4 @@ Route::get('/reportes/productos-por-vencer', [ReporteInventarioController::class
 
 Route::get('/reportes/compras-por-proveedor', [ReporteComprasController::class, 'comprasPorProveedor']);
 
-Route::get('/reportes/arqueo-caja/{apertura_venta_id}', [ReporteCajaController::class, 'arqueoCaja']);
+Route::get('/reportes/caja/arqueo-pdf', ArqueoCajaReporteController::class);
