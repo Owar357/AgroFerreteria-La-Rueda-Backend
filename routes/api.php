@@ -15,6 +15,7 @@ use App\Http\Controllers\PresentacionController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\Reportes\Caja\ArqueoCajaReporteController;
+use App\Http\Controllers\Reportes\Compras\ComprasPorProveedorReporteController;
 use App\Http\Controllers\Reportes\ReporteCajaController;
 use App\Http\Controllers\Reportes\ReporteComprasController;
 use App\Http\Controllers\Reportes\ReporteInventarioController;
@@ -97,6 +98,6 @@ Route::get('/reportes/productos-menos-vendidos', [ReporteDesempenoVentasControll
 Route::get('/reportes/inventario-valorizado', [ReporteInventarioController::class, 'inventarioValorizado']);
 Route::get('/reportes/productos-por-vencer', [ReporteInventarioController::class, 'productosPorVencer']);
 
-Route::get('/reportes/compras-por-proveedor', [ReporteComprasController::class, 'comprasPorProveedor']);
+Route::get('/reportes/compras/por-proveedor', ComprasPorProveedorReporteController::class);
 
 Route::get('/reportes/caja/arqueo-pdf', ArqueoCajaReporteController::class);
