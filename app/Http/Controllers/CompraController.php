@@ -91,7 +91,7 @@ class CompraController extends Controller
         }
     }
 
-    /**
+   /**
      * Store a newly created resource in storage.
      */
     public function store(StoreCompraRequest $request)
@@ -106,6 +106,9 @@ class CompraController extends Controller
                     'usuario_id' => auth()->id(),
                 ]);
 
+                $productosAfectadosIds = [];
+
+                // 1. REGISTRO DE LOTES Y MOVIMIENTOS EN KARDEX
                 foreach ($request->validated()['detalles'] as $detalle) {
 
                     $lote = Lote::create([
@@ -139,38 +142,46 @@ class CompraController extends Controller
                     );
 
                     
-                    // EVALUACIÓN EN MEMORIA DEL COSTO PROMEDIO PONDERADO (CPP) Y GANANCIA
-                    $producto = $presentacionKardex->producto;
-                    $porcentajeMinimoRequerido = $producto->porcentaje_ganancia_efectivo;
+                    $productosAfectadosIds[] = $presentacionKardex->producto_id;
+                }
 
-                    // 1. Obtener la suma del stock y costo preexistente en lotes activos
+        
+                $productosUnicosIds = array_unique($productosAfectadosIds);
+
+                foreach ($productosUnicosIds as $prodId) {
+                    $producto = Producto::with(['categoria', 'presentaciones' => function ($q) {
+                        $q->where('activo', true);
+                    }])->find($prodId);
+
+                    if (!$producto) continue;
+
+                    $porcentajeMinimoRequerido = (float) $producto->porcentaje_ganancia_efectivo;
+
+                    // Obtener todos los lotes activos incluyendo el recién registrado
                     $lotesActivos = Lote::where('estado', 'ACTIVO')
                         ->where('cantidad_actual', '>', 0)
-                        ->where(function ($q) use ($producto, $presentacionKardex) {
+                        ->where(function ($q) use ($producto) {
                             if ($producto->tipo_producto === 'GRANEL') {
                                 $q->where('producto_id', $producto->id);
                             } else {
-                                $q->where('presentacion_id', $presentacionKardex->id);
+                                $q->whereIn('presentacion_id', $producto->presentaciones->pluck('id'));
                             }
                         })
                         ->get();
 
-                    $stockTotal = $lotesActivos->sum('cantidad_actual');
-                    
-                    $valorTotalInvertido = $lotesActivos->sum(function ($l) {
+                    $stockTotal = (float) $lotesActivos->sum('cantidad_actual');
+
+                    $valorTotalInvertido = (float) $lotesActivos->sum(function ($l) {
                         $costoNeto = $l->costo_unitario_compra * (1 - ($l->porcentaje_descuento ?? 0) / 100);
                         return $l->cantidad_actual * $costoNeto;
                     });
 
+                    // CPP de la unidad base
                     $costoPromedioUnidadBase = $stockTotal > 0 ? ($valorTotalInvertido / $stockTotal) : 0;
 
-                    // 2. Evaluar la ganancia real en las presentaciones activas del producto
-                    $presentacionesAEvaluar = $producto->tipo_producto === 'GRANEL'
-                        ? $producto->presentaciones()->where('activo', true)->get()
-                        : collect([$presentacionKardex]);
-
-                    foreach ($presentacionesAEvaluar as $pres) {
-                        $costoPresentacion = $costoPromedioUnidadBase * $pres->factor_conversion;
+                    // Evaluar las presentaciones activas
+                    foreach ($producto->presentaciones as $pres) {
+                        $costoPresentacion = $costoPromedioUnidadBase * (float) $pres->factor_conversion;
                         $precioVenta = (float) $pres->precio_venta;
 
                         $gananciaDinero = $precioVenta - $costoPresentacion;
@@ -195,11 +206,11 @@ class CompraController extends Controller
                 }
             });
 
-            // Si existen presentaciones que violan la regla de ganancia, se retorna status 'warning' para SweetAlert2
+    
             if (! empty($alertasGanancia)) {
                 return response()->json([
                     'status' => 'warning',
-                    'message' => 'La compra fue registrada, pero la ganancia de algunas presentaciones de tus producto cayó por debajo del porcentaje mínimo.',
+                    'message' => 'La compra fue registrada, pero la ganancia de algunas presentaciones cayó por debajo del porcentaje mínimo.',
                     'requiere_ajuste_precios' => true,
                     'alertas' => $alertasGanancia,
                 ], 200);

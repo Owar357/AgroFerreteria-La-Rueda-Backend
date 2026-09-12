@@ -60,6 +60,7 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('usuarios', UserController::class);
 
     Route::apiResource('codigosBarra', CodigoBarraController::class);
+    Route::post('/presentaciones/actualizar-precios-masivo', [PresentacionController::class, 'actualizarPreciosMasivo']);
     Route::apiResource('presentaciones', PresentacionController::class)->only(['store', 'update', 'destroy']);
     Route::patch('/proveedores/{id}/desactivar', [ProveedorController::class, 'desactivarProveedor']);
     Route::get('/proveedor/proveedores', [ProveedorController::class, 'traerNombreProveedores']);
@@ -85,7 +86,7 @@ Route::get('/kardex/{producto}', KardexController::class);
 
 Route::get('/reportes/ventas', [ReporteVentasController::class, 'ventas']);
 Route::get('/reportes/ticket/{id}', [ReporteVentasController::class, 'ticket']);
-
+ 
 Route::get('/reportes/flujo-compras-ventas', [ReporteFinancieroVentasController::class, 'flujoComprasVentas']);
 Route::get('/reportes/margen-ganancia', [ReporteFinancieroVentasController::class, 'margenGanancia']);
 
@@ -99,14 +100,13 @@ Route::get('/reportes/productos-menos-vendidos', [ReporteDesempenoVentasControll
 
 
 
-Route::prefix('/reportes')->group(function(){
+Route::prefix('/reportes')->group(function () {
 
-Route::get('/inventario/valorizado', InventarioValorizadoReporteController::class);
-Route::get('/productos-por-vencer', ProductosPorVencerReporteController::class);
+    Route::get('/inventario/valorizado', InventarioValorizadoReporteController::class);
+    Route::get('/productos-por-vencer', ProductosPorVencerReporteController::class);
 
-Route::get('/compras/por-proveedor', ComprasPorProveedorReporteController::class);
+    Route::get('/compras/por-proveedor', ComprasPorProveedorReporteController::class);
 
-Route::get('/caja/arqueo-pdf', ArqueoCajaReporteController::class);
+    Route::get('/caja/arqueo', ArqueoCajaReporteController::class);
 
 });
-
