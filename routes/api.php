@@ -16,6 +16,8 @@ use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\Reportes\Caja\ArqueoCajaReporteController;
 use App\Http\Controllers\Reportes\Compras\ComprasPorProveedorReporteController;
+use App\Http\Controllers\Reportes\Inventario\InventarioValorizadoReporteController;
+use App\Http\Controllers\Reportes\Inventario\ProductosPorVencerReporteController;
 use App\Http\Controllers\Reportes\ReporteCajaController;
 use App\Http\Controllers\Reportes\ReporteComprasController;
 use App\Http\Controllers\Reportes\ReporteInventarioController;
@@ -95,9 +97,16 @@ Route::get('/reportes/ventas-por-categoria', [ReporteDesempenoVentasController::
 Route::get('/reportes/productos-mas-vendidos', [ReporteDesempenoVentasController::class, 'productosMasVendidosPdf']);
 Route::get('/reportes/productos-menos-vendidos', [ReporteDesempenoVentasController::class, 'productosMenosVendidos']);
 
-Route::get('/reportes/inventario-valorizado', [ReporteInventarioController::class, 'inventarioValorizado']);
-Route::get('/reportes/productos-por-vencer', [ReporteInventarioController::class, 'productosPorVencer']);
 
-Route::get('/reportes/compras/por-proveedor', ComprasPorProveedorReporteController::class);
 
-Route::get('/reportes/caja/arqueo-pdf', ArqueoCajaReporteController::class);
+Route::prefix('/reportes')->group(function(){
+
+Route::get('/inventario/valorizado', InventarioValorizadoReporteController::class);
+Route::get('/productos-por-vencer', ProductosPorVencerReporteController::class);
+
+Route::get('/compras/por-proveedor', ComprasPorProveedorReporteController::class);
+
+Route::get('/caja/arqueo-pdf', ArqueoCajaReporteController::class);
+
+});
+
