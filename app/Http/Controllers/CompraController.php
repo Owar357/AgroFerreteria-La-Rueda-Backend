@@ -6,6 +6,7 @@ use App\Http\Requests\Compra\StoreCompraRequest;
 use App\Models\Compra;
 use App\Models\Lote;
 use App\Models\Presentacion;
+use App\Models\Producto;
 use App\Services\KardexService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -65,13 +66,10 @@ class CompraController extends Controller
             $itemsFormateados = collect($compras->items())->map(function ($compra) {
                 return [
                     'id' => $compra->id,
-
                     'fechaEmision' => date('d-m-Y', strtotime($compra->fecha_emision)),
-
                     'proveedor' => $compra->proveedor->nombre ?? 'Sin Proveedor',
                     'tipoDocumento' => $compra->tipo_dte,
                     'numDocumento' => $compra->numero_documento,
-
                     'precioFactura' => number_format($compra->monto_total, 2, '.', ','),
                     'estadoPago' => strtoupper($compra->estado_pago),
                 ];
@@ -99,7 +97,9 @@ class CompraController extends Controller
     public function store(StoreCompraRequest $request)
     {
         try {
-            DB::transaction(function () use ($request) {
+            $alertasGanancia = [];
+
+            DB::transaction(function () use ($request, &$alertasGanancia) {
 
                 $compra = Compra::create([
                     ...$request->safe()->except(['detalles']),
@@ -125,7 +125,7 @@ class CompraController extends Controller
                     ]);
 
                     $presentacionId = $detalle['presentacion_id'] ?? $detalle['lote']['presentacion_id'];
-                    $presentacionKardex = Presentacion::with('producto')->findOrFail($presentacionId);
+                    $presentacionKardex = Presentacion::with('producto.categoria')->findOrFail($presentacionId);
 
                     $cantidadFisicaIngresada = (float) ($detalle['cantidad_facturada'] + ($detalle['cantidad_bonificada'] ?? 0));
 
@@ -137,8 +137,73 @@ class CompraController extends Controller
                         $compra->numero_documento ?? $compra->id,
                         'Entrada por Compra '.($compra->numero_documento ?? ('#'.$compra->id))
                     );
+
+                    
+                    // EVALUACIÓN EN MEMORIA DEL COSTO PROMEDIO PONDERADO (CPP) Y GANANCIA
+                    $producto = $presentacionKardex->producto;
+                    $porcentajeMinimoRequerido = $producto->porcentaje_ganancia_efectivo;
+
+                    // 1. Obtener la suma del stock y costo preexistente en lotes activos
+                    $lotesActivos = Lote::where('estado', 'ACTIVO')
+                        ->where('cantidad_actual', '>', 0)
+                        ->where(function ($q) use ($producto, $presentacionKardex) {
+                            if ($producto->tipo_producto === 'GRANEL') {
+                                $q->where('producto_id', $producto->id);
+                            } else {
+                                $q->where('presentacion_id', $presentacionKardex->id);
+                            }
+                        })
+                        ->get();
+
+                    $stockTotal = $lotesActivos->sum('cantidad_actual');
+                    
+                    $valorTotalInvertido = $lotesActivos->sum(function ($l) {
+                        $costoNeto = $l->costo_unitario_compra * (1 - ($l->porcentaje_descuento ?? 0) / 100);
+                        return $l->cantidad_actual * $costoNeto;
+                    });
+
+                    $costoPromedioUnidadBase = $stockTotal > 0 ? ($valorTotalInvertido / $stockTotal) : 0;
+
+                    // 2. Evaluar la ganancia real en las presentaciones activas del producto
+                    $presentacionesAEvaluar = $producto->tipo_producto === 'GRANEL'
+                        ? $producto->presentaciones()->where('activo', true)->get()
+                        : collect([$presentacionKardex]);
+
+                    foreach ($presentacionesAEvaluar as $pres) {
+                        $costoPresentacion = $costoPromedioUnidadBase * $pres->factor_conversion;
+                        $precioVenta = (float) $pres->precio_venta;
+
+                        $gananciaDinero = $precioVenta - $costoPresentacion;
+                        $porcentajeGananciaActual = $precioVenta > 0 ? ($gananciaDinero / $precioVenta) * 100 : 0;
+
+                        if ($porcentajeGananciaActual < $porcentajeMinimoRequerido) {
+                            $precioVentaSugerido = $costoPresentacion / (1 - ($porcentajeMinimoRequerido / 100));
+
+                            $alertasGanancia[] = [
+                                'presentacion_id' => $pres->id,
+                                'producto_nombre' => $producto->nombre,
+                                'presentacion_nombre' => $pres->nombre,
+                                'costo_promedio_proyectado' => round($costoPresentacion, 2),
+                                'precio_venta_actual' => round($precioVenta, 2),
+                                'ganancia_dinero_actual' => round($gananciaDinero, 2),
+                                'porcentaje_ganancia_actual' => round($porcentajeGananciaActual, 1),
+                                'porcentaje_ganancia_requerido' => round($porcentajeMinimoRequerido, 1),
+                                'precio_venta_sugerido' => round($precioVentaSugerido, 2),
+                            ];
+                        }
+                    }
                 }
             });
+
+            // Si existen presentaciones que violan la regla de ganancia, se retorna status 'warning' para SweetAlert2
+            if (! empty($alertasGanancia)) {
+                return response()->json([
+                    'status' => 'warning',
+                    'message' => 'La compra fue registrada, pero la ganancia de algunas presentaciones de tus producto cayó por debajo del porcentaje mínimo.',
+                    'requiere_ajuste_precios' => true,
+                    'alertas' => $alertasGanancia,
+                ], 200);
+            }
 
             return response()->json([
                 'status' => 'ok',
@@ -207,7 +272,6 @@ class CompraController extends Controller
 
     public function anularCompra(string $id)
     {
-
         try {
 
             DB::beginTransaction();
@@ -288,6 +352,5 @@ class CompraController extends Controller
                 'message' => 'Error interno en el servidor, la compra no se pudo anular',
             ], 500);
         }
-
     }
 }

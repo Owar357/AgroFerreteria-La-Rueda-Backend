@@ -95,6 +95,13 @@
         .text-left { text-align: left; }
         .text-right { text-align: right; }
 
+        .ganancia-critica {
+            color: #dc3545;
+            font-weight: bold;
+            background-color: #fceae8;
+        }
+
+    
         .totales-wrapper {
             margin-top: 15px;
             width: 320px;
@@ -148,21 +155,22 @@
             <tr>
                 <th style="width: 4%;">N°</th>
                 <th style="width: 10%;">SKU</th>
-                <th style="width: 28%;">PRODUCTO / PRESENTACIÓN</th>
+                <th style="width: 26%;">PRODUCTO / PRESENTACIÓN</th>
                 <th style="width: 12%;">STOCK ACTUAL</th>
                 <th style="width: 10%;">COSTO PROM.</th>
                 <th style="width: 10%;">VALOR COSTO</th>
                 <th style="width: 10%;">PRECIO VTA.</th>
                 <th style="width: 10%;">VALOR VENTA</th>
-                <th style="width: 6%;">MARGEN (%)</th>
+                <th style="width: 8%;">GANANCIA (%)</th>
             </tr>
         </thead>
 
         <tbody>
             @forelse($productos as $producto)
                 @php
-                    $ganancia = $producto->valor_venta - $producto->valor_costo;
-                    $margenPct = $producto->valor_venta > 0 ? ($ganancia / $producto->valor_venta) * 100 : 0;
+                    $gananciaDinero = $producto->valor_venta - $producto->valor_costo;
+                    $porcentajeGananciaActual = $producto->valor_venta > 0 ? ($gananciaDinero / $producto->valor_venta) * 100 : 0;
+                    $esGananciaBaja = $porcentajeGananciaActual < $producto->porcentaje_ganancia_requerido;
                 @endphp
                 <tr>
                     <td class="text-center">{{ $loop->iteration }}</td>
@@ -180,9 +188,12 @@
                     <td class="text-right">${{ number_format($producto->valor_costo, 2) }}</td>
                     <td class="text-right">${{ number_format($producto->precio_venta_unitario, 2) }}</td>
                     <td class="text-right">${{ number_format($producto->valor_venta, 2) }}</td>
-                    <td class="text-right" style="{{ $margenPct < 0 ? 'color: red;' : '' }}">
-                        {{ number_format($margenPct, 1) }}%
-                    </td>
+                    <td class="text-right {{ $esGananciaBaja ? 'ganancia-critica font-weight-bold' : '' }}">
+                        @if($esGananciaBaja)
+                   <span class="alerta-icono">!</span>
+               @endif
+                   {{ number_format($porcentajeGananciaActual, 1) }}%
+                </td>
                 </tr>
             @empty
                 <tr>
@@ -215,13 +226,13 @@
                 </td>
             </tr>
             <tr>
-                <td class="text-right"><strong>Utilidad Estimada:</strong></td>
+                <td class="text-right"><strong>Ganancia Estimada ($):</strong></td>
                 <td class="text-right" style="border-bottom: 1px solid #ccc; color: green; font-weight: bold;">
                     ${{ number_format($totalGanancia, 2) }}
                 </td>
             </tr>
             <tr>
-                <td class="text-right"><strong>Margen Global:</strong></td>
+                <td class="text-right"><strong>Porcentaje Ganancia Global:</strong></td>
                 <td class="text-right" style="border-bottom: 2px double #333; font-weight: bold;">
                     {{ number_format($margenGlobal, 1) }}%
                 </td>
