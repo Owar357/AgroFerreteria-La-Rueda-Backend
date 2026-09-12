@@ -20,7 +20,8 @@ class UpdateProductoRequest extends FormRequest
             'codigo' => 'sometimes|string|min:2|max:14|unique:productos,codigo,'.$productoId.'|regex:/^[A-Za-z0-9-]+$/',
             'nombre' => 'sometimes|string|max:100',
             'fabricante' => 'nullable|string|max:100',
-            'categoria_id' => 'sometimes|exists:categorias,id'
+            'categoria_id' => 'sometimes|exists:categorias,id',
+            'porcentaje_ganancia_minimo' => 'sometimes|nullable|numeric|min:0|max:100',
         ];
     }
 
@@ -37,8 +38,9 @@ class UpdateProductoRequest extends FormRequest
             'nombre.max' => 'El nombre del producto no puede superar los 100 caracteres.',
             'fabricante.max' => 'El fabricante no puede superar los 100 caracteres.',
             'categoria_id.exists' => 'La categoría seleccionada no existe.',
-            'unidad_medida_id.exists' => 'La unidad de medida seleccionada no existe.',
-            'aplica_iva.boolean' => 'El campo aplica IVA debe ser verdadero o falso.',
+            'porcentaje_ganancia_minimo.numeric' => 'El porcentaje de ganancia mínimo debe ser un número.',
+            'porcentaje_ganancia_minimo.min' => 'El porcentaje de ganancia mínimo no puede ser menor a 0.',
+            'porcentaje_ganancia_minimo.max' => 'El porcentaje de ganancia mínimo no puede superar el 100%.',
         ];
     }
 }
