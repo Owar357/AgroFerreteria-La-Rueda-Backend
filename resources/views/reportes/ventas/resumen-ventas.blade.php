@@ -6,7 +6,6 @@
     <title>Reporte de Resumen de Ventas - Agroferretería La Rueda</title>
 
     <style>
-
         @page {
             margin: 1.5cm 1.5cm 2cm 1.5cm;
         }
@@ -133,7 +132,6 @@
         .page-number:before {
             content: counter(page);
         }
-
     </style>
 </head>
 
@@ -191,7 +189,7 @@
 
         <tr>
             <td class="resumen-valor">
-                ${{ number_format($total_vendido, 3) }}
+                ${{ number_format($total_vendido, 2, '.', ',') }}
             </td>
 
             <td class="resumen-valor">
@@ -199,7 +197,7 @@
             </td>
 
             <td class="resumen-valor">
-                ${{ number_format($ticket_promedio, 3) }}
+                ${{ number_format($ticket_promedio, 2, '.', ',') }}
             </td>
         </tr>
 
@@ -242,7 +240,7 @@
                     </td>
 
                     <td class="text-right">
-                        ${{ number_format($periodo['total'], 3) }}
+                        ${{ number_format($periodo['total'], 2, '.', ',') }}
                     </td>
                 </tr>
 

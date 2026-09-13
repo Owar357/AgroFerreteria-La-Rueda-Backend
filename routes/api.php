@@ -25,6 +25,8 @@ use App\Http\Controllers\Reportes\ReporteVentas\ReporteComparativoVentasControll
 use App\Http\Controllers\Reportes\ReporteVentas\ReporteDesempenoVentasController;
 use App\Http\Controllers\Reportes\ReporteVentas\ReporteFinancieroVentasController;
 use App\Http\Controllers\Reportes\ReporteVentas\ReporteVentasController;
+use App\Http\Controllers\Reportes\Ventas\ResumenVentasReportController;
+use App\Http\Controllers\Reportes\Ventas\VentasComparativaReportController;
 use App\Http\Controllers\UnidadMedidaController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VentaController;
@@ -90,9 +92,6 @@ Route::get('/reportes/ticket/{id}', [ReporteVentasController::class, 'ticket']);
 Route::get('/reportes/flujo-compras-ventas', [ReporteFinancieroVentasController::class, 'flujoComprasVentas']);
 Route::get('/reportes/margen-ganancia', [ReporteFinancieroVentasController::class, 'margenGanancia']);
 
-Route::get('/reportes/resumen-ventas', [ReporteComparativoVentasController::class, 'resumenVentas']);
-Route::get('/reportes/ventas-comparativa', [ReporteComparativoVentasController::class, 'ventasComparativa']);
-
 Route::get('/reportes/ventas-por-usuario', [ReporteDesempenoVentasController::class, 'ventasPorUsuarioPdf']);
 Route::get('/reportes/ventas-por-categoria', [ReporteDesempenoVentasController::class, 'ventasPorCategoria']);
 Route::get('/reportes/productos-mas-vendidos', [ReporteDesempenoVentasController::class, 'productosMasVendidosPdf']);
@@ -108,5 +107,9 @@ Route::prefix('/reportes')->group(function () {
     Route::get('/compras/por-proveedor', ComprasPorProveedorReporteController::class);
 
     Route::get('/caja/arqueo', ArqueoCajaReporteController::class);
+
+    Route::get('/ventas/resumen', ResumenVentasReportController::class);
+
+    Route::get('/ventas/resumen/comparativa', VentasComparativaReportController::class);
 
 });
