@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('fabricante', 100)->nullable();
             $table->enum('tipo_producto', ['UNIDAD FIJA', 'GRANEL'])->index();
             $table->boolean('aplica_iva')->default(false);
+            $table->decimal('porcentaje_ganancia_minimo',5,2)->nullable();
             $table->foreignId('unidad_medida_id')->constrained('unidad_medidas')->restrictOnDelete();
             $table->foreignId('categoria_id')->constrained('categorias')->restrictOnDelete();
             $table->foreignId('registrado_por')->constrained('users')->restrictOnDelete();

@@ -21,6 +21,9 @@ class StoreProductoRequest extends FormRequest
             'tipo_producto' => 'required|in:UNIDAD FIJA,GRANEL',
             'unidad_medida_id' => 'required|exists:unidad_medidas,id',
             'categoria_id' => 'required|exists:categorias,id',
+            'porcentaje_ganancia_minimo' => 'nullable|numeric|min:0|max:100',
+            
+        
 
             'presentaciones' => 'required|array|min:1',
             'presentaciones.*.nombre' => 'required|string|max:150', 
@@ -140,7 +143,10 @@ class StoreProductoRequest extends FormRequest
             'nombre.max' => 'El nombre del producto no puede superar los 100 caracteres.',
             'nombre.uique' => 'Ya existe un producto con el mismo nombre',
 
-            'fabricante.max' => 'El fabricante no puede superar los 100 caracteres.',
+            'fabricante.max' => 'El fabricante y/o marca no pueden superar los 100 caracteres.',
+            'porcentaje_ganancia_minimo.numeric' => 'El porcentaje de ganancia mínimo debe ser un número.',
+            'porcentaje_ganancia_minimo.min' => 'El porcentaje de ganancia mínimo no puede ser menor a 0.',
+            'porcentaje_ganancia_minimo.max' => 'El porcentaje de ganancia mínimo no puede superar el 100%.',
 
             'tipo_producto.required' => 'Debe seleccionar el tipo de producto.',
             'tipo_producto.in' => 'El tipo de producto seleccionado no es válido.',

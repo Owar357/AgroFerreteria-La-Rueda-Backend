@@ -6,6 +6,7 @@ use App\Http\Requests\Compra\StoreCompraRequest;
 use App\Models\Compra;
 use App\Models\Lote;
 use App\Models\Presentacion;
+use App\Models\Producto;
 use App\Services\KardexService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -65,13 +66,10 @@ class CompraController extends Controller
             $itemsFormateados = collect($compras->items())->map(function ($compra) {
                 return [
                     'id' => $compra->id,
-
                     'fechaEmision' => date('d-m-Y', strtotime($compra->fecha_emision)),
-
                     'proveedor' => $compra->proveedor->nombre ?? 'Sin Proveedor',
                     'tipoDocumento' => $compra->tipo_dte,
                     'numDocumento' => $compra->numero_documento,
-
                     'precioFactura' => number_format($compra->monto_total, 2, '.', ','),
                     'estadoPago' => strtoupper($compra->estado_pago),
                 ];
@@ -93,19 +91,24 @@ class CompraController extends Controller
         }
     }
 
-    /**
+   /**
      * Store a newly created resource in storage.
      */
     public function store(StoreCompraRequest $request)
     {
         try {
-            DB::transaction(function () use ($request) {
+            $alertasGanancia = [];
+
+            DB::transaction(function () use ($request, &$alertasGanancia) {
 
                 $compra = Compra::create([
                     ...$request->safe()->except(['detalles']),
                     'usuario_id' => auth()->id(),
                 ]);
 
+                $productosAfectadosIds = [];
+
+                // 1. REGISTRO DE LOTES Y MOVIMIENTOS EN KARDEX
                 foreach ($request->validated()['detalles'] as $detalle) {
 
                     $lote = Lote::create([
@@ -125,7 +128,7 @@ class CompraController extends Controller
                     ]);
 
                     $presentacionId = $detalle['presentacion_id'] ?? $detalle['lote']['presentacion_id'];
-                    $presentacionKardex = Presentacion::with('producto')->findOrFail($presentacionId);
+                    $presentacionKardex = Presentacion::with('producto.categoria')->findOrFail($presentacionId);
 
                     $cantidadFisicaIngresada = (float) ($detalle['cantidad_facturada'] + ($detalle['cantidad_bonificada'] ?? 0));
 
@@ -137,8 +140,81 @@ class CompraController extends Controller
                         $compra->numero_documento ?? $compra->id,
                         'Entrada por Compra '.($compra->numero_documento ?? ('#'.$compra->id))
                     );
+
+                    
+                    $productosAfectadosIds[] = $presentacionKardex->producto_id;
+                }
+
+        
+                $productosUnicosIds = array_unique($productosAfectadosIds);
+
+                foreach ($productosUnicosIds as $prodId) {
+                    $producto = Producto::with(['categoria', 'presentaciones' => function ($q) {
+                        $q->where('activo', true);
+                    }])->find($prodId);
+
+                    if (!$producto) continue;
+
+                    $porcentajeMinimoRequerido = (float) $producto->porcentaje_ganancia_efectivo;
+
+                    // Obtener todos los lotes activos incluyendo el recién registrado
+                    $lotesActivos = Lote::where('estado', 'ACTIVO')
+                        ->where('cantidad_actual', '>', 0)
+                        ->where(function ($q) use ($producto) {
+                            if ($producto->tipo_producto === 'GRANEL') {
+                                $q->where('producto_id', $producto->id);
+                            } else {
+                                $q->whereIn('presentacion_id', $producto->presentaciones->pluck('id'));
+                            }
+                        })
+                        ->get();
+
+                    $stockTotal = (float) $lotesActivos->sum('cantidad_actual');
+
+                    $valorTotalInvertido = (float) $lotesActivos->sum(function ($l) {
+                        $costoNeto = $l->costo_unitario_compra * (1 - ($l->porcentaje_descuento ?? 0) / 100);
+                        return $l->cantidad_actual * $costoNeto;
+                    });
+
+                    // CPP de la unidad base
+                    $costoPromedioUnidadBase = $stockTotal > 0 ? ($valorTotalInvertido / $stockTotal) : 0;
+
+                    // Evaluar las presentaciones activas
+                    foreach ($producto->presentaciones as $pres) {
+                        $costoPresentacion = $costoPromedioUnidadBase * (float) $pres->factor_conversion;
+                        $precioVenta = (float) $pres->precio_venta;
+
+                        $gananciaDinero = $precioVenta - $costoPresentacion;
+                        $porcentajeGananciaActual = $precioVenta > 0 ? ($gananciaDinero / $precioVenta) * 100 : 0;
+
+                        if ($porcentajeGananciaActual < $porcentajeMinimoRequerido) {
+                            $precioVentaSugerido = $costoPresentacion / (1 - ($porcentajeMinimoRequerido / 100));
+
+                            $alertasGanancia[] = [
+                                'presentacion_id' => $pres->id,
+                                'producto_nombre' => $producto->nombre,
+                                'presentacion_nombre' => $pres->nombre,
+                                'costo_promedio_proyectado' => round($costoPresentacion, 2),
+                                'precio_venta_actual' => round($precioVenta, 2),
+                                'ganancia_dinero_actual' => round($gananciaDinero, 2),
+                                'porcentaje_ganancia_actual' => round($porcentajeGananciaActual, 1),
+                                'porcentaje_ganancia_requerido' => round($porcentajeMinimoRequerido, 1),
+                                'precio_venta_sugerido' => round($precioVentaSugerido, 2),
+                            ];
+                        }
+                    }
                 }
             });
+
+    
+            if (! empty($alertasGanancia)) {
+                return response()->json([
+                    'status' => 'warning',
+                    'message' => 'La compra fue registrada, pero la ganancia de algunas presentaciones cayó por debajo del porcentaje mínimo.',
+                    'requiere_ajuste_precios' => true,
+                    'alertas' => $alertasGanancia,
+                ], 200);
+            }
 
             return response()->json([
                 'status' => 'ok',
@@ -207,7 +283,6 @@ class CompraController extends Controller
 
     public function anularCompra(string $id)
     {
-
         try {
 
             DB::beginTransaction();
@@ -288,6 +363,5 @@ class CompraController extends Controller
                 'message' => 'Error interno en el servidor, la compra no se pudo anular',
             ], 500);
         }
-
     }
 }

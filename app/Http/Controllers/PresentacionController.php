@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Presentacion\StorePresentacionesRequest;
+use App\Http\Requests\Presentacion\UpdatePreciosMasivoRequest;
 use App\Http\Requests\Presentacion\UpdatePresentacionesRequest;
 use App\Models\Presentacion;
 use App\Models\Producto;
@@ -105,6 +106,39 @@ class PresentacionController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error interno del servidor',
+            ], 500);
+        }
+    }
+
+    /**
+     * Actualización masiva de precios de venta desde la auditoría de compras.
+     */
+    public function actualizarPreciosMasivo(UpdatePreciosMasivoRequest $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            $datos = $request->validated();
+
+            foreach ($datos['precios'] as $item) {
+                Presentacion::where('id', $item['presentacion_id'])->update([
+                    'precio_venta' => $item['precio_venta_sugerido'],
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Los precios de las presentaciones se actualizaron correctamente.',
+            ], 200);
+
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error al actualizar los precios masivos.',
             ], 500);
         }
     }

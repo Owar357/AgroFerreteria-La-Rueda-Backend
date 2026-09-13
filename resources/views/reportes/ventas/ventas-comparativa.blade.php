@@ -3,11 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
-
     <title>Reporte Comparativo de Ventas - Agroferretería La Rueda</title>
 
     <style>
-
         @page {
             margin: 1.5cm 1.5cm 2cm 1.5cm;
         }
@@ -74,26 +72,29 @@
             text-transform: uppercase;
         }
 
-        .contenedor {
+        /* Estilos para la tabla contenedora de los bloques lado a lado */
+        .tabla-contenedor {
             width: 100%;
+            border-collapse: collapse;
             margin-top: 20px;
+            border: none;
         }
 
-        .bloque {
+        .celda-bloque {
             width: 48%;
-            display: inline-block;
             vertical-align: top;
             border: 1px solid #ccc;
             padding: 12px;
-            box-sizing: border-box;
+            background-color: #fafafa;
         }
 
-        .bloque:first-child {
-            margin-right: 3%;
+        .celda-espacio {
+            width: 4%;
+            border: none;
         }
 
-        .bloque h3 {
-            margin: 0 0 12px 0;
+        .bloque-h3 {
+            margin: 0 0 8px 0;
             font-size: 14px;
             text-align: center;
         }
@@ -101,16 +102,18 @@
         .fecha {
             text-align: center;
             color: #555;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
+            font-size: 11px;
         }
 
         .dato {
-            margin: 8px 0;
+            margin: 6px 0;
+            font-size: 11px;
         }
 
         .dato strong {
             display: inline-block;
-            width: 130px;
+            width: 120px;
         }
 
         .variacion {
@@ -138,13 +141,13 @@
             margin-bottom: 10px;
         }
 
-        table {
+        table.tabla-datos {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
         }
 
-        th {
+        table.tabla-datos th {
             background-color: #eaeaea;
             border: 1px solid #ccc;
             padding: 8px;
@@ -152,13 +155,13 @@
             font-size: 11px;
         }
 
-        td {
+        table.tabla-datos td {
             border: 1px solid #ccc;
             padding: 8px;
             text-align: center;
         }
 
-        td:first-child {
+        table.tabla-datos td:first-child {
             text-align: left;
         }
 
@@ -169,9 +172,7 @@
         .page-number:before {
             content: counter(page);
         }
-
     </style>
-
 </head>
 
 <body>
@@ -180,259 +181,112 @@
         <span class="page-number"></span>
     </footer>
 
-
     <div class="encabezado">
-
         <div class="fecha-emision-top">
-
             <strong>Reporte emitido el:</strong>
-
             {{ \Carbon\Carbon::now()->format('d/m/Y h:i A') }}
-
         </div>
 
-
         <img src="{{ public_path('img/logo.jpeg') }}" class="logo">
-
 
         <div class="titulo">
             AGROFERRETERÍA LA RUEDA
         </div>
 
-
         <div class="datos-empresa">
-
-            <p>
-                lotificación San Rafael, Aguilares, polígono 22, lote 13 y 14
-            </p>
-
+            <p>lotificación San Rafael, Aguilares, polígono 22, lote 13 y 14</p>
         </div>
-
 
         <div class="subtitulo">
             Reporte Comparativo de Ventas
         </div>
-
     </div>
 
+  
+    <table class="tabla-contenedor">
+        <tr>
+          
+            <td class="celda-bloque">
+                <h3 class="bloque-h3"> Período Anterior</h3>
+                <div class="fecha">
+                    {{ $inicio1->format('d/m/Y') }} - {{ $fin1->format('d/m/Y') }}
+                </div>
+                <div class="dato">
+                    <strong>Días:</strong> {{ round($dias1) }}
+                </div>
+                <div class="dato">
+                    <strong>Total vendido:</strong> ${{ number_format($total1, 2, '.', ',') }}
+                </div>
+                <div class="dato">
+                    <strong>Número de ventas:</strong> {{ $cantidad1 }}
+                </div>
+                <div class="dato">
+                    <strong>Promedio por venta:</strong> ${{ number_format($promedio1, 2, '.', ',') }}
+                </div>
+            </td>
 
-    <div class="contenedor">
+    
+            <td class="celda-espacio"></td>
 
-        <div class="bloque">
-
-            <h3>Rango 1</h3>
-
-            <div class="fecha">
-
-                {{ $inicio1->format('d/m/Y') }}
-
-                -
-
-                {{ $fin1->format('d/m/Y') }}
-
-            </div>
-
-
-            <div class="dato">
-
-                <strong>Días:</strong>
-
-                {{ round($dias1) }}
-
-            </div>
-
-
-            <div class="dato">
-
-                <strong>Total vendido:</strong>
-
-                ${{ number_format($total1, 2) }}
-
-            </div>
-
-
-            <div class="dato">
-
-                <strong>Número de ventas:</strong>
-
-                {{ $cantidad1 }}
-
-            </div>
-
-
-            <div class="dato">
-
-                <strong>Promedio por venta:</strong>
-
-                ${{ number_format($promedio1, 2) }}
-
-            </div>
-
-        </div>
-
-
-        <div class="bloque">
-
-            <h3>Rango 2</h3>
-
-            <div class="fecha">
-
-                {{ $inicio2->format('d/m/Y') }}
-
-                -
-
-                {{ $fin2->format('d/m/Y') }}
-
-            </div>
-
-
-            <div class="dato">
-
-                <strong>Días:</strong>
-
-                {{ round($dias2) }}
-
-            </div>
-
-
-            <div class="dato">
-
-                <strong>Total vendido:</strong>
-
-                ${{ number_format($total2, 2) }}
-
-            </div>
-
-
-            <div class="dato">
-
-                <strong>Número de ventas:</strong>
-
-                {{ $cantidad2 }}
-
-            </div>
-
-
-            <div class="dato">
-
-                <strong>Promedio por venta:</strong>
-
-                ${{ number_format($promedio2, 2) }}
-
-            </div>
-
-        </div>
-
-    </div>
-
+        
+            <td class="celda-bloque">
+                <h3 class="bloque-h3">Período Actual</h3>
+                <div class="fecha">
+                    {{ $inicio2->format('d/m/Y') }} - {{ $fin2->format('d/m/Y') }}
+                </div>
+                <div class="dato">
+                    <strong>Días:</strong> {{ round($dias2) }}
+                </div>
+                <div class="dato">
+                    <strong>Total vendido:</strong> ${{ number_format($total2, 2, '.', ',') }}
+                </div>
+                <div class="dato">
+                    <strong>Número de ventas:</strong> {{ $cantidad2 }}
+                </div>
+                <div class="dato">
+                    <strong>Promedio por venta:</strong> ${{ number_format($promedio2, 2, '.', ',') }}
+                </div>
+            </td>
+        </tr>
+    </table>
 
     <div class="variacion">
-
-        <h3>
-            Variación de ventas
-        </h3>
-
+        <h3>Variación de ventas</h3>
         <div class="porcentaje">
-
-            {{ number_format($variacion, 2) }}%
-
+            {{ number_format($variacion, 2, '.', ',') }}%
         </div>
-
     </div>
-
 
     <div class="titulo-tabla">
         Comparación de resultados
     </div>
 
-
-    <table>
-
+    <table class="tabla-datos">
         <thead>
-
             <tr>
-
-                <th style="width: 40%;">
-                    CONCEPTO
-                </th>
-
-                <th style="width: 30%;">
-                    RANGO 1
-                </th>
-
-                <th style="width: 30%;">
-                    RANGO 2
-                </th>
-
+                <th style="width: 40%;">CONCEPTO</th>
+                <th style="width: 30%;">Período Anterior</th>
+                <th style="width: 30%;">Período Actual</th>
             </tr>
-
         </thead>
-
-
         <tbody>
-
             <tr>
-
-                <td>
-                    <strong>Total vendido</strong>
-                </td>
-
-                <td class="text-right">
-
-                    ${{ number_format($total1, 2) }}
-
-                </td>
-
-                <td class="text-right">
-
-                    ${{ number_format($total2, 2) }}
-
-                </td>
-
+                <td><strong>Total vendido</strong></td>
+                <td class="text-right">${{ number_format($total1, 2, '.', ',') }}</td>
+                <td class="text-right">${{ number_format($total2, 2, '.', ',') }}</td>
             </tr>
-
-
             <tr>
-
-                <td>
-                    <strong>Número de ventas</strong>
-                </td>
-
-                <td>
-                    {{ $cantidad1 }}
-                </td>
-
-                <td>
-                    {{ $cantidad2 }}
-                </td>
-
+                <td><strong>Número de ventas</strong></td>
+                <td>{{ $cantidad1 }}</td>
+                <td>{{ $cantidad2 }}</td>
             </tr>
-
-
             <tr>
-
-                <td>
-                    <strong>Promedio por venta</strong>
-                </td>
-
-                <td class="text-right">
-
-                    ${{ number_format($promedio1, 2) }}
-
-                </td>
-
-                <td class="text-right">
-
-                    ${{ number_format($promedio2, 2) }}
-
-                </td>
-
+                <td><strong>Promedio por venta</strong></td>
+                <td class="text-right">${{ number_format($promedio1, 2, '.', ',') }}</td>
+                <td class="text-right">${{ number_format($promedio2, 2, '.', ',') }}</td>
             </tr>
-
         </tbody>
-
     </table>
-
 
 </body>
 

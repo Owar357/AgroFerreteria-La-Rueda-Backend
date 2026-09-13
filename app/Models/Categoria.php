@@ -10,11 +10,13 @@ class Categoria extends Model
     protected $fillable = [
         'nombre',
         'activo',
+        'porcentaje_ganancia_minimo',
         'creado_por',
     ];
 
     protected $casts = [
         'activo' => 'boolean',
+        'porcentaje_ganancia_minimo' => 'float',
     ];
 
     public function creadoPor()

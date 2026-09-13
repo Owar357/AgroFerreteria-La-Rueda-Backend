@@ -17,11 +17,13 @@ class Producto extends Model
         'tipo_producto',
         'unidad_medida_id',
         'aplica_iva',
+        'porcentaje_ganancia_minimo',
         'categoria_id',
         'registrado_por',
     ];
 
     protected $casts = [
+        'porcentaje_ganancia_minimo' => 'float',
         'aplica_iva' => 'boolean',
     ];
 
