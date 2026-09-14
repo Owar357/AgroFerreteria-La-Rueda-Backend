@@ -3,11 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
-
-    <title>Reporte de Productos Menos Vendidos</title>
+    <title>Reporte de Margen de Ganancia - Agroferretería La Rueda</title>
 
     <style>
-
         @page {
             margin: 1.5cm 1.5cm 2cm 1.5cm;
         }
@@ -22,8 +20,8 @@
         footer {
             position: fixed;
             bottom: -1cm;
-            left: 0;
-            right: 0;
+            left: 0px;
+            right: 0px;
             height: 0.8cm;
             text-align: center;
             font-size: 11px;
@@ -45,6 +43,7 @@
             right: 0;
             font-size: 11px;
             color: #555;
+            text-align: right;
         }
 
         .logo {
@@ -109,7 +108,7 @@
 
         .totales {
             margin-top: 20px;
-            width: 300px;
+            width: 320px;
             float: right;
             page-break-inside: avoid;
         }
@@ -122,201 +121,94 @@
         .page-number:before {
             content: counter(page);
         }
-
     </style>
 </head>
 
 <body>
 
     <footer>
-        Página <span class="page-number"></span>
+        <span class="page-number"></span>
     </footer>
 
     <div class="encabezado">
-
         <div class="fecha-emision-top">
-
             <strong>Reporte emitido el:</strong>
-
             {{ \Carbon\Carbon::now()->format('d/m/Y h:i A') }}
-
         </div>
 
         <img src="{{ public_path('img/logo.jpeg') }}" class="logo">
 
-        <div class="titulo">
-            AGROFERRETERÍA LA RUEDA
-        </div>
+        <div class="titulo">AGROFERRETERÍA LA RUEDA</div>
 
         <div class="datos-empresa">
-
-            <p>
-                lotificación San Rafael, Aguilares,
-                polígono 22, lote 13 y 14
-            </p>
-
+            <p>lotificación San Rafael, Aguilares, polígono 22, lote 13 y 14</p>
         </div>
 
         <div class="subtitulo">
-            Reporte de Productos Menos Vendidos
+            Reporte Financiero de Margen de Ganancia por Producto
         </div>
 
         <div class="apartado-fechas">
-
             <strong>Período:</strong>
-
-            Desde
-            {{ \Carbon\Carbon::parse($fecha_inicio)->format('d/m/Y') }}
-
-            Hasta
-            {{ \Carbon\Carbon::parse($fecha_fin)->format('d/m/Y') }}
-
+            Desde {{ \Carbon\Carbon::parse($fecha_inicio)->format('d/m/Y') }}
+            Hasta {{ \Carbon\Carbon::parse($fecha_fin)->format('d/m/Y') }}
         </div>
-
     </div>
 
-
     <table>
-
         <thead>
-
             <tr>
-
-                <th style="width: 8%;">
-                    POSICIÓN
-                </th>
-
-                <th style="width: 32%;">
-                    PRODUCTO
-                </th>
-
-                <th style="width: 20%;">
-                    UNIDADES VENDIDAS
-                </th>
-
-                <th style="width: 20%;">
-                    TOTAL VENDIDO
-                </th>
-
-                <th style="width: 20%;">
-                    NÚMERO DE VENTAS
-                </th>
-
+                <th style="width: 5%;">N°</th>
+                <th style="width: 28%;">PRODUCTO</th>
+                <th style="width: 17%;">PRECIO VENTA PROMEDIO (PVP)</th>
+                <th style="width: 17%;">COSTO PROMEDIO PONDERADO (CPP)</th>
+                <th style="width: 15%;">MARGEN UNITARIO (ABS)</th>
+                <th style="width: 18%;">MARGEN BRUTO (%)</th>
             </tr>
-
         </thead>
-
         <tbody>
-
             @php
-                $totalUnidades = 0;
-                $totalVendido = 0;
-                $totalVentas = 0;
+                $margenTotalAcumulado = 0;
+                $cantidadProductos = 0;
             @endphp
 
             @forelse($resultado as $index => $producto)
-
                 @php
-                    $totalUnidades += $producto->unidades_vendidas;
-                    $totalVendido += $producto->monto_total;
-                    $totalVentas += $producto->numero_transacciones;
+                    $margenTotalAcumulado += $producto['margen_absoluto'];
+                    $cantidadProductos++;
                 @endphp
 
                 <tr>
-
-                    <td>
-                        <strong>
-                            {{ $index + 1 }}
-                        </strong>
-                    </td>
-
-                    <td>
-                        <strong>
-                            {{ $producto->nombre }}
-                        </strong>
-                    </td>
-
-                    <td>
-                        {{ number_format($producto->unidades_vendidas, 3) }}
-                    </td>
-
-                    <td class="text-right">
-                        ${{ number_format($producto->monto_total, 2) }}
-                    </td>
-
-                    <td>
-                        {{ $producto->numero_transacciones }}
-                    </td>
-
+                    <td>{{ $index + 1 }}</td>
+                    <td><strong>{{ $producto['producto'] }}</strong></td>
+                    <td class="text-right">${{ number_format($producto['precio_venta_promedio'], 2) }}</td>
+                    <td class="text-right">${{ number_format($producto['costo_promedio_ponderado'], 2) }}</td>
+                    <td class="text-right">${{ number_format($producto['margen_absoluto'], 2) }}</td>
+                    <td class="text-right">{{ number_format($producto['margen_porcentual'], 2) }}%</td>
                 </tr>
-
             @empty
-
                 <tr>
-
-                    <td colspan="5" style="padding: 20px; color: #777;">
-
-                        No se encontraron productos vendidos
-                        en el período seleccionado.
-
+                    <td colspan="6" style="padding: 20px; color: #777;">
+                        No se encontraron productos con ventas en el período seleccionado.
                     </td>
-
                 </tr>
-
             @endforelse
-
         </tbody>
-
     </table>
 
-
     <table class="totales">
-
         <tr>
-
-            <td class="text-right">
-                <strong>Unidades vendidas:</strong>
+            <td class="text-right"><strong>Total Productos Evaluados:</strong></td>
+            <td class="text-right" style="width: 40%; border-bottom: 1px solid #ccc;">
+                {{ $cantidadProductos }}
             </td>
-
-            <td class="text-right"
-                style="width: 40%; border-bottom: 1px solid #ccc;">
-
-                {{ number_format($totalUnidades, 3) }}
-
-            </td>
-
         </tr>
-
         <tr>
-
-            <td class="text-right">
-                <strong>Total vendido:</strong>
+            <td class="text-right"><strong>Margen Bruto Acumulado:</strong></td>
+            <td class="text-right" style="border-bottom: 2px double #333; font-weight: bold;">
+                ${{ number_format($margenTotalAcumulado, 2) }}
             </td>
-
-            <td class="text-right"
-                style="border-bottom: 2px double #333; font-weight: bold;">
-
-                ${{ number_format($totalVendido, 2) }}
-
-            </td>
-
         </tr>
-
-        <tr>
-
-            <td class="text-right">
-                <strong>Número de ventas:</strong>
-            </td>
-
-            <td class="text-right"
-                style="border-bottom: 2px double #333; font-weight: bold;">
-
-                {{ $totalVentas }}
-
-            </td>
-
-        </tr>
-
     </table>
 
 </body>

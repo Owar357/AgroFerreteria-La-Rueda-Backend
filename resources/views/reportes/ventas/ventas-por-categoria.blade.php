@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Reporte de Productos Más Vendidos</title>
+    <title>Reporte de Ventas por Categoría</title>
 
     <style>
         @page {
@@ -60,12 +60,14 @@
             font-size: 11px;
             color: #555;
             margin-top: 5px;
+            line-height: 1.4;
         }
 
         .subtitulo {
             font-size: 14px;
             font-weight: bold;
             margin-top: 12px;
+            color: #222;
             text-transform: uppercase;
         }
 
@@ -107,6 +109,7 @@
             margin-top: 20px;
             width: 280px;
             float: right;
+            page-break-inside: avoid;
         }
 
         .totales td {
@@ -144,10 +147,11 @@
         </div>
 
         <div class="subtitulo">
-            Reporte de Productos Más Vendidos
+            Reporte de Ventas por Categoría
         </div>
 
         <div class="apartado-fechas">
+
             <strong>Período:</strong>
 
             Desde
@@ -155,64 +159,86 @@
 
             Hasta
             {{ \Carbon\Carbon::parse($fecha_fin)->format('d/m/Y') }}
+
         </div>
 
     </div>
 
+
     <table>
 
         <thead>
+
             <tr>
-                <th style="width: 8%;">POSICIÓN</th>
-                <th style="width: 32%;">PRODUCTO</th>
-                <th style="width: 20%;">UNIDADES VENDIDAS</th>
-                <th style="width: 20%;">TOTAL VENDIDO</th>
-                <th style="width: 20%;">NÚMERO DE VENTAS</th>
+                <th style="width: 8%;">N°</th>
+
+                <th style="width: 35%;">
+                    CATEGORÍA
+                </th>
+
+                <th style="width: 20%;">
+                    UNIDADES VENDIDAS
+                </th>
+
+                <th style="width: 20%;">
+                    TOTAL VENDIDO
+                </th>
+
+                <th style="width: 17%;">
+                    % DEL TOTAL
+                </th>
             </tr>
+
         </thead>
 
         <tbody>
 
             @php
-                $totalUnidades = 0;
                 $totalVendido = 0;
+                $totalUnidades = 0;
             @endphp
 
-            @forelse($resultado as $index => $producto)
+            @forelse($resultado as $index => $categoria)
 
                 @php
-                    $totalUnidades += $producto['unidades_vendidas'];
-                    $totalVendido += $producto['monto_total'];
+                    $totalVendido += $categoria['total_vendido'];
+                    $totalUnidades += $categoria['cantidad_unidades'];
                 @endphp
 
                 <tr>
+
                     <td>
-                        <strong>{{ $index + 1 }}</strong>
+                        {{ $index + 1 }}
                     </td>
 
                     <td>
-                        <strong>{{ $producto['producto'] }}</strong>
+                        <strong>
+                            {{ $categoria['categoria'] }}
+                        </strong>
                     </td>
 
                     <td>
-                        {{ number_format($producto['unidades_vendidas'], 3) }}
+                        {{ number_format($categoria['cantidad_unidades'], 2, '.', ',' ) }}
                     </td>
 
                     <td class="text-right">
-                        ${{ number_format($producto['monto_total'], 3) }}
+                       ${{ number_format($categoria['total_vendido'], 2, '.', ',') }}
                     </td>
 
-                    <td>
-                        {{ $producto['numero_ventas'] }}
+                    <td class="text-right">
+                        {{ number_format($categoria['porcentaje_total'], 2, '.', ',') }}%
                     </td>
+
                 </tr>
 
             @empty
 
                 <tr>
+
                     <td colspan="5" style="padding: 20px; color: #777;">
-                        No se encontraron productos vendidos en el período seleccionado.
+                        No se encontraron ventas por categoría en el período seleccionado.
                     </td>
+
                 </tr>
 
             @endforelse
@@ -221,28 +247,34 @@
 
     </table>
 
+
     <table class="totales">
 
         <tr>
+
             <td class="text-right">
-                <strong>Unidades vendidas:</strong>
+                <strong>Unidades:</strong>
             </td>
 
-            <td class="text-right"
-                style="width: 40%; border-bottom: 1px solid #ccc;">
-                {{ number_format($totalUnidades, 3) }}
+            <td class="text-right" style="width: 40%; border-bottom: 1px solid #ccc;">
+                {{ number_format($totalUnidades, 2) }}
             </td>
+
         </tr>
 
         <tr>
+
             <td class="text-right">
                 <strong>Total vendido:</strong>
             </td>
 
             <td class="text-right"
                 style="border-bottom: 2px double #333; font-weight: bold;">
-                ${{ number_format($totalVendido, 3) }}
+
+                <strong>${{ number_format($totalVendido, 2, '.', ',') }}</strong>
+
             </td>
+
         </tr>
 
     </table>

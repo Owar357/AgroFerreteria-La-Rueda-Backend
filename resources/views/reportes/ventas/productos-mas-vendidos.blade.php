@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Reporte de Ventas por Cajero - Agroferretería La Rueda</title>
+    <title>Reporte de Productos Más Vendidos</title>
 
     <style>
         @page {
@@ -26,7 +26,6 @@
             text-align: center;
             font-size: 11px;
             font-weight: bold;
-            color: #333;
         }
 
         .encabezado {
@@ -61,14 +60,12 @@
             font-size: 11px;
             color: #555;
             margin-top: 5px;
-            line-height: 1.4;
         }
 
         .subtitulo {
             font-size: 14px;
             font-weight: bold;
             margin-top: 12px;
-            color: #222;
             text-transform: uppercase;
         }
 
@@ -110,7 +107,6 @@
             margin-top: 20px;
             width: 280px;
             float: right;
-            page-break-inside: avoid;
         }
 
         .totales td {
@@ -127,7 +123,7 @@
 <body>
 
     <footer>
-        Página <span class="page-number"></span>
+        <span class="page-number"></span>
     </footer>
 
     <div class="encabezado">
@@ -148,7 +144,7 @@
         </div>
 
         <div class="subtitulo">
-            Reporte de Ventas por Cajero
+            Reporte de Productos Más Vendidos
         </div>
 
         <div class="apartado-fechas">
@@ -163,81 +159,60 @@
 
     </div>
 
-
     <table>
 
         <thead>
-
             <tr>
-                <th style="width: 8%;">N°</th>
-
-                <th style="width: 32%;">
-                    CAJERO
-                </th>
-
-                <th style="width: 22%;">
-                    TOTAL VENDIDO
-                </th>
-
-                <th style="width: 18%;">
-                    N° DE VENTAS
-                </th>
-
-                <th style="width: 20%;">
-                    PROMEDIO POR VENTA
-                </th>
+                <th style="width: 8%;">POSICIÓN</th>
+                <th style="width: 32%;">PRODUCTO</th>
+                <th style="width: 20%;">UNIDADES VENDIDAS</th>
+                <th style="width: 20%;">TOTAL VENDIDO</th>
+                <th style="width: 20%;">NÚMERO DE VENTAS</th>
             </tr>
-
         </thead>
 
         <tbody>
 
             @php
+                $totalUnidades = 0;
                 $totalVendido = 0;
-                $totalVentas = 0;
             @endphp
 
-            @forelse($resultado as $index => $usuario)
+            @forelse($resultado as $index => $producto)
 
                 @php
-                    $totalVendido += $usuario['total_vendido'];
-                    $totalVentas += $usuario['numero_ventas'];
+                    $totalUnidades += $producto['unidades_vendidas'];
+                    $totalVendido += $producto['monto_total'];
                 @endphp
 
                 <tr>
-
                     <td>
-                        {{ $index + 1 }}
+                        <strong>{{ $index + 1 }}</strong>
                     </td>
 
                     <td>
-                        <strong>
-                            {{ $usuario['usuario'] }}
-                        </strong>
+                        <strong>{{ $producto['producto'] }}</strong>
+                    </td>
+
+                    <td>
+                        {{ number_format($producto['unidades_vendidas'], 3) }}
                     </td>
 
                     <td class="text-right">
-                        ${{ number_format($usuario['total_vendido'], 3) }}
+                        ${{ number_format($producto['monto_total'],  2, '.', ',') }}
                     </td>
 
                     <td>
-                        {{ $usuario['numero_ventas'] }}
+                        {{ $producto['numero_ventas'] }}
                     </td>
-
-                    <td class="text-right">
-                        ${{ number_format($usuario['ticket_promedio'], 3) }}
-                    </td>
-
                 </tr>
 
             @empty
 
                 <tr>
-
                     <td colspan="5" style="padding: 20px; color: #777;">
-                        No se encontraron ventas en el período seleccionado.
+                        No se encontraron productos vendidos en el período seleccionado.
                     </td>
-
                 </tr>
 
             @endforelse
@@ -246,37 +221,28 @@
 
     </table>
 
-
     <table class="totales">
 
         <tr>
+            <td class="text-right">
+                <strong>Unidades vendidas:</strong>
+            </td>
 
+            <td class="text-right"
+                style="width: 40%; border-bottom: 1px solid #ccc;">
+                {{ number_format($totalUnidades, 3) }}
+            </td>
+        </tr>
+
+        <tr>
             <td class="text-right">
                 <strong>Total vendido:</strong>
             </td>
 
             <td class="text-right"
-                style="width: 40%; border-bottom: 1px solid #ccc;">
-
-                ${{ number_format($totalVendido, 3) }}
-
-            </td>
-
-        </tr>
-
-        <tr>
-
-            <td class="text-right">
-                <strong>Total de ventas:</strong>
-            </td>
-
-            <td class="text-right"
                 style="border-bottom: 2px double #333; font-weight: bold;">
-
-                {{ $totalVentas }}
-
+                ${{ number_format($totalVendido,  2, '.', ',') }}
             </td>
-
         </tr>
 
     </table>
