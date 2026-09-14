@@ -31,8 +31,8 @@ class ProductoController extends Controller
         $categoria = $request->input('categoria', null);
 
         // Construcción de la consulta base
-        $query = Producto::with(['categoria:id,nombre', 'unidadMedida:id,nombre,abreviatura'])
-            ->select('id', 'codigo', 'nombre', 'fabricante', 'tipo_producto', 'unidad_medida_id', 'categoria_id');
+        $query = Producto::with(['categoria:id,nombre,porcentaje_ganancia_minimo', 'unidadMedida:id,nombre,abreviatura'])
+            ->select('id',  'codigo', 'nombre', 'fabricante', 'tipo_producto', 'unidad_medida_id', 'porcentaje_ganancia_minimo','categoria_id');
 
         if (! empty($search)) {
             $query->where(function ($q) use ($search) {

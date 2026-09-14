@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('nombre',50)->index();
             $table->boolean('activo')->default(true)->index();
+            $table->decimal('porcentaje_ganancia_minimo', 5,2)->default(15.00);
             $table->foreignid('creado_por')->constrained('users');
             $table->timestamps();
         });

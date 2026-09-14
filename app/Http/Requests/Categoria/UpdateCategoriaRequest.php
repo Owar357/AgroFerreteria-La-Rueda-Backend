@@ -24,6 +24,7 @@ class UpdateCategoriaRequest extends FormRequest
     {
         return [
             'nombre'=>'required|string|min:2|max:50|regex:/^[\pL\s]+$/u|unique:categorias,nombre,'.$this->route('categoria'),
+            'porcentaje_ganancia_minimo' => 'sometimes|nullable|numeric|min:0|max:100',
         ];
     }
 
@@ -36,6 +37,9 @@ class UpdateCategoriaRequest extends FormRequest
             'nombre.max' => 'El nombre no puede tener más de 50 caracteres.',
             'nombre.regex' => 'El nombre solo puede contener letras y espacios.',
             'nombre.unique' => 'Ya existe otra categoría con este nombre.',
+            'porcentaje_ganancia_minimo.numeric' => 'El porcentaje de ganancia mínimo debe ser un número.',
+            'porcentaje_ganancia_minimo.min' => 'El porcentaje de ganancia mínimo no puede ser menor a 0.',
+            'porcentaje_ganancia_minimo.max' => 'El porcentaje de ganancia mínimo no puede superar el 100%.'
         ];
     }
 }
