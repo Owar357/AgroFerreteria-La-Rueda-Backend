@@ -42,6 +42,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/clientes/buscar', [ClienteController::class, 'buscarPorDocumento']);
     Route::apiResource('clientes', ClienteController::class);
     Route::apiResource('ventas', VentaController::class);
+    Route::patch('ventas/{id}/anular', [VentaController::class, 'anularVenta']);
     Route::apiResource('categorias', CategoriaController::class);
 
     Route::patch('/lotes/{id}/descuento', [LoteController::class, 'actualizarDescuento']);
