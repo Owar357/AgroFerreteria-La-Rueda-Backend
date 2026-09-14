@@ -3,10 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Reporte de Ventas - Agroferretería La Rueda</title>
+    <title>Reporte de Ventas por Cajero - Agroferretería La Rueda</title>
 
     <style>
-
         @page {
             margin: 1.5cm 1.5cm 2cm 1.5cm;
         }
@@ -18,12 +17,11 @@
             margin: 10px;
         }
 
-
         footer {
             position: fixed;
             bottom: -1cm;
-            left: 0px;
-            right: 0px;
+            left: 0;
+            right: 0;
             height: 0.8cm;
             text-align: center;
             font-size: 11px;
@@ -38,7 +36,6 @@
             padding-bottom: 15px;
             position: relative;
         }
-
 
         .fecha-emision-top {
             position: absolute;
@@ -121,7 +118,6 @@
             padding: 5px;
         }
 
-
         .page-number:before {
             content: counter(page);
         }
@@ -131,99 +127,158 @@
 <body>
 
     <footer>
-        <span class="page-number"></span>
+        Página <span class="page-number"></span>
     </footer>
 
     <div class="encabezado">
+
         <div class="fecha-emision-top">
-            <strong>Reporte emitido el:</strong> {{ \Carbon\Carbon::now()->format('d/m/Y h:i A') }}
+            <strong>Reporte emitido el:</strong>
+            {{ \Carbon\Carbon::now()->format('d/m/Y h:i A') }}
         </div>
 
         <img src="{{ public_path('img/logo.jpeg') }}" class="logo">
 
-        <div class="titulo">AGROFERRETERÍA LA RUEDA</div>
+        <div class="titulo">
+            AGROFERRETERÍA LA RUEDA
+        </div>
 
         <div class="datos-empresa">
             <p>lotificación San Rafael, Aguilares, polígono 22, lote 13 y 14</p>
         </div>
 
-        <div class="subtitulo">Reporte de Ventas</div>
+        <div class="subtitulo">
+            Reporte de Ventas por Cajero
+        </div>
 
         <div class="apartado-fechas">
-            @if(isset($fecha_desde) && isset($fecha_hasta) && $fecha_desde && $fecha_hasta)
-                <strong>Período:</strong> Desde {{ \Carbon\Carbon::parse($fecha_desde)->format('d/m/Y') }} Hasta {{ \Carbon\Carbon::parse($fecha_hasta)->format('d/m/Y') }}
-            @else
-                <strong>Período:</strong> Historial General de Ventas
-            @endif
+            <strong>Período:</strong>
+
+            Desde
+            {{($fecha_inicio)->format('d/m/Y') }}
+
+            Hasta
+            {{ ($fecha_fin)->format('d/m/Y') }}
         </div>
+
     </div>
 
+
     <table>
+
         <thead>
+
             <tr>
-                <th style="width: 5%;">N°</th>
-                <th style="width: 20%;">FACTURA</th>
-                <th style="width: 20%;">FECHA Y HORA</th>
-                <th style="width: 15%;">TIPO PAGO</th>
-                <th style="width: 13%;">SUBTOTAL</th>
-                <th style="width: 12%;">IVA</th>
-                <th style="width: 15%;">TOTAL</th>
+                <th style="width: 8%;">N°</th>
+
+                <th style="width: 32%;">
+                    CAJERO
+                </th>
+
+                <th style="width: 22%;">
+                    TOTAL VENDIDO
+                </th>
+
+                <th style="width: 18%;">
+                    N° DE VENTAS
+                </th>
+
+                <th style="width: 20%;">
+                    PROMEDIO POR VENTA
+                </th>
             </tr>
+
         </thead>
+
         <tbody>
 
             @php
-                $subtotalGeneral = 0;
-                $ivaGeneral = 0;
-                $totalGeneral = 0;
+                $totalVendido = 0;
+                $totalVentas = 0;
             @endphp
 
-            @forelse($ventas as $index => $venta)
+            @forelse($resultado as $index => $usuario)
+
                 @php
-                    $subtotalGeneral += $venta->subtotal;
-                    $ivaGeneral += $venta->iva;
-                    $totalGeneral += $venta->total;
+                    $totalVendido += $usuario['total_vendido'];
+                    $totalVentas += $usuario['numero_ventas'];
                 @endphp
 
                 <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td><strong>{{ $venta->numero_factura }}</strong></td>
-                    <td>{{ \Carbon\Carbon::parse($venta->created_at)->format('d/m/Y h:i A') }}</td>
-                    <td>{{ $venta->tipo_pago }}</td>
-                    <td class="text-right">${{ number_format($venta->subtotal, 2) }}</td>
-                    <td class="text-right">${{ number_format($venta->iva, 2) }}</td>
-                    <td class="text-right" style="font-weight: bold;">${{ number_format($venta->total, 2) }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="7" style="padding: 20px; color: #777;">
-                        No se encontraron registros de ventas en el rango de fechas seleccionado.
+
+                    <td>
+                        {{ $index + 1 }}
                     </td>
+
+                    <td>
+                        <strong>
+                            {{ $usuario['nombre'] }}
+                        </strong>
+                    </td>
+
+                    <td class="text-right">
+                        ${{ number_format($usuario['total_vendido'], 2) }}
+                    </td>
+
+                    <td>
+                        {{ $usuario['numero_ventas'] }}
+                    </td>
+
+                    <td class="text-right">
+                        ${{ number_format($usuario['ticket_promedio'], 2) }}
+                    </td>
+
                 </tr>
+
+            @empty
+
+                <tr>
+
+                    <td colspan="5" style="padding: 20px; color: #777;">
+                        No se encontraron ventas en el período seleccionado.
+                    </td>
+
+                </tr>
+
             @endforelse
 
         </tbody>
+
     </table>
 
+
     <table class="totales">
+
         <tr>
-            <td class="text-right"><strong>Subtotal General:</strong></td>
-            <td class="text-right" style="width: 40%; border-bottom: 1px solid #ccc;">
-                ${{ number_format($subtotalGeneral, 2) }}
+
+            <td class="text-right">
+                <strong>Total vendido:</strong>
             </td>
+
+            <td class="text-right"
+                style="width: 40%; border-bottom: 1px solid #ccc;">
+
+                ${{ number_format($totalVendido, 2) }}
+
+            </td>
+
         </tr>
+
         <tr>
-            <td class="text-right"><strong>IVA General:</strong></td>
-            <td class="text-right" style="border-bottom: 1px solid #ccc;">
-                ${{ number_format($ivaGeneral, 2) }}
+
+            <td class="text-right">
+                <strong>Total de ventas:</strong>
             </td>
-        </tr>
-        <tr>
-            <td class="text-right" style="font-size: 13px;"><strong>Total General:</strong></td>
-            <td class="text-right" style="font-size: 13px; font-weight: bold; color: #000; border-bottom: 2px double #333;">
-                ${{ number_format($totalGeneral, 2) }}
+
+            <td class="text-right"
+                style="border-bottom: 2px double #333; font-weight: bold;">
+
+                {{ $totalVentas }}
+
             </td>
+
         </tr>
+
     </table>
 
 </body>
