@@ -6,7 +6,6 @@
     <title>Reporte de Flujo Comparativo - Agroferretería La Rueda</title>
 
     <style>
-
         @page {
             margin: 1.5cm 1.5cm 2cm 1.5cm;
         }
@@ -111,6 +110,16 @@
             font-weight: bold;
         }
 
+        .positivo {
+            color: #0d6efd;
+            font-weight: bold;
+        }
+
+        .negativo {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
         .totales {
             margin-top: 25px;
             width: 320px;
@@ -136,7 +145,6 @@
         .page-number:before {
             content: counter(page);
         }
-
     </style>
 </head>
 
@@ -147,7 +155,6 @@
     </footer>
 
     <div class="encabezado">
-
         <div class="fecha-emision-top">
             <strong>Reporte emitido el:</strong>
             {{ \Carbon\Carbon::now()->format('d/m/Y h:i A') }}
@@ -166,178 +173,90 @@
         </div>
 
         <div class="apartado-fechas">
-
             <strong>Período actual:</strong>
-            {{ \Carbon\Carbon::parse($fecha_desde)->format('d/m/Y') }}
-            -
-            {{ \Carbon\Carbon::parse($fecha_hasta)->format('d/m/Y') }}
-
+            {{ \Carbon\Carbon::parse($fecha_desde)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($fecha_hasta)->format('d/m/Y') }}
             <br>
-
             <strong>Período anterior:</strong>
-            {{ \Carbon\Carbon::parse($fecha_anterior_desde)->format('d/m/Y') }}
-            -
-            {{ \Carbon\Carbon::parse($fecha_anterior_hasta)->format('d/m/Y') }}
-
+            {{ \Carbon\Carbon::parse($fecha_anterior_desde)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($fecha_anterior_hasta)->format('d/m/Y') }}
         </div>
-
     </div>
 
-
     <table>
-
         <thead>
-
             <tr>
                 <th style="width: 25%;">CONCEPTO</th>
                 <th style="width: 25%;">PERÍODO ANTERIOR</th>
                 <th style="width: 25%;">PERÍODO ACTUAL</th>
                 <th style="width: 25%;">VARIACIÓN</th>
             </tr>
-
         </thead>
-
         <tbody>
-
             <tr>
-
-                <td>
-                    <strong>Compras</strong>
-                </td>
-
-                <td class="text-right">
-                    ${{ number_format($compras_anterior, 2) }}
-                </td>
-
-                <td class="text-right">
-                    ${{ number_format($compras_actual, 2) }}
-                </td>
-
-                <td class="variacion">
+                <td><strong>Compras (Egresos)</strong></td>
+                <td class="text-right">${{ number_format($compras_anterior, 2) }}</td>
+                <td class="text-right">${{ number_format($compras_actual, 2) }}</td>
+                <td class="variacion {{ $variacion_compras > 0 ? 'negativo' : 'positivo' }}">
                     {{ number_format($variacion_compras, 2) }}%
                 </td>
-
             </tr>
-
             <tr>
-
-                <td>
-                    <strong>Ventas</strong>
+                <td><strong>Ventas (Ingresos)</strong></td>
+                <td class="text-right">${{ number_format($ventas_anterior, 2) }}</td>
+                <td class="text-right">${{ number_format($ventas_actual, 2) }}</td>
+                <td class="variacion {{ $variacion_ventas >= 0 ? 'positivo' : 'negativo' }}">
+                    {{ number_format($variang_ventas ?? $variacion_ventas, 2) }}%
                 </td>
-
-                <td class="text-right">
-                    ${{ number_format($ventas_anterior, 2) }}
-                </td>
-
-                <td class="text-right">
-                    ${{ number_format($ventas_actual, 2) }}
-                </td>
-
-                <td class="variacion">
-                    {{ number_format($variacion_ventas, 2) }}%
-                </td>
-
             </tr>
-
         </tbody>
-
     </table>
-
 
     <table class="resumen">
-
         <thead>
-
             <tr>
-                <th colspan="3">
-                    RESUMEN DEL FLUJO
-                </th>
+                <th colspan="3">RESUMEN DEL FLUJO NETO (INGRESOS - EGRESOS)</th>
             </tr>
-
         </thead>
-
         <tbody>
-
             <tr>
-
-                <td>
-                    <strong>Flujo período anterior</strong>
-                </td>
-
-                <td>
-                    <strong>Flujo período actual</strong>
-                </td>
-
-                <td>
-                    <strong>Variación del flujo</strong>
-                </td>
-
+                <td><strong>Flujo período anterior</strong></td>
+                <td><strong>Flujo período actual</strong></td>
+                <td><strong>Variación del flujo</strong></td>
             </tr>
-
             <tr>
-
-                <td class="text-right">
+                <td class="text-right {{ $flujo_anterior >= 0 ? 'positivo' : 'negativo' }}">
                     ${{ number_format($flujo_anterior, 2) }}
                 </td>
-
-                <td class="text-right">
+                <td class="text-right {{ $flujo_actual >= 0 ? 'positivo' : 'negativo' }}">
                     ${{ number_format($flujo_actual, 2) }}
                 </td>
-
-                <td class="text-right">
+                <td class="text-right variacion">
                     {{ number_format($variacion_flujo, 2) }}%
                 </td>
-
             </tr>
-
         </tbody>
-
     </table>
 
-
     <table class="totales">
-
         <tr>
-
-            <td class="text-right">
-                <strong>Total compras:</strong>
-            </td>
-
+            <td class="text-right"><strong>Total compras:</strong></td>
             <td class="text-right" style="width: 45%; border-bottom: 1px solid #ccc;">
                 ${{ number_format($compras_actual, 2) }}
             </td>
-
         </tr>
-
         <tr>
-
-            <td class="text-right">
-                <strong>Total ventas:</strong>
-            </td>
-
+            <td class="text-right"><strong>Total ventas:</strong></td>
             <td class="text-right" style="border-bottom: 1px solid #ccc;">
                 ${{ number_format($ventas_actual, 2) }}
             </td>
-
         </tr>
-
         <tr>
-
-            <td class="text-right" style="font-size: 13px;">
-                <strong>Flujo actual:</strong>
-            </td>
-
-            <td class="text-right"
-                style="font-size: 13px; font-weight: bold; color: #000; border-bottom: 2px double #333;">
-
+            <td class="text-right" style="font-size: 13px;"><strong>Flujo neto actual:</strong></td>
+            <td class="text-right {{ $flujo_actual >= 0 ? 'positivo' : 'negativo' }}"
+                style="font-size: 13px; border-bottom: 2px double #333;">
                 ${{ number_format($flujo_actual, 2) }}
-
             </td>
-
         </tr>
-
     </table>
 
 </body>
-
 </html>
