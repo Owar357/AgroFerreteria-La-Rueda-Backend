@@ -31,8 +31,8 @@ class LoteController extends Controller
                 ], 404);
             }
 
-            $perPage = $request->get('per_page', 5);
-            $page = $request->get('page', 1);
+            $perPage = $request->input('per_page', 5);
+            $page = $request->input('page', 1);
 
             $consultarLotes = Lote::query();
 
@@ -41,6 +41,10 @@ class LoteController extends Controller
             } else {
                 $consultarLotes->where('presentacion_id', $presentacion->id);
             }
+
+            $stockTotalActivo = (clone $consultarLotes)
+                ->where('estado', 'ACTIVO')
+                ->sum('cantidad_actual');
 
             $lotes = $consultarLotes
                 ->select(
@@ -61,13 +65,13 @@ class LoteController extends Controller
                 'status' => 'ok',
                 'data' => $lotes->items(),
                 'total' => $lotes->total(),
+                'stock_total_activo' => (float) $stockTotalActivo,
                 'per_page' => $lotes->perPage(),
                 'current_page' => $lotes->currentPage(),
                 'last_page' => $lotes->lastPage(),
             ]);
 
         } catch (\Exception $e) {
-
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error servidor',

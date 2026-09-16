@@ -16,64 +16,64 @@ class ProductoController extends Controller
      * Display a listing of the resource.
      */
     public function index(Request $request)
-{
-    try {
-        if (! auth()->user()->hasAnyRole(['ADMIN', 'CAJERO'])) {
+    {
+        try {
+            if (! auth()->user()->hasAnyRole(['ADMIN', 'CAJERO'])) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
+            $perPage = $request->input('per_page', 8);
+            $page = $request->input('page', 1);
+            $search = trim($request->input('q', ''));
+            $categoria = $request->input('categoria', null);
+
+            // Construcción de la consulta base
+            $query = Producto::with(['categoria:id,nombre,porcentaje_ganancia_minimo', 'unidadMedida:id,nombre,abreviatura'])
+                ->select('id', 'codigo', 'nombre', 'fabricante', 'tipo_producto', 'unidad_medida_id', 'porcentaje_ganancia_minimo', 'categoria_id');
+
+            if (! empty($search)) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('nombre', 'ILIKE', "%{$search}%")
+                        ->orWhere('codigo', 'ILIKE', "%{$search}%")
+                        ->orWhere('fabricante', 'ILIKE', "%{$search}%");
+                });
+            }
+
+            if (! empty($categoria)) {
+                $query->whereHas('categoria', function ($q) use ($categoria) {
+                    $q->where('nombre', $categoria);
+                });
+            }
+
+            $productos = $query->orderBy('id', 'desc')
+                ->paginate($perPage, ['*'], 'page', $page);
+
+            return response()->json([
+                'status' => 'ok',
+                'data' => $productos->items(),
+                'total' => $productos->total(),
+                'per_page' => $productos->perPage(),
+                'current_page' => $productos->currentPage(),
+                'last_page' => $productos->lastPage(),
+            ], 200);
+
+        } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'No autorizado',
-            ], 403);
+                'message' => 'Error al obtener productos',
+            ], 500);
         }
-
-        $perPage = $request->input('per_page', 8);
-        $page = $request->input('page', 1);
-        $search = trim($request->input('q', ''));
-        $categoria = $request->input('categoria', null);
-
-        // Construcción de la consulta base
-        $query = Producto::with(['categoria:id,nombre,porcentaje_ganancia_minimo', 'unidadMedida:id,nombre,abreviatura'])
-            ->select('id',  'codigo', 'nombre', 'fabricante', 'tipo_producto', 'unidad_medida_id', 'porcentaje_ganancia_minimo','categoria_id');
-
-        if (! empty($search)) {
-            $query->where(function ($q) use ($search) {
-                $q->where('nombre', 'ILIKE', "%{$search}%")
-                  ->orWhere('codigo', 'ILIKE', "%{$search}%")
-                  ->orWhere('fabricante', 'ILIKE', "%{$search}%");
-            });
-        }
-
-        if (! empty($categoria)) {
-            $query->whereHas('categoria', function ($q) use ($categoria) {
-                $q->where('nombre', $categoria);
-            });
-        }
-
-        $productos = $query->orderBy('id', 'desc')
-            ->paginate($perPage, ['*'], 'page', $page);
-
-        return response()->json([
-            'status' => 'ok',
-            'data' => $productos->items(),
-            'total' => $productos->total(),
-            'per_page' => $productos->perPage(),
-            'current_page' => $productos->currentPage(),
-            'last_page' => $productos->lastPage(),
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Error al obtener productos',
-        ], 500);
     }
-}
+
     /**
      * Store a newly created resource in storage.
      */
     public function store(StoreProductoRequest $request)
     {
         try {
-
             if (! auth()->user()->hasRole('ADMIN')) {
                 return response()->json([
                     'status' => 'error',
@@ -83,13 +83,27 @@ class ProductoController extends Controller
 
             DB::beginTransaction();
 
+            $datosProducto = $request->safe()->except('presentaciones');
+
+            $codigoBase = $datosProducto['codigo'];
+            $codigoFinal = $codigoBase;
+            $contador = 1;
+
+            while (Producto::where('codigo', $codigoFinal)->exists()) {
+                $sufijo = '-'.$contador;
+                $longitudBase = 24 - strlen($sufijo);
+                $codigoFinal = substr($codigoBase, 0, $longitudBase).$sufijo;
+                $contador++;
+            }
+
+            $datosProducto['codigo'] = $codigoFinal;
+
             $producto = Producto::create([
-                ...$request->safe()->except('presentaciones'),
+                ...$datosProducto,
                 'registrado_por' => auth()->id(),
             ]);
 
             foreach ($request->validated()['presentaciones'] as $presentacionData) {
-
                 $presentacion = $producto->presentaciones()->create([
                     'nombre' => $presentacionData['nombre'],
                     'factor_conversion' => $presentacionData['factor_conversion'],
@@ -100,7 +114,6 @@ class ProductoController extends Controller
                 ]);
 
                 foreach ($presentacionData['codigos_barra'] ?? [] as $codigoData) {
-
                     $presentacion->codigosBarras()->create([
                         'codigo' => $codigoData['codigo'],
                     ]);
@@ -117,7 +130,6 @@ class ProductoController extends Controller
                 ),
             ], 201);
         } catch (\Exception $e) {
-
             DB::rollBack();
 
             return response()->json([
@@ -195,7 +207,6 @@ class ProductoController extends Controller
     public function update(UpdateProductoRequest $request, string $id)
     {
         try {
-
             if (! auth()->user()->hasRole('ADMIN')) {
                 return response()->json([
                     'status' => 'error',
@@ -212,11 +223,28 @@ class ProductoController extends Controller
                 ]);
             }
 
-            $producto->update($request->validated());
+            $datosActualizados = $request->validated();
+
+            if (isset($datosActualizados['codigo'])) {
+                $codigoBase = $datosActualizados['codigo'];
+                $codigoFinal = $codigoBase;
+                $contador = 1;
+
+                while (Producto::where('codigo', $codigoFinal)->where('id', '!=', $producto->id)->exists()) {
+                    $sufijo = '-'.$contador;
+                    $longitudBase = 24 - strlen($sufijo);
+                    $codigoFinal = substr($codigoBase, 0, $longitudBase).$sufijo;
+                    $contador++;
+                }
+
+                $datosActualizados['codigo'] = $codigoFinal;
+            }
+
+            $producto->update($datosActualizados);
 
             return response()->json([
                 'status' => 'ok',
-                'message' => 'Producto actulizado correctamente.',
+                'message' => 'Producto actualizado correctamente.',
                 'Producto' => $producto->fresh(),
             ], 200);
         } catch (\Exception $e) {

@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Categoria\StoreCategoriaRequest;
+use App\Http\Requests\Categoria\UpdateCategoriaRequest;
 use App\Models\Categoria;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use App\Http\Requests\Categoria\StoreCategoriaRequest;
-use App\Http\Requests\Categoria\UpdateCategoriaRequest;
 
 class CategoriaController extends Controller
 {
@@ -23,10 +23,14 @@ class CategoriaController extends Controller
                 ], 403);
             }
 
-            $perPage = $request->get('per_page', 5); // Filas por página (default 5)
-            $page    = $request->get('page', 1);
+            $perPage = $request->input('per_page', 5);
+            $page = $request->input('page', 1);
+            $search = $request->input('search');
 
             $categorias = Categoria::with('creadoPor')
+                ->when($search, function ($query, $search) {
+                    $query->where('nombre', 'like', '%'.$search.'%');
+                })
                 ->orderBy('id', 'desc')
                 ->paginate($perPage, ['*'], 'page', $page);
 
@@ -37,17 +41,16 @@ class CategoriaController extends Controller
             }
 
             return response()->json([
-                'data'         => $categorias->items(),
-                'total'        => $categorias->total(),
-                'per_page'     => $categorias->perPage(),
+                'data' => $categorias->items(),
+                'total' => $categorias->total(),
+                'per_page' => $categorias->perPage(),
                 'current_page' => $categorias->currentPage(),
-                'last_page'    => $categorias->lastPage(),
+                'last_page' => $categorias->lastPage(),
             ], 200);
 
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener las categorias',
-                'error'   => $e->getMessage(),
             ], 500);
         }
     }
@@ -71,20 +74,20 @@ class CategoriaController extends Controller
             ]);
 
             return response()->json([
-                'message'   => 'Categoria creada exitosamente',
+                'message' => 'Categoria creada exitosamente',
                 'categoria' => $categoria,
             ], 201);
 
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors'  => $e->errors(),
+                'errors' => $e->errors(),
             ], 422);
 
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al crear la categoria',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -112,14 +115,14 @@ class CategoriaController extends Controller
             $categoria->update($request->validated());
 
             return response()->json([
-                'message'   => 'Categoría actualizada exitosamente',
+                'message' => 'Categoría actualizada exitosamente',
                 'categoria' => $categoria->fresh(),
             ], 200);
 
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar la categoría',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

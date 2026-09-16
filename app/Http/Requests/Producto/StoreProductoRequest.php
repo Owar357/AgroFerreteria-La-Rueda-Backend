@@ -15,7 +15,7 @@ class StoreProductoRequest extends FormRequest
        public function rules(): array
     {
         return [
-            'codigo' => 'required|string|min:2|max:14|unique:productos,codigo|regex:/^[A-Za-z0-9-]+$/',
+            'codigo' => 'required|string|min:2|max:24|regex:/^[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*$/',
             'nombre' => 'required|string|max:100|unique:productos,nombre',
             'fabricante' => 'nullable|string|max:100',
             'tipo_producto' => 'required|in:UNIDAD FIJA,GRANEL',
