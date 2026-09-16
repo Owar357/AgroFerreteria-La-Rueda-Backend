@@ -12,48 +12,40 @@ use Illuminate\Support\Facades\DB;
 
 class AjusteInventarioController extends Controller
 {
-    /**
-     * Handle the incoming request.
-     */
     public function __invoke(StoreAjusteRequest $request, KardexService $kardexService)
     {
         try {
-
             DB::beginTransaction();
 
-            $numeroAjuste = 'AJU-' . now()->format('YmdHis');
+            $numeroAjuste = 'AJU-'.now()->format('YmdHis');
 
             $ajuste = AjusteInventario::create([
                 'numero_ajuste' => $numeroAjuste,
-                'tipo_ajuste'   => $request->tipo_ajuste,
-                'motivo'        => $request->motivo,
+                'tipo_ajuste' => $request->tipo_ajuste,
+                'motivo' => $request->motivo,
                 'observaciones' => $request->observaciones,
-                'usuario_id'    => auth()->id() ?? 1,
+                'usuario_id' => auth()->id() ?? 1,
             ]);
 
             foreach ($request->detalles as $item) {
-                $lote = Lote::with('presentacion')->lockForUpdate()->findOrFail($item['lote_id']);
-                $presentacion = $lote->presentacion;
+                $lote = Lote::lockForUpdate()->findOrFail($item['lote_id']);
 
                 $cantidadSistema = (float) $lote->cantidad_actual;
-                $costoAnterior   = (float) $lote->costo_unitario_compra;
+                $costoAnterior = (float) $lote->costo_unitario_compra;
 
                 if ($request->tipo_ajuste === 'REEVALUACION') {
 
-                    // --- CASO 1: REEVALUACION DE COSTO ---
                     $costoNuevo = (float) $item['costo_nuevo'];
                     $cantidadFisica = $cantidadSistema;
                     $diferencia = 0.0000;
                     $montoImpacto = ($costoNuevo - $costoAnterior) * $cantidadSistema;
 
-                    // Actualizar el costo del lote
                     $lote->costo_unitario_compra = $costoNuevo;
                     $lote->save();
 
-                    // Registrar en Kardex
                     $kardexService->registrarReevaluacion(
-                        $presentacion,
                         $lote,
+                        $costoAnterior,
                         $costoNuevo,
                         $ajuste,
                         $numeroAjuste,
@@ -62,82 +54,78 @@ class AjusteInventarioController extends Controller
 
                 } else {
 
-                    // --- CASO 2: INCREMENTO O DISMINUCION FISICA ---
                     $cantidadFisica = (float) $item['cantidad_fisica'];
                     $diferencia = $cantidadFisica - $cantidadSistema;
                     $costoNuevo = $costoAnterior;
                     $montoImpacto = $diferencia * $costoAnterior;
+                    $cantidadAjuste = abs($diferencia);
 
                     if ($request->tipo_ajuste === 'INCREMENTO') {
-                        $cantidadAjuste = abs($diferencia);
-                        $lote->cantidad_actual = bcadd($lote->cantidad_actual, $cantidadAjuste, 4);
-                        if ($lote->cantidad_actual > 0 && $lote->estado === 'AGOTADO') {
+
+                        if ($diferencia <= 0) {
+                            throw new Exception("En un INCREMENTO la cantidad física debe ser mayor a la del sistema (lote {$lote->lote_interno}).");
+                        }
+
+                        $lote->cantidad_actual = bcadd($lote->cantidad_actual, (string) $cantidadAjuste, 4);
+                        if ($lote->estado === 'AGOTADO') {
                             $lote->estado = 'ACTIVO';
                         }
                         $lote->save();
 
                         $kardexService->registrarAjusteEntrada(
-                            $presentacion,
-                            $lote,
-                            $cantidadAjuste,
-                            $ajuste,
-                            $numeroAjuste,
-                            $request->motivo
+                            $lote, $cantidadAjuste, $ajuste, $numeroAjuste, $request->motivo
                         );
 
                     } else {
 
-                        // DISMINUCION
-                        $cantidadAjuste = abs($diferencia);
+                        if ($diferencia >= 0) {
+                            throw new Exception("En una DISMINUCION la cantidad física debe ser menor a la del sistema (lote {$lote->lote_interno}).");
+                        }
 
-                        if ($cantidadAjuste > $lote->cantidad_actual) {
+                        if (bccomp((string) $cantidadAjuste, (string) $lote->cantidad_actual, 4) === 1) {
                             throw new Exception("La cantidad a descontar sobrepasa el stock disponible en el lote {$lote->lote_interno}.");
                         }
 
-                        $lote->cantidad_actual = bcsub($lote->cantidad_actual, $cantidadAjuste, 4);
-                        if ($lote->cantidad_actual == 0) {
+                        $lote->cantidad_actual = bcsub($lote->cantidad_actual, (string) $cantidadAjuste, 4);
+                        if (bccomp($lote->cantidad_actual, '0', 4) === 0) {
                             $lote->estado = 'AGOTADO';
                         }
                         $lote->save();
 
                         $kardexService->registrarAjusteSalida(
-                            $presentacion,
-                            $lote,
-                            $cantidadAjuste,
-                            $ajuste,
-                            $numeroAjuste,
-                            $request->motivo
+                            $lote, $cantidadAjuste, $ajuste, $numeroAjuste, $request->motivo
                         );
                     }
                 }
 
-                // Guardar línea de detalle del ajuste
                 DetalleAjusteInventario::create([
                     'ajuste_inventario_id' => $ajuste->id,
-                    'lote_id'              => $lote->id,
-                    'cantidad_sistema'     => $cantidadSistema,
-                    'cantidad_fisica'      => $cantidadFisica,
-                    'diferencia'           => $diferencia,
-                    'costo_anterior'       => $costoAnterior,
-                    'costo_nuevo'          => $costoNuevo,
-                    'monto_impacto'        => $montoImpacto,
+                    'lote_id' => $lote->id,
+                    'cantidad_sistema' => $cantidadSistema,
+                    'cantidad_fisica' => $cantidadFisica,
+                    'diferencia' => $diferencia,
+                    'costo_anterior' => $costoAnterior,
+                    'costo_nuevo' => $costoNuevo,
+                    'monto_impacto' => $montoImpacto,
                 ]);
             }
+
+            $ajuste->load('detalles.lote');
 
             DB::commit();
 
             return response()->json([
-                'status'  => 'ok',
+                'status' => 'ok',
                 'message' => 'Ajuste de inventario procesado correctamente.',
-                'data'    => $ajuste->load('detalles.lote'),
+                'data' => $ajuste,
             ], 201);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
 
             return response()->json([
-                'status'  => 'error',
-                'message' => 'Error al procesar el ajuste de inventario:' 
+                'status' => 'error',
+                'message' => 'Error al procesar el ajuste de inventario.' . $e->getMessage(),
             ], 500);
         }
     }

@@ -13,7 +13,7 @@ class StoreAjusteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return truez;
+        return true;
     }
 
     /**

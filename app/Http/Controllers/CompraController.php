@@ -91,7 +91,7 @@ class CompraController extends Controller
         }
     }
 
-   /**
+    /**
      * Store a newly created resource in storage.
      */
     public function store(StoreCompraRequest $request)
@@ -108,7 +108,7 @@ class CompraController extends Controller
 
                 $productosAfectadosIds = [];
 
-                // 1. REGISTRO DE LOTES Y MOVIMIENTOS EN KARDEX
+           
                 foreach ($request->validated()['detalles'] as $detalle) {
 
                     $lote = Lote::create([
@@ -116,6 +116,9 @@ class CompraController extends Controller
                         'lote_interno' => $this->generarLoteInterno(),
                         'cantidad_actual' => $detalle['lote']['cantidad_inicial'],
                     ]);
+
+                 
+                    $presentacionId = $detalle['presentacion_id'] ?? $detalle['lote']['presentacion_id'];
 
                     $compra->detallesCompra()->create([
                         'cantidad_facturada' => $detalle['cantidad_facturada'],
@@ -125,9 +128,9 @@ class CompraController extends Controller
                         'descuento_linea' => $detalle['descuento_linea'],
                         'sub_total' => $detalle['sub_total'],
                         'lote_id' => $lote->id,
+                        'presentacion_id' => $presentacionId,
                     ]);
 
-                    $presentacionId = $detalle['presentacion_id'] ?? $detalle['lote']['presentacion_id'];
                     $presentacionKardex = Presentacion::with('producto.categoria')->findOrFail($presentacionId);
 
                     $cantidadFisicaIngresada = (float) ($detalle['cantidad_facturada'] + ($detalle['cantidad_bonificada'] ?? 0));
@@ -141,11 +144,10 @@ class CompraController extends Controller
                         'Entrada por Compra '.($compra->numero_documento ?? ('#'.$compra->id))
                     );
 
-                    
                     $productosAfectadosIds[] = $presentacionKardex->producto_id;
                 }
 
-        
+               
                 $productosUnicosIds = array_unique($productosAfectadosIds);
 
                 foreach ($productosUnicosIds as $prodId) {
@@ -153,11 +155,12 @@ class CompraController extends Controller
                         $q->where('activo', true);
                     }])->find($prodId);
 
-                    if (!$producto) continue;
+                    if (! $producto) {
+                        continue;
+                    }
 
                     $porcentajeMinimoRequerido = (float) $producto->porcentaje_ganancia_efectivo;
 
-                    // Obtener todos los lotes activos incluyendo el recién registrado
                     $lotesActivos = Lote::where('estado', 'ACTIVO')
                         ->where('cantidad_actual', '>', 0)
                         ->where(function ($q) use ($producto) {
@@ -173,13 +176,12 @@ class CompraController extends Controller
 
                     $valorTotalInvertido = (float) $lotesActivos->sum(function ($l) {
                         $costoNeto = $l->costo_unitario_compra * (1 - ($l->porcentaje_descuento ?? 0) / 100);
+
                         return $l->cantidad_actual * $costoNeto;
                     });
 
-                    // CPP de la unidad base
                     $costoPromedioUnidadBase = $stockTotal > 0 ? ($valorTotalInvertido / $stockTotal) : 0;
 
-                    // Evaluar las presentaciones activas
                     foreach ($producto->presentaciones as $pres) {
                         $costoPresentacion = $costoPromedioUnidadBase * (float) $pres->factor_conversion;
                         $precioVenta = (float) $pres->precio_venta;
@@ -206,7 +208,6 @@ class CompraController extends Controller
                 }
             });
 
-    
             if (! empty($alertasGanancia)) {
                 return response()->json([
                     'status' => 'warning',
@@ -218,19 +219,18 @@ class CompraController extends Controller
 
             return response()->json([
                 'status' => 'ok',
-                'message' => 'Documento de compra y Detalles de los lotes han sido guardados',
+                'message' => 'Documento de compra y Detalles de los lotes han sido guardados'
             ], 201);
 
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'El producto o la presentación especificada en el detalle no existe en el sistema.',
+                'message' => 'El producto o la presentación especificada en el detalle no existe en el sistema.'
             ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error interno del servidor',
-                'error' => $e->getMessage(),
+                'message' => 'Error interno del servidor'
             ], 500);
         }
     }
@@ -323,7 +323,7 @@ class CompraController extends Controller
                 $item['lote']->estado = 'ANULADO';
                 $item['lote']->save();
 
-                $presentacion = Presentacion::with('producto')->findOrFail($item['lote']->presentacion_id);
+                $presentacion = Presentacion::with('producto')->findOrFail($item['detalle']->presentacion_id);
                 $cantidadFisicaOriginal = (float) ($item['detalle']->cantidad_facturada + ($item['detalle']->cantidad_bonificada ?? 0));
 
                 $this->kardexService->registrarAnulacionCompra(
