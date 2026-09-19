@@ -23,7 +23,7 @@ class CategoriaController extends Controller
                 ], 403);
             }
 
-            $perPage = $request->get('per_page', 5); // Filas por página (default 5)
+            $perPage = $request->get('per_page', 5); 
             $page    = $request->get('page', 1);
 
             $categorias = Categoria::with('creadoPor')

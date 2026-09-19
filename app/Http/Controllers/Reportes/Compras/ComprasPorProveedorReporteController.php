@@ -44,3 +44,5 @@ class ComprasPorProveedorReporteController extends Controller
         return $pdf->stream("compras-detalladas-por-proveedor-{$fechaInicio}-a-{$fechaFin}.pdf");
     }
 }
+
+

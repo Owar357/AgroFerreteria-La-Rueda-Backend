@@ -9,6 +9,8 @@ use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\CodigoBarraController;
 use App\Http\Controllers\CompraController;
 use App\Http\Controllers\KardexController;
+use App\Http\Controllers\VentaController;
+
 use App\Http\Controllers\LoteController;
 use App\Http\Controllers\MovimientoExternoCajaController;
 use App\Http\Controllers\PresentacionController;
@@ -30,6 +32,7 @@ use App\Http\Controllers\Reportes\Ventas\VentasPorUsuarioController;
 use App\Http\Controllers\UnidadMedidaController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Reportes\Compras\ComprasPorProveedorDatosController;
 
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
@@ -63,7 +66,7 @@ Route::middleware('auth:api')->group(function () {
 
     Route::apiResource('codigosBarra', CodigoBarraController::class);
     Route::post('/presentaciones/actualizar-precios-masivo', [PresentacionController::class, 'actualizarPreciosMasivo']);
-    Route::apiResource('presentaciones', PresentacionController::class)->only(['store', 'update', 'destroy']);
+    Route::apiResource('presentaciones', PresentacionController::class)->only(['index','store', 'update', 'destroy']);
     Route::patch('/proveedores/{id}/desactivar', [ProveedorController::class, 'desactivarProveedor']);
     Route::get('/proveedor/proveedores', [ProveedorController::class, 'traerNombreProveedores']);
     Route::apiResource('proveedores', ProveedorController::class);
@@ -95,6 +98,7 @@ Route::prefix('/reportes')->group(function () {
     Route::get('/productos-por-vencer', ProductosPorVencerReporteController::class);
 
     Route::get('/compras/por-proveedor', ComprasPorProveedorReporteController::class);
+    Route::get('/compras/por-proveedor/datos', ComprasPorProveedorDatosController::class); 
 
     Route::get('/caja/arqueo', ArqueoCajaReporteController::class);
 
