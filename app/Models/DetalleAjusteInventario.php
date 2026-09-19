@@ -32,7 +32,7 @@ class DetalleAjusteInventario extends Model
         return $this->belongsTo(AjusteInventario::class);
     }
 
-    public function lotes(){
-        return $this->hasMany(lote::class);
+    public function lote(){
+        return $this->belongsTo(Lote::class);
     }
 }

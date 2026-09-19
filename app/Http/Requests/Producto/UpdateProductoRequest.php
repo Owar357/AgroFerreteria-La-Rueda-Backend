@@ -17,7 +17,7 @@ class UpdateProductoRequest extends FormRequest
         $productoId = $this->route('producto');
 
         return [
-            'codigo' => 'sometimes|string|min:2|max:14|unique:productos,codigo,'.$productoId.'|regex:/^[A-Za-z0-9-]+$/',
+            'codigo' => 'sometimes|string|min:2|max:24|regex:/^[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*$/',
             'nombre' => 'sometimes|string|max:100',
             'fabricante' => 'nullable|string|max:100',
             'categoria_id' => 'sometimes|exists:categorias,id',

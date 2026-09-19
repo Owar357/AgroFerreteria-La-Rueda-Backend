@@ -129,23 +129,24 @@ td {
     <hr>
 
     @foreach($venta->detallesVenta as $detalle)
-    <div class="detalle">
-        <strong>{{ $detalle->nombre_producto }}</strong>
-        <table style="margin-top:2px;">
-            <tr>
-                <td style="width: 65%;">
-                    {{ number_format($detalle->cantidad, 2) }} x ${{ number_format($detalle->precio_unitario, 2) }}
-                    @if(($detalle->descuento_aplicado ?? 0) > 0)
-                        <br><small style="color:#555;">(Desc. -${{ number_format($detalle->descuento_aplicado, 2) }})</small>
-                    @endif
-                </td>
-                <td style="width: 35%;" class="right">
-                    ${{ number_format($detalle->subtotal, 2) }}
-                </td>
-            </tr>
-        </table>
-    </div>
-    @endforeach
+<div class="detalle">
+    <strong>{{ $detalle->nombre_producto }}</strong>
+    <small style="display:block; color:#666;">Presentación: {{ $detalle->presentacion }}</small>
+    <table style="margin-top:2px;">
+        <tr>
+            <td style="width: 65%;">
+                {{ number_format($detalle->cantidad, 2) }} x ${{ number_format($detalle->precio_unitario, 2) }}
+                @if(($detalle->descuento_aplicado ?? 0) > 0)
+                    <br><small style="color:#555;">(Desc. -${{ number_format($detalle->descuento_aplicado, 2) }})</small>
+                @endif
+            </td>
+            <td style="width: 35%;" class="right">
+                ${{ number_format($detalle->subtotal, 2) }}
+            </td>
+        </tr>
+    </table>
+</div>
+@endforeach
 
     <hr>
 

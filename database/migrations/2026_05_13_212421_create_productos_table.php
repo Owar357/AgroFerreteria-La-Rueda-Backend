@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('productos', function (Blueprint $table) {
             $table->id();
-            $table->string('codigo', 14)->unique();
+            $table->string('codigo', 24)->unique();
             $table->string('nombre', 100)->index();
             $table->string('fabricante', 100)->nullable();
             $table->enum('tipo_producto', ['UNIDAD FIJA', 'GRANEL'])->index();
