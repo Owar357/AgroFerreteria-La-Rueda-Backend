@@ -3,11 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
-
-    <title>Reporte de Productos Menos Vendidos</title>
+    <title>Reporte de Resumen de Ventas - Agroferretería La Rueda</title>
 
     <style>
-
         @page {
             margin: 1.5cm 1.5cm 2cm 1.5cm;
         }
@@ -22,8 +20,8 @@
         footer {
             position: fixed;
             bottom: -1cm;
-            left: 0;
-            right: 0;
+            left: 0px;
+            right: 0px;
             height: 0.8cm;
             text-align: center;
             font-size: 11px;
@@ -45,6 +43,7 @@
             right: 0;
             font-size: 11px;
             color: #555;
+            text-align: right;
         }
 
         .logo {
@@ -83,10 +82,33 @@
             border-radius: 4px;
         }
 
-        table {
+        .resumen {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+        }
+
+        .resumen td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .resumen-titulo {
+            background-color: #eaeaea;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .resumen-valor {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
         }
 
         th {
@@ -107,22 +129,9 @@
             text-align: right;
         }
 
-        .totales {
-            margin-top: 20px;
-            width: 300px;
-            float: right;
-            page-break-inside: avoid;
-        }
-
-        .totales td {
-            border: none;
-            padding: 5px;
-        }
-
         .page-number:before {
             content: counter(page);
         }
-
     </style>
 </head>
 
@@ -135,11 +144,8 @@
     <div class="encabezado">
 
         <div class="fecha-emision-top">
-
             <strong>Reporte emitido el:</strong>
-
             {{ \Carbon\Carbon::now()->format('d/m/Y h:i A') }}
-
         </div>
 
         <img src="{{ public_path('img/logo.jpeg') }}" class="logo">
@@ -149,173 +155,106 @@
         </div>
 
         <div class="datos-empresa">
-
-            <p>
-                lotificación San Rafael, Aguilares,
-                polígono 22, lote 13 y 14
-            </p>
-
+            <p>lotificación San Rafael, Aguilares, polígono 22, lote 13 y 14</p>
         </div>
 
         <div class="subtitulo">
-            Reporte de Productos Menos Vendidos
+            Resumen General y Tendencias de Ventas
         </div>
 
         <div class="apartado-fechas">
-
             <strong>Período:</strong>
-
-            Desde
-            {{ \Carbon\Carbon::parse($fecha_inicio)->format('d/m/Y') }}
-
-            Hasta
-            {{ \Carbon\Carbon::parse($fecha_fin)->format('d/m/Y') }}
-
+            Desde {{ \Carbon\Carbon::parse($fecha_inicio)->format('d/m/Y') }}
+            Hasta {{ \Carbon\Carbon::parse($fecha_fin)->format('d/m/Y') }}
         </div>
 
     </div>
 
 
+    <table class="resumen">
+
+        <tr>
+            <td class="resumen-titulo">
+                TOTAL VENDIDO
+            </td>
+
+            <td class="resumen-titulo">
+                NÚMERO DE VENTAS
+            </td>
+
+            <td class="resumen-titulo">
+                Gasto Promedio Por Venta
+            </td>
+        </tr>
+
+        <tr>
+            <td class="resumen-valor">
+                ${{ number_format($total_vendido, 2, '.', ',') }}
+            </td>
+
+            <td class="resumen-valor">
+                {{ $numero_ventas }}
+            </td>
+
+            <td class="resumen-valor">
+                ${{ number_format($ticket_promedio, 2, '.', ',') }}
+            </td>
+        </tr>
+
+    </table>
+
+
     <table>
 
         <thead>
-
             <tr>
-
-                <th style="width: 8%;">
-                    POSICIÓN
+                <th style="width: 35%;">
+                    PERÍODO
                 </th>
 
-                <th style="width: 32%;">
-                    PRODUCTO
-                </th>
-
-                <th style="width: 20%;">
-                    UNIDADES VENDIDAS
-                </th>
-
-                <th style="width: 20%;">
-                    TOTAL VENDIDO
-                </th>
-
-                <th style="width: 20%;">
+                <th style="width: 30%;">
                     NÚMERO DE VENTAS
                 </th>
 
+                <th style="width: 35%;">
+                    TOTAL VENDIDO
+                </th>
             </tr>
-
         </thead>
 
         <tbody>
 
-            @php
-                $totalUnidades = 0;
-                $totalVendido = 0;
-                $totalVentas = 0;
-            @endphp
-
-            @forelse($resultado as $index => $producto)
-
-                @php
-                    $totalUnidades += $producto->unidades_vendidas;
-                    $totalVendido += $producto->monto_total;
-                    $totalVentas += $producto->numero_transacciones;
-                @endphp
+            @forelse($serie as $periodo)
 
                 <tr>
-
                     <td>
-                        <strong>
-                            {{ $index + 1 }}
-                        </strong>
+                        @if($tipo_agrupacion == 'diaria')
+                            {{ \Carbon\Carbon::parse($periodo['periodo'])->format('d/m/Y') }}
+                        @else
+                            Semana del {{ \Carbon\Carbon::parse($periodo['periodo'])->format('d/m/Y') }}
+                        @endif
                     </td>
 
                     <td>
-                        <strong>
-                            {{ $producto->nombre }}
-                        </strong>
-                    </td>
-
-                    <td>
-                        {{ number_format($producto->unidades_vendidas, 3) }}
+                        {{ $periodo['cantidad_ventas'] }}
                     </td>
 
                     <td class="text-right">
-                        ${{ number_format($producto->monto_total, 2) }}
+                        ${{ number_format($periodo['total'], 2, '.', ',') }}
                     </td>
-
-                    <td>
-                        {{ $producto->numero_transacciones }}
-                    </td>
-
                 </tr>
 
             @empty
 
                 <tr>
-
-                    <td colspan="5" style="padding: 20px; color: #777;">
-
-                        No se encontraron productos vendidos
-                        en el período seleccionado.
-
+                    <td colspan="3" style="padding: 20px; color: #777;">
+                        No se encontraron ventas en el período seleccionado.
                     </td>
-
                 </tr>
 
             @endforelse
 
         </tbody>
-
-    </table>
-
-
-    <table class="totales">
-
-        <tr>
-
-            <td class="text-right">
-                <strong>Unidades vendidas:</strong>
-            </td>
-
-            <td class="text-right"
-                style="width: 40%; border-bottom: 1px solid #ccc;">
-
-                {{ number_format($totalUnidades, 3) }}
-
-            </td>
-
-        </tr>
-
-        <tr>
-
-            <td class="text-right">
-                <strong>Total vendido:</strong>
-            </td>
-
-            <td class="text-right"
-                style="border-bottom: 2px double #333; font-weight: bold;">
-
-                ${{ number_format($totalVendido, 2) }}
-
-            </td>
-
-        </tr>
-
-        <tr>
-
-            <td class="text-right">
-                <strong>Número de ventas:</strong>
-            </td>
-
-            <td class="text-right"
-                style="border-bottom: 2px double #333; font-weight: bold;">
-
-                {{ $totalVentas }}
-
-            </td>
-
-        </tr>
 
     </table>
 

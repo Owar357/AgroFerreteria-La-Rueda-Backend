@@ -47,27 +47,34 @@
             text-align: right;
         }
 
+        .logo-container {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
         .logo {
-            width: 90px;
-            margin-bottom: 8px;
+            width: 80px;
+            height: auto;
+            display: inline-block;
         }
 
         .titulo {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: bold;
             letter-spacing: 1px;
+            margin-top: 5px;
         }
 
         .datos-empresa {
             font-size: 11px;
             color: #555;
-            margin-top: 5px;
+            margin-top: 4px;
         }
 
         .subtitulo {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
-            margin-top: 12px;
+            margin-top: 10px;
             text-transform: uppercase;
         }
 
@@ -128,6 +135,31 @@
             font-weight: bold;
         }
 
+        /* Sección de Firmas */
+        .firmas-container {
+            width: 100%;
+            margin-top: 60px;
+            border-collapse: collapse;
+        }
+
+        .firmas-container td {
+            width: 50%;
+            text-align: center;
+            vertical-align: bottom;
+            padding: 0 30px;
+        }
+
+        .linea-firma {
+            border-top: 1px solid #333;
+            margin-bottom: 5px;
+        }
+
+        .cargo-firma {
+            font-size: 11px;
+            font-weight: bold;
+            color: #555;
+        }
+
         .page-number:before {
             content: counter(page);
         }
@@ -148,7 +180,9 @@
             {{ \Carbon\Carbon::now()->format('d/m/Y h:i A') }}
         </div>
 
-        <img src="{{ public_path('img/logo.jpeg') }}" class="logo">
+        <div class="logo-container">
+            <img src="{{ public_path('img/logo.jpeg') }}" class="logo">
+        </div>
 
         <div class="titulo">
             AGROFERRETERÍA LA RUEDA
@@ -169,20 +203,24 @@
 
         <tr>
             <td>Cajero</td>
-            <td>{{ $resultado['cajero'] }}</td>
+            <td>{{ $resultado['cajero'] ?? 'N/A' }}</td>
         </tr>
 
         <tr>
             <td>Fecha y hora de apertura</td>
             <td>
-                {{ \Carbon\Carbon::parse($resultado['fecha_apertura'])->format('d/m/Y h:i A') }}
+                @if(!empty($resultado['fecha_apertura']))
+                    {{ \Carbon\Carbon::parse($resultado['fecha_apertura'])->format('d/m/Y h:i A') }}
+                @else
+                    Sin fecha registrada
+                @endif
             </td>
         </tr>
 
         <tr>
             <td>Fecha y hora de cierre</td>
             <td>
-                @if($resultado['fecha_cierre'])
+                @if(!empty($resultado['fecha_cierre']))
                     {{ \Carbon\Carbon::parse($resultado['fecha_cierre'])->format('d/m/Y h:i A') }}
                 @else
                     Sin cierre registrado
@@ -209,14 +247,14 @@
             <tr>
                 <td>Monto inicial</td>
                 <td class="text-right">
-                    ${{ number_format($resultado['monto_inicial'], 2) }}
+                    ${{ number_format($resultado['monto_inicial'] ?? 0, 2) }}
                 </td>
             </tr>
 
             <tr>
                 <td>Ventas en efectivo</td>
                 <td class="text-right">
-                    ${{ number_format($resultado['ventas_efectivo'], 2) }}
+                    ${{ number_format($resultado['ventas_efectivo'] ?? 0, 2) }}
                 </td>
             </tr>
 
@@ -224,7 +262,7 @@
                 <td><strong>Monto esperado</strong></td>
                 <td class="text-right">
                     <strong>
-                        ${{ number_format($resultado['monto_esperado'], 2) }}
+                        ${{ number_format($resultado['monto_esperado'] ?? 0, 2) }}
                     </strong>
                 </td>
             </tr>
@@ -232,7 +270,7 @@
             <tr>
                 <td>Monto contado</td>
                 <td class="text-right">
-                    ${{ number_format($resultado['monto_contado'], 2) }}
+                    ${{ number_format($resultado['monto_contado'] ?? 0, 2) }}
                 </td>
             </tr>
 
@@ -245,9 +283,9 @@
 
         <div class="estado">
 
-            @if($resultado['estado_arqueo'] == 'SOBRANTE')
+            @if(($resultado['estado_arqueo'] ?? '') === 'SOBRANTE')
                 SOBRANTE
-            @elseif($resultado['estado_arqueo'] == 'FALTANTE')
+            @elseif(($resultado['estado_arqueo'] ?? '') === 'FALTANTE')
                 FALTANTE
             @else
                 CUADRE EXACTO
@@ -258,11 +296,27 @@
         <div class="diferencia">
 
             Diferencia:
-            ${{ number_format(abs($resultado['diferencia']), 2) }}
+            ${{ number_format(abs($resultado['diferencia'] ?? 0), 2) }}
 
         </div>
 
     </div>
+
+    <!-- Bloque de Firmas -->
+    <table class="firmas-container">
+        <tr>
+            <td>
+                <div class="linea-firma"></div>
+                <strong>{{ $resultado['cajero'] ?? 'Firma del Cajero' }}</strong><br>
+                <span class="cargo-firma">Cajero Responsable</span>
+            </td>
+            <td>
+                <div class="linea-firma"></div>
+                <strong>Firma y Sello</strong><br>
+                <span class="cargo-firma">Supervisor / Administrador</span>
+            </td>
+        </tr>
+    </table>
 
 </body>
 

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
@@ -55,6 +54,31 @@ class UserController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+
+    public function  ListarUsuariosRolCajero(){
+         
+      try {
+       
+         $usuarios = User::role('CAJERO')
+         ->where('activo','true')
+         ->select('id','nombre' )
+         ->get();
+
+
+         return response()->json([
+             'status' => 'ok',
+             'data' => $usuarios
+         ],200);
+  
+      } catch (\Throwable $e) {
+          return response()->json([
+             'status' => 'error',
+             'message' => 'ocurrio un error interno en el servidor y no se pudo listar los usuarios'
+         ],500);
+      } 
+
     }
 
     /**

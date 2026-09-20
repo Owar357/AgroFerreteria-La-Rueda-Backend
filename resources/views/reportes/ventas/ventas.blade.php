@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Reporte de Margen de Ganancia - Agroferretería La Rueda</title>
+    <title>Reporte de Ventas - Agroferretería La Rueda</title>
 
     <style>
 
@@ -17,6 +17,7 @@
             color: #333;
             margin: 10px;
         }
+
 
         footer {
             position: fixed;
@@ -37,6 +38,7 @@
             padding-bottom: 15px;
             position: relative;
         }
+
 
         .fecha-emision-top {
             position: absolute;
@@ -108,21 +110,33 @@
         }
 
         .totales {
-            margin-top: 20px;
-            width: 280px;
-            float: right;
-            page-break-inside: avoid;
+        margin-top: 25px;
+        width: 320px;
+        float: right;
+        page-break-inside: avoid;
+        font-size: 12px;
         }
 
         .totales td {
             border: none;
-            padding: 5px;
+            padding: 6px 8px;
         }
+
+        .tr-subtotal td {
+        border-top: 1px solid #ccc;
+        }
+
+        tr-total-general td {
+        border-top: 1px solid #333;
+        border-bottom: 3px double #333;
+        font-weight: bold;
+        font-size: 13px;
+        }
+
 
         .page-number:before {
             content: counter(page);
         }
-
     </style>
 </head>
 
@@ -133,10 +147,8 @@
     </footer>
 
     <div class="encabezado">
-
         <div class="fecha-emision-top">
-            <strong>Reporte emitido el:</strong>
-            {{ \Carbon\Carbon::now()->format('d/m/Y h:i A') }}
+            <strong>Reporte emitido el:</strong> {{ \Carbon\Carbon::now()->format('d/m/Y h:i A') }}
         </div>
 
         <img src="{{ public_path('img/logo.jpeg') }}" class="logo">
@@ -147,145 +159,85 @@
             <p>lotificación San Rafael, Aguilares, polígono 22, lote 13 y 14</p>
         </div>
 
-        <div class="subtitulo">
-            Reporte de Margen de Ganancia por Producto
-        </div>
+        <div class="subtitulo">Reporte de Ventas</div>
 
         <div class="apartado-fechas">
-
-            <strong>Período:</strong>
-
-            Desde
-            {{ \Carbon\Carbon::parse($fecha_inicio)->format('d/m/Y') }}
-
-            Hasta
-            {{ \Carbon\Carbon::parse($fecha_fin)->format('d/m/Y') }}
-
+            @if(isset($fecha_desde) && isset($fecha_hasta) && $fecha_desde && $fecha_hasta)
+                <strong>Período:</strong> Desde {{ \Carbon\Carbon::parse($fecha_desde)->format('d/m/Y') }} Hasta {{ \Carbon\Carbon::parse($fecha_hasta)->format('d/m/Y') }}
+            @else
+                <strong>Período:</strong> Historial General de Ventas
+            @endif
         </div>
-
     </div>
 
-
     <table>
-
         <thead>
-
             <tr>
                 <th style="width: 5%;">N°</th>
-
-                <th style="width: 28%;">
-                    PRODUCTO
-                </th>
-
-                <th style="width: 17%;">
-                    PRECIO VENTA PROMEDIO
-                </th>
-
-                <th style="width: 17%;">
-                    COSTO PROMEDIO PONDERADO
-                </th>
-
-                <th style="width: 15%;">
-                    MARGEN
-                </th>
-
-                <th style="width: 18%;">
-                    MARGEN %
-                </th>
+                <th style="width: 20%;">FACTURA</th>
+                <th style="width: 20%;">FECHA Y HORA</th>
+                <th style="width: 15%;">TIPO PAGO</th>
+                <th style="width: 13%;">SUBTOTAL</th>
+                <th style="width: 12%;">IVA</th>
+                <th style="width: 15%;">TOTAL</th>
             </tr>
-
         </thead>
-
         <tbody>
 
             @php
-                $margenTotal = 0;
-                $cantidadProductos = 0;
+                $subtotalGeneral = 0;
+                $ivaGeneral = 0;
+                $totalGeneral = 0;
             @endphp
 
-            @forelse($resultado as $index => $producto)
-
+            @forelse($ventas as $index => $venta)
                 @php
-                    $margenTotal += $producto['margen_absoluto'];
-                    $cantidadProductos++;
+                    // Usamos gravado en lugar de subtotal para coincidir con la columna correcta de la BD
+                    $subtotalGeneral += $venta->gravado;
+                    $ivaGeneral += $venta->iva;
+                    $totalGeneral += $venta->total;
                 @endphp
 
                 <tr>
-
-                    <td>
-                        {{ $index + 1 }}
-                    </td>
-
-                    <td>
-                        <strong>
-                            {{ $producto['producto'] }}
-                        </strong>
-                    </td>
-
-                    <td class="text-right">
-                        ${{ number_format($producto['precio_venta_promedio'], 3) }}
-                    </td>
-
-                    <td class="text-right">
-                        ${{ number_format($producto['costo_promedio_ponderado'], 3) }}
-                    </td>
-
-                    <td class="text-right">
-                        ${{ number_format($producto['margen_absoluto'], 3) }}
-                    </td>
-
-                    <td class="text-right">
-                        {{ number_format($producto['margen_porcentual'], 3) }}%
-                    </td>
-
+                    <td>{{ $index + 1 }}</td>
+                    <td><strong>{{ $venta->numero_factura }}</strong></td>
+                    <td>{{ \Carbon\Carbon::parse($venta->created_at)->format('d/m/Y h:i A') }}</td>
+                    <td>{{ $venta->tipo_pago }}</td>
+                
+                    <td class="text-right">${{ number_format($venta->gravado, 2, '.', ',') }}</td>
+                    <td class="text-right">${{ number_format($venta->iva, 2, '.', ',') }}</td>
+                    <td class="text-right" style="font-weight: bold;">${{ number_format($venta->total, 2, '.', ',') }}</td>
                 </tr>
-
             @empty
-
                 <tr>
-
-                    <td colspan="6" style="padding: 20px; color: #777;">
-                        No se encontraron productos con ventas en el período seleccionado.
+                    <td colspan="7" style="padding: 20px; color: #777;">
+                        No se encontraron registros de ventas en el rango de fechas seleccionado.
                     </td>
-
                 </tr>
-
             @endforelse
 
         </tbody>
-
     </table>
 
-
     <table class="totales">
-
         <tr>
-
-            <td class="text-right">
-                <strong>Productos:</strong>
-            </td>
-
+            <td class="text-right"><strong>Subtotal General:</strong></td>
             <td class="text-right" style="width: 40%; border-bottom: 1px solid #ccc;">
-                {{ $cantidadProductos }}
+                ${{ number_format($subtotalGeneral, 2) }}
             </td>
-
         </tr>
-
         <tr>
-
-            <td class="text-right">
-                <strong>Margen acumulado:</strong>
+            <td class="text-right"><strong>IVA General:</strong></td>
+            <td class="text-right" style="border-bottom: 1px solid #ccc;">
+                ${{ number_format($ivaGeneral, 2) }}
             </td>
-
-            <td class="text-right"
-                style="border-bottom: 2px double #333; font-weight: bold;">
-
-                ${{ number_format($margenTotal, 3) }}
-
-            </td>
-
         </tr>
-
+        <tr>
+            <td class="text-right" style="font-size: 13px;"><strong>Total General:</strong></td>
+            <td class="text-right" style="font-size: 13px; font-weight: bold; color: #000; border-bottom: 2px double #333;">
+                ${{ number_format($totalGeneral, 2) }}
+            </td>
+        </tr>
     </table>
 
 </body>

@@ -3,10 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Reporte de Productos Próximos a Vencer</title>
+    <title>Reporte de Margen de Ganancia - Agroferretería La Rueda</title>
 
     <style>
-
         @page {
             margin: 1.5cm 1.5cm 2cm 1.5cm;
         }
@@ -21,12 +20,13 @@
         footer {
             position: fixed;
             bottom: -1cm;
-            left: 0;
-            right: 0;
+            left: 0px;
+            right: 0px;
             height: 0.8cm;
             text-align: center;
             font-size: 11px;
             font-weight: bold;
+            color: #333;
         }
 
         .encabezado {
@@ -43,6 +43,7 @@
             right: 0;
             font-size: 11px;
             color: #555;
+            text-align: right;
         }
 
         .logo {
@@ -60,12 +61,14 @@
             font-size: 11px;
             color: #555;
             margin-top: 5px;
+            line-height: 1.4;
         }
 
         .subtitulo {
             font-size: 14px;
             font-weight: bold;
             margin-top: 12px;
+            color: #222;
             text-transform: uppercase;
         }
 
@@ -99,18 +102,15 @@
             text-align: center;
         }
 
-        .vencimiento {
-            font-weight: bold;
-        }
-
         .text-right {
             text-align: right;
         }
 
         .totales {
             margin-top: 20px;
-            width: 280px;
+            width: 320px;
             float: right;
+            page-break-inside: avoid;
         }
 
         .totales td {
@@ -121,7 +121,6 @@
         .page-number:before {
             content: counter(page);
         }
-
     </style>
 </head>
 
@@ -132,161 +131,84 @@
     </footer>
 
     <div class="encabezado">
-
         <div class="fecha-emision-top">
             <strong>Reporte emitido el:</strong>
-            {{ $fecha_corte->format('d/m/Y h:i A') }}
+            {{ \Carbon\Carbon::now()->format('d/m/Y h:i A') }}
         </div>
 
         <img src="{{ public_path('img/logo.jpeg') }}" class="logo">
 
-        <div class="titulo">
-            AGROFERRETERÍA LA RUEDA
-        </div>
+        <div class="titulo">AGROFERRETERÍA LA RUEDA</div>
 
         <div class="datos-empresa">
             <p>lotificación San Rafael, Aguilares, polígono 22, lote 13 y 14</p>
         </div>
 
         <div class="subtitulo">
-            Reporte de Productos Próximos a Vencer
+            Reporte Financiero de Margen de Ganancia por Producto
         </div>
 
         <div class="apartado-fechas">
-            <strong>Umbral:</strong>
-            Próximos {{ $dias_umbral }} días
+            <strong>Período:</strong>
+            Desde {{ \Carbon\Carbon::parse($fecha_inicio)->format('d/m/Y') }}
+            Hasta {{ \Carbon\Carbon::parse($fecha_fin)->format('d/m/Y') }}
         </div>
-
     </div>
 
-
     <table>
-
         <thead>
-
             <tr>
-
-                <th style="width: 8%;">
-                    POSICIÓN
-                </th>
-
-                <th style="width: 25%;">
-                    PRODUCTO
-                </th>
-
-                <th style="width: 22%;">
-                    PRESENTACIÓN
-                </th>
-
-                <th style="width: 18%;">
-                    LOTE
-                </th>
-
-                <th style="width: 15%;">
-                    VENCIMIENTO
-                </th>
-
-                <th style="width: 12%;">
-                    CANTIDAD
-                </th>
-
+                <th style="width: 5%;">N°</th>
+                <th style="width: 28%;">PRODUCTO</th>
+                <th style="width: 17%;">PRECIO VENTA PROMEDIO (PVP)</th>
+                <th style="width: 17%;">COSTO PROMEDIO PONDERADO (CPP)</th>
+                <th style="width: 15%;">MARGEN UNITARIO (ABS)</th>
+                <th style="width: 18%;">MARGEN BRUTO (%)</th>
             </tr>
-
         </thead>
-
         <tbody>
-
             @php
-                $totalCantidad = 0;
+                $margenTotalAcumulado = 0;
+                $cantidadProductos = 0;
             @endphp
 
-            @forelse($resultado as $index => $lote)
-
+            @forelse($resultado as $index => $producto)
                 @php
-                    $totalCantidad += $lote->cantidad_actual;
+                    $margenTotalAcumulado += $producto['margen_absoluto'];
+                    $cantidadProductos++;
                 @endphp
 
                 <tr>
-
-                    <td>
-                        <strong>
-                            {{ $index + 1 }}
-                        </strong>
-                    </td>
-
-                    <td>
-                        <strong>
-                            {{ $lote->producto }}
-                        </strong>
-                    </td>
-
-                    <td>
-                        {{ $lote->presentacion }}
-                    </td>
-
-                    <td>
-                        {{ $lote->lote_interno }}
-                    </td>
-
-                    <td class="vencimiento">
-                        {{ \Carbon\Carbon::parse($lote->fecha_vencimiento)->format('d/m/Y') }}
-                    </td>
-
-                    <td>
-                        {{ number_format($lote->cantidad_actual, 3) }}
-                    </td>
-
+                    <td>{{ $index + 1 }}</td>
+                    <td><strong>{{ $producto['producto'] }}</strong></td>
+                    <td class="text-right">${{ number_format($producto['precio_venta_promedio'], 2) }}</td>
+                    <td class="text-right">${{ number_format($producto['costo_promedio_ponderado'], 2) }}</td>
+                    <td class="text-right">${{ number_format($producto['margen_absoluto'], 2) }}</td>
+                    <td class="text-right">{{ number_format($producto['margen_porcentual'], 2) }}%</td>
                 </tr>
-
             @empty
-
                 <tr>
-
                     <td colspan="6" style="padding: 20px; color: #777;">
-                        No se encontraron lotes próximos a vencer.
+                        No se encontraron productos con ventas en el período seleccionado.
                     </td>
-
                 </tr>
-
             @endforelse
-
         </tbody>
-
     </table>
 
-
     <table class="totales">
-
         <tr>
-
-            <td class="text-right">
-                <strong>Total de lotes:</strong>
+            <td class="text-right"><strong>Total Productos Evaluados:</strong></td>
+            <td class="text-right" style="width: 40%; border-bottom: 1px solid #ccc;">
+                {{ $cantidadProductos }}
             </td>
-
-            <td class="text-right"
-                style="width: 40%; border-bottom: 1px solid #ccc;">
-
-                {{ count($resultado) }}
-
-            </td>
-
         </tr>
-
         <tr>
-
-            <td class="text-right">
-                <strong>Cantidad disponible:</strong>
+            <td class="text-right"><strong>Margen Bruto Acumulado:</strong></td>
+            <td class="text-right" style="border-bottom: 2px double #333; font-weight: bold;">
+                ${{ number_format($margenTotalAcumulado, 2) }}
             </td>
-
-            <td class="text-right"
-                style="border-bottom: 2px double #333; font-weight: bold;">
-
-                {{ number_format($totalCantidad, 3) }}
-
-            </td>
-
         </tr>
-
     </table>
 
 </body>
