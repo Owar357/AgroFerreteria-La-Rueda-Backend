@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Presentacion\StorePresentacionesRequest;
+use App\Http\Requests\Presentacion\UpdatePreciosMasivoRequest;
 use App\Http\Requests\Presentacion\UpdatePresentacionesRequest;
-
 use App\Models\Presentacion;
 use App\Models\Producto;
 use Exception;
@@ -45,7 +45,7 @@ class PresentacionController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error interno en el Servidor',
-                'sqlmessage' => $th->getMessage()
+                'sqlmessage' => $th->getMessage(),
             ], 500);
         }
     }
@@ -53,7 +53,7 @@ class PresentacionController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdatePresentacionesRequest $request, string $id)
+    public function update(UpdatePresentacionesRequest $request, string $id, KardexService $kardexService)
     {
         try {
 
@@ -75,18 +75,27 @@ class PresentacionController extends Controller
             DB::beginTransaction();
 
             $presentacionData = $request->validated();
+            $factorAnterior = (float) $presentacion->factor_conversion;
 
             if ($request->filled('precio_venta') && $presentacion->producto->aplica_iva) {
                 $presentacionData['precio_venta'] = $presentacionData['precio_venta'] * 1.13;
             }
-            
+
             $presentacion->update($presentacionData);
+
+            if (isset($presentacionData['factor_conversion']) && (float) $presentacionData['factor_conversion'] !== $factorAnterior) {
+                $kardexService->registrarCambioFactorConversion(
+                    $presentacion,
+                    $factorAnterior,
+                    (float) $presentacionData['factor_conversion']
+                );
+            }
 
             DB::commit();
 
             return response()->json([
                 'status' => 'ok',
-                'message' => 'Presentacion actualizada correctamente',
+                'message' => 'Presentación actualizada correctamente',
                 'data' => $presentacion->fresh(['producto', 'unidadMedida']),
             ], 200);
 
@@ -97,6 +106,39 @@ class PresentacionController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error interno del servidor',
+            ], 500);
+        }
+    }
+
+    /**
+     * Actualización masiva de precios de venta desde la auditoría de compras.
+     */
+    public function actualizarPreciosMasivo(UpdatePreciosMasivoRequest $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            $datos = $request->validated();
+
+            foreach ($datos['precios'] as $item) {
+                Presentacion::where('id', $item['presentacion_id'])->update([
+                    'precio_venta' => $item['precio_venta_sugerido'],
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Los precios de las presentaciones se actualizaron correctamente.',
+            ], 200);
+
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error al actualizar los precios masivos.',
             ], 500);
         }
     }

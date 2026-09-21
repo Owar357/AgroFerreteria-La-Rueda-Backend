@@ -30,14 +30,13 @@ class DetalleVenta extends Model
         'descuento_aplicado' => 'decimal:2',
     ];
 
-    public function lote()
+    public function loteDetallesVenta()
     {
-        return $this->belongsTo(Lote::class);
+        return $this->hasMany(LoteDetalleVenta::class, 'detalle_venta_id');
     }
 
     public function venta()
     {
         return $this->belongsTo(Venta::class);
     }
-
 }

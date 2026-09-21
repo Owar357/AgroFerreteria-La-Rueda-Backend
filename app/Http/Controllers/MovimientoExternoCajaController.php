@@ -62,7 +62,7 @@ class MovimientoExternoCajaController extends Controller
         } catch (ModelNotFoundException $m) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Actualmente no existe una apertura  de venta activa',
+                'message' => 'Actualmente no existe una apertura  de venta activa para registrar un movimiento',
             ], 404);
         } catch (\Throwable $th) {
             return response()->json([

@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Producto\StoreProductoRequest;
 use App\Http\Requests\Producto\UpdateProductoRequest;
+use App\Models\Lote;
 use App\Models\Presentacion;
 use App\Models\Producto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-
 
 class ProductoController extends Controller
 {
@@ -27,10 +27,28 @@ class ProductoController extends Controller
 
             $perPage = $request->input('per_page', 8);
             $page = $request->input('page', 1);
+            $search = trim($request->input('q', ''));
+            $categoria = $request->input('categoria', null);
 
-            $productos = Producto::with(['categoria:id,nombre', 'unidadMedida:id,nombre,abreviatura'])
-                ->select('id', 'codigo', 'nombre', 'fabricante', 'tipo_producto', 'unidad_medida_id', 'categoria_id')
-                ->orderBy('id', 'desc')
+            // Construcción de la consulta base
+            $query = Producto::with(['categoria:id,nombre,porcentaje_ganancia_minimo', 'unidadMedida:id,nombre,abreviatura'])
+                ->select('id', 'codigo', 'nombre', 'fabricante', 'tipo_producto', 'unidad_medida_id', 'porcentaje_ganancia_minimo', 'categoria_id');
+
+            if (! empty($search)) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('nombre', 'ILIKE', "%{$search}%")
+                        ->orWhere('codigo', 'ILIKE', "%{$search}%")
+                        ->orWhere('fabricante', 'ILIKE', "%{$search}%");
+                });
+            }
+
+            if (! empty($categoria)) {
+                $query->whereHas('categoria', function ($q) use ($categoria) {
+                    $q->where('nombre', $categoria);
+                });
+            }
+
+            $productos = $query->orderBy('id', 'desc')
                 ->paginate($perPage, ['*'], 'page', $page);
 
             return response()->json([
@@ -56,7 +74,6 @@ class ProductoController extends Controller
     public function store(StoreProductoRequest $request)
     {
         try {
-
             if (! auth()->user()->hasRole('ADMIN')) {
                 return response()->json([
                     'status' => 'error',
@@ -66,13 +83,27 @@ class ProductoController extends Controller
 
             DB::beginTransaction();
 
+            $datosProducto = $request->safe()->except('presentaciones');
+
+            $codigoBase = $datosProducto['codigo'];
+            $codigoFinal = $codigoBase;
+            $contador = 1;
+
+            while (Producto::where('codigo', $codigoFinal)->exists()) {
+                $sufijo = '-'.$contador;
+                $longitudBase = 24 - strlen($sufijo);
+                $codigoFinal = substr($codigoBase, 0, $longitudBase).$sufijo;
+                $contador++;
+            }
+
+            $datosProducto['codigo'] = $codigoFinal;
+
             $producto = Producto::create([
-                ...$request->safe()->except('presentaciones'),
+                ...$datosProducto,
                 'registrado_por' => auth()->id(),
             ]);
 
             foreach ($request->validated()['presentaciones'] as $presentacionData) {
-
                 $presentacion = $producto->presentaciones()->create([
                     'nombre' => $presentacionData['nombre'],
                     'factor_conversion' => $presentacionData['factor_conversion'],
@@ -83,7 +114,6 @@ class ProductoController extends Controller
                 ]);
 
                 foreach ($presentacionData['codigos_barra'] ?? [] as $codigoData) {
-
                     $presentacion->codigosBarras()->create([
                         'codigo' => $codigoData['codigo'],
                     ]);
@@ -100,7 +130,6 @@ class ProductoController extends Controller
                 ),
             ], 201);
         } catch (\Exception $e) {
-
             DB::rollBack();
 
             return response()->json([
@@ -178,7 +207,6 @@ class ProductoController extends Controller
     public function update(UpdateProductoRequest $request, string $id)
     {
         try {
-
             if (! auth()->user()->hasRole('ADMIN')) {
                 return response()->json([
                     'status' => 'error',
@@ -195,11 +223,28 @@ class ProductoController extends Controller
                 ]);
             }
 
-            $producto->update($request->validated());
+            $datosActualizados = $request->validated();
+
+            if (isset($datosActualizados['codigo'])) {
+                $codigoBase = $datosActualizados['codigo'];
+                $codigoFinal = $codigoBase;
+                $contador = 1;
+
+                while (Producto::where('codigo', $codigoFinal)->where('id', '!=', $producto->id)->exists()) {
+                    $sufijo = '-'.$contador;
+                    $longitudBase = 24 - strlen($sufijo);
+                    $codigoFinal = substr($codigoBase, 0, $longitudBase).$sufijo;
+                    $contador++;
+                }
+
+                $datosActualizados['codigo'] = $codigoFinal;
+            }
+
+            $producto->update($datosActualizados);
 
             return response()->json([
                 'status' => 'ok',
-                'message' => 'Producto actulizado correctamente.',
+                'message' => 'Producto actualizado correctamente.',
                 'Producto' => $producto->fresh(),
             ], 200);
         } catch (\Exception $e) {
@@ -212,7 +257,6 @@ class ProductoController extends Controller
 
     public function buscarVenta(Request $request)
     {
-
         try {
             $q = trim($request->input('q', ''));
 
@@ -237,10 +281,59 @@ class ProductoController extends Controller
                 ->limit(15)
                 ->get();
 
+            $productosTransformados = $productos->map(function ($producto) {
+
+                $queryLote = Lote::query()
+                    ->where('cantidad_actual', '>', 0)
+                    ->where('estado', 'ACTIVO');
+
+                if ($producto->tipo_producto === 'GRANEL') {
+                    $queryLote->where('producto_id', $producto->id);
+                }
+
+                $loteActivo = $queryLote
+                    ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
+                    ->orderBy('created_at', 'ASC')
+                    ->first(['id', 'porcentaje_descuento', 'presentacion_id']);
+
+                $porcentajeDescuentoLote = (float) ($loteActivo?->porcentaje_descuento ?? 0);
+
+                $productoArray = $producto->toArray();
+                $productoArray['presentaciones'] = collect($productoArray['presentaciones'])->map(function ($pres) use ($producto, $porcentajeDescuentoLote) {
+
+                    $descuentoAplicable = 0;
+                    if ($producto->tipo_producto === 'GRANEL') {
+                        $descuentoAplicable = $porcentajeDescuentoLote;
+                    } else {
+                        $lotePres = Lote::query()
+                            ->where('presentacion_id', $pres['id'])
+                            ->where('cantidad_actual', '>', 0)
+                            ->where('estado', 'ACTIVO')
+                            ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
+                            ->orderBy('created_at', 'ASC')
+                            ->first(['porcentaje_descuento']);
+
+                        $descuentoAplicable = (float) ($lotePres?->porcentaje_descuento ?? 0);
+                    }
+
+                    $precioBase = (float) $pres['precio_venta'];
+                    $montoDescuento = round($precioBase * ($descuentoAplicable / 100), 2);
+
+                    $pres['porcentaje_descuento'] = $descuentoAplicable;
+                    $pres['monto_descuento_estimado'] = $montoDescuento;
+                    $pres['precio_final_estimado'] = $precioBase - $montoDescuento;
+
+                    return $pres;
+                });
+
+                return $productoArray;
+            });
+
             return response()->json([
                 'status' => 'ok',
-                'data' => $productos,
+                'data' => $productosTransformados,
             ], 200);
+
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
@@ -260,15 +353,15 @@ class ProductoController extends Controller
             }
 
             $productos = Producto::query()
-                ->select('id', 'codigo', 'nombre', 'unidad_medida_id')
+                ->select('id', 'codigo', 'nombre', 'unidad_medida_id', 'tipo_producto')
                 ->with(['unidadMedida:id,nombre,abreviatura'])
-                 ->where(function ($query) use ($q) {
-                $query->where('nombre', 'ilike', "%{$q}%")
-                    ->orWhere('codigo', 'ilike', "%{$q}%")
-                    ->orWhereHas('presentaciones.codigosBarras', function ($sub) use ($q) {
-                        $sub->where('codigo', 'ilike', "%{$q}%");
-                    });
-            })
+                ->where(function ($query) use ($q) {
+                    $query->where('nombre', 'ilike', "%{$q}%")
+                        ->orWhere('codigo', 'ilike', "%{$q}%")
+                        ->orWhereHas('presentaciones.codigosBarras', function ($sub) use ($q) {
+                            $sub->where('codigo', 'ilike', "%{$q}%");
+                        });
+                })
                 ->with(['presentaciones' => function ($query) {
                     $query->where('activo', true)
                         ->select('id', 'producto_id', 'nombre', 'factor_conversion');

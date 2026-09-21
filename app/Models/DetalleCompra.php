@@ -18,6 +18,7 @@ class DetalleCompra extends Model
         'sub_total',
         'compra_id',
         'lote_id',
+        'presentacion_id',
     ];
 
     protected $casts = [
@@ -36,5 +37,10 @@ class DetalleCompra extends Model
     public function lote()
     {
         return $this->belongsTo(Lote::class);
+    }
+
+    public function presentacion()
+    {
+        return $this->belongsTo(Presentacion::class);
     }
 }

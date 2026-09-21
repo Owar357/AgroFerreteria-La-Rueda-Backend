@@ -14,14 +14,15 @@ return new class extends Migration
         Schema::create('detalles_compra', function (Blueprint $table) {
             $table->id();
             $table->boolean('es_anulado')->default(false);
-            $table->decimal('cantidad_facturada',15,4)->nullable();
-            $table->decimal('cantidad_bonificada',15,4)->default(0.0000);
-            $table->decimal('precio_unitario_factura',15,2)->nullable();
-            $table->decimal('iva_linea',15,2)->nullable();
-            $table->decimal('descuento_linea',15,2)->nullable();
-            $table->decimal('sub_total', 15,2)->nullable();
+            $table->decimal('cantidad_facturada', 15, 4)->nullable();
+            $table->decimal('cantidad_bonificada', 15, 4)->default(0.0000);
+            $table->decimal('precio_unitario_factura', 15, 2)->nullable();
+            $table->decimal('iva_linea', 15, 2)->nullable();
+            $table->decimal('descuento_linea', 15, 2)->nullable();
+            $table->decimal('sub_total', 15, 2)->nullable();
             $table->foreignId('compra_id')->constrained('compras');
             $table->foreignId('lote_id')->constrained('lotes');
+            $table->foreignId('presentacion_id')->constrained('presentaciones')->restrictOnDelete();
             $table->timestamps();
         });
     }
