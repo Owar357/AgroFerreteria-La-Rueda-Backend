@@ -165,7 +165,7 @@ class CompraSeeder extends Seeder
 
                 $costoUnitarioCompra = round($item['precio'] / $factorConversion, 4);
 
-                // ✅ SE GUARDA TANTO EL PRODUCTO COMO LA PRESENTACIÓN PARA COMPATIBILIDAD TOTAL
+               
                 $lote = Lote::create([
                     'lote_interno'          => $this->generarLoteInterno(),
                     'lote_fabricante'       => 'FAB-' . rand(1000, 9999),
@@ -175,8 +175,8 @@ class CompraSeeder extends Seeder
                     'costo_unitario_compra' => $costoUnitarioCompra,
                     'porcentaje_descuento'  => $item['descuento_promo'] ?? null,
                     'estado'                => 'ACTIVO',
-                    'producto_id'           => $producto->id,     
-                    'presentacion_id'       => $presentacion->id, 
+                    'producto_id'           => $esGranel ? $producto->id : null,
+                    'presentacion_id'       => $esGranel ? null : $presentacion->id,
                 ]);
 
                 DetalleCompra::create([
@@ -189,6 +189,7 @@ class CompraSeeder extends Seeder
                     'sub_total'               => $subTotal,
                     'compra_id'               => $compra->id,
                     'lote_id'                 => $lote->id,
+                    'presentacion_id'         => $presentacion->id,
                 ]);
 
                 

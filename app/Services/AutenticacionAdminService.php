@@ -12,7 +12,7 @@ class AutenticacionAdminService{
         $usuario = User::where('email', $email)->first();
 
         if (! $usuario || ! Hash::check($password, $usuario->password)) {
-            return ['error' => true, 'message' => 'Credenciales inválidas', 'code' => 401];
+            return ['error' => true, 'message' => 'Credenciales inválidas', 'code' => 422];
         }
 
         if (! $usuario->hasRole('ADMIN')) {

@@ -21,6 +21,12 @@ class AperturaVenta extends Model
         'apertura_caja_id',
         'cajero_id',
         'cerrada_por',
+        'fondo_fijo_referencia',
+        'justificacion_apertura',
+        'retiro_efectivo',
+        'fondo_siguiente_turno',
+        'denominaciones_apertura',
+        'denominaciones_cierre',
     ];
 
     protected $casts = [
@@ -30,6 +36,11 @@ class AperturaVenta extends Model
         'monto_esperado' => 'decimal:2',
         'monto_contado' => 'decimal:2',
         'diferencia' => 'decimal:2',
+        'fondo_fijo_referencia' => 'decimal:2',
+        'retiro_efectivo' => 'decimal:2',
+        'fondo_siguiente_turno' => 'decimal:2',
+        'denominaciones_apertura' => 'array',
+        'denominaciones_cierre' => 'array',
     ];
 
     public function aperturaCaja(){

@@ -42,6 +42,13 @@ class KardexService
         throw new \RuntimeException("El lote {$lote->lote_interno} no tiene producto ni presentación asociada.");
     }
 
+    private function obtenerProductoDesdePresentacion(Presentacion $presentacion): Producto
+    {
+        return $presentacion->relationLoaded('producto')
+            ? $presentacion->producto
+            : $presentacion->producto()->first();
+    }
+
     /**
      * Último movimiento del pozo de inventario correspondiente.
      */
@@ -73,7 +80,7 @@ class KardexService
         ?string $concepto = null
     ): Kardex {
 
-        $producto = $this->obtenerProducto($presentacion);
+        $producto = $this->obtenerProductoDesdePresentacion($presentacion);
 
         // Verificamos si el producto es granel o unidad fija
         $factorConversion = ($producto->tipo_producto === 'GRANEL') ? (float) ($presentacion->factor_conversion ?? 1.0000) : 1.0000;
@@ -144,7 +151,8 @@ class KardexService
         ?string $numeroDocumento = null,
         ?string $concepto = null
     ) {
-        $producto = $this->obtenerProducto($presentacion);
+
+        $producto = $this->obtenerProductoDesdePresentacion($presentacion);
 
         // Verifcamos si es Granel o UNIDAD FIJA
         $factorConversion = ($producto->tipo_producto === 'GRANEL')
@@ -204,8 +212,8 @@ class KardexService
 
     ): Kardex {
 
-        $producto = $this->obtenerProducto($presentacion);
-
+        $producto = $this->obtenerProductoDesdePresentacion($presentacion);
+        
         $factorConversion = ($producto->tipo_producto === 'GRANEL') ? (float) ($presentacion->factor_conversion ?? 1.0000) : 1.0000;
 
         $cantidadSalidaBase = $cantidadFisicaAnulada * $factorConversion;
@@ -357,7 +365,6 @@ class KardexService
 
     /**
      * Registrar Reevaluación de Costo (ajuste monetario sin alterar física).
-     * 
      */
     public function registrarReevaluacion(
         Lote $lote,
@@ -419,7 +426,7 @@ class KardexService
         float $factorNuevo,
         ?string $observacion = null
     ): ?Kardex {
-        $producto = $this->obtenerProducto($presentacion);
+        $producto = $this->obtenerProductoDesdePresentacion($presentacion);
 
         $ultimoRegistro = Kardex::where('producto_id', $producto->id)
             ->when($producto->tipo_producto === 'UNIDAD FIJA', function ($query) use ($presentacion) {
