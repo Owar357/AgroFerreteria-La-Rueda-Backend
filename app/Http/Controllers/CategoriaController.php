@@ -23,14 +23,9 @@ class CategoriaController extends Controller
                 ], 403);
             }
 
-<<<<<<< HEAD
-            $perPage = $request->get('per_page', 5); 
-            $page    = $request->get('page', 1);
-=======
             $perPage = $request->input('per_page', 5);
             $page = $request->input('page', 1);
             $search = $request->input('search');
->>>>>>> f8527eaf8231caa32059815b806445f703973892
 
             $categorias = Categoria::with('creadoPor')
                 ->when($search, function ($query, $search) {
