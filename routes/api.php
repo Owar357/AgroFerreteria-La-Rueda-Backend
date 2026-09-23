@@ -9,6 +9,8 @@ use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\CodigoBarraController;
 use App\Http\Controllers\CompraController;
 use App\Http\Controllers\KardexController;
+use App\Http\Controllers\VentaController;
+
 use App\Http\Controllers\LoteController;
 use App\Http\Controllers\MovimientoExternoCajaController;
 use App\Http\Controllers\PresentacionController;
@@ -29,8 +31,8 @@ use App\Http\Controllers\Reportes\Ventas\VentasPorCategoriaController;
 use App\Http\Controllers\Reportes\Ventas\VentasPorUsuarioController;
 use App\Http\Controllers\UnidadMedidaController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\VentaController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Reportes\Compras\ComprasPorProveedorDatosController;
 
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
@@ -48,6 +50,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/clientes/buscar', [ClienteController::class, 'buscarPorDocumento']);
     Route::apiResource('clientes', ClienteController::class);
     Route::apiResource('ventas', VentaController::class);
+    Route::patch('ventas/{id}/anular', [VentaController::class, 'anularVenta']);
     Route::apiResource('categorias', CategoriaController::class);
 
     Route::patch('/lotes/{id}/descuento', [LoteController::class, 'actualizarDescuento']);
@@ -63,15 +66,15 @@ Route::middleware('auth:api')->group(function () {
 
     Route::apiResource('codigosBarra', CodigoBarraController::class);
     Route::post('/presentaciones/actualizar-precios-masivo', [PresentacionController::class, 'actualizarPreciosMasivo']);
-    Route::apiResource('presentaciones', PresentacionController::class)->only(['store', 'update', 'destroy']);
+    Route::apiResource('presentaciones', PresentacionController::class)->only(['index','store', 'update', 'destroy']);
     Route::patch('/proveedores/{id}/desactivar', [ProveedorController::class, 'desactivarProveedor']);
     Route::get('/proveedor/proveedores', [ProveedorController::class, 'traerNombreProveedores']);
     Route::apiResource('proveedores', ProveedorController::class);
 
-    Route::post('/caja/apertura', [CajaController::class, 'abrirCaja']);
+    Route::post('/caja/apertura', [CajaController::class, 'abrirCaja'])->middleware('throttle:10,1');
     Route::get('/caja/estado', [CajaController::class, 'estadoCaja']);
     Route::post('/caja/venta/apertura', [CajaController::class, 'abrirVenta']);
-    Route::post('/caja/venta/cuadre', [CajaController::class, 'cuadrarVenta']);
+    Route::post('/caja/venta/cuadre', [CajaController::class, 'cuadrarVenta'])->middleware('throttle:10,1');
     Route::get('/caja/resumen-turno', [CajaController::class, 'resumenTurno']);
     Route::patch('/caja/venta/cierre', [CajaController::class, 'cerrarVentaCaja']);
     Route::patch('/caja/movimientos/{movimiento}/anular', [MovimientoExternoCajaController::class, 'anularMovimiento']);
