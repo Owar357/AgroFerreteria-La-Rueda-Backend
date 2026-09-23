@@ -74,7 +74,7 @@ class CompraSeeder extends Seeder
                     ['codigo' => 'HER-PLA-01',  'presentacion' => 'Pieza', 'cantidad' => 15, 'precio' => 9.50],
                     ['codigo' => 'RIE-ASP-01',  'presentacion' => 'Pieza', 'cantidad' => 30, 'precio' => 3.00],
                 ],
-                'fecha_vencimiento_lotes' => null, 
+                'fecha_vencimiento_lotes' => null,
             ],
             [
                 'proveedor' => 'AgroNatura',
@@ -105,7 +105,7 @@ class CompraSeeder extends Seeder
                 ],
                 'fecha_vencimiento_lotes' => null,
             ],
-           
+
             [
                 'proveedor' => 'Semillas Cristiani',
                 'tipo_dte' => '03',
@@ -135,16 +135,16 @@ class CompraSeeder extends Seeder
             $compra = Compra::firstOrCreate(
                 ['numero_documento' => $datos['numero_documento']],
                 [
-                    'tipo_dte'               => $datos['tipo_dte'],
-                    'es_anulado'             => false,
-                    'fecha_emision'          => $datos['fecha_emision'],
-                    'descuento_global'       => null,
-                    'iva_total'              => null,
-                    'monto_total'            => $montoTotal,
-                    'estado_pago'            => $datos['estado_pago'],
+                    'tipo_dte' => $datos['tipo_dte'],
+                    'es_anulado' => false,
+                    'fecha_emision' => $datos['fecha_emision'],
+                    'descuento_global' => null,
+                    'iva_total' => null,
+                    'monto_total' => $montoTotal,
+                    'estado_pago' => $datos['estado_pago'],
                     'fecha_vencimiento_pago' => $datos['fecha_vencimiento_pago'],
-                    'proveedor_id'           => $proveedor->id,
-                    'usuario_id'             => $usuario->id,
+                    'proveedor_id' => $proveedor->id,
+                    'usuario_id' => $usuario->id,
                 ]
             );
 
@@ -157,49 +157,49 @@ class CompraSeeder extends Seeder
                 $esGranel = ($producto->tipo_producto === 'GRANEL');
                 $subTotal = round($item['cantidad'] * $item['precio'], 2);
                 $factorConversion = (float) ($presentacion->factor_conversion ?? 1);
-                
+
                 // Cantidad inicial convertida a unidades base (para Granel) o unidades directas
                 $cantidadInicial = $esGranel
                     ? $item['cantidad'] * $factorConversion
                     : $item['cantidad'];
 
-                $costoUnitarioCompra = round($item['precio'] / $factorConversion, 4);
+                $costoUnitarioCompra = $esGranel
+    ? round($item['precio'] / $factorConversion, 4)
+    : (float) $item['precio'];
 
-               
                 $lote = Lote::create([
-                    'lote_interno'          => $this->generarLoteInterno(),
-                    'lote_fabricante'       => 'FAB-' . rand(1000, 9999),
-                    'fecha_vencimiento'     => $datos['fecha_vencimiento_lotes'] ?? null,
-                    'cantidad_inicial'      => $cantidadInicial,
-                    'cantidad_actual'       => $cantidadInicial,
+                    'lote_interno' => $this->generarLoteInterno(),
+                    'lote_fabricante' => 'FAB-'.rand(1000, 9999),
+                    'fecha_vencimiento' => $datos['fecha_vencimiento_lotes'] ?? null,
+                    'cantidad_inicial' => $cantidadInicial,
+                    'cantidad_actual' => $cantidadInicial,
                     'costo_unitario_compra' => $costoUnitarioCompra,
-                    'porcentaje_descuento'  => $item['descuento_promo'] ?? null,
-                    'estado'                => 'ACTIVO',
-                    'producto_id'           => $esGranel ? $producto->id : null,
-                    'presentacion_id'       => $esGranel ? null : $presentacion->id,
+                    'porcentaje_descuento' => $item['descuento_promo'] ?? null,
+                    'estado' => 'ACTIVO',
+                    'producto_id' => $esGranel ? $producto->id : null,
+                    'presentacion_id' => $esGranel ? null : $presentacion->id,
                 ]);
 
                 DetalleCompra::create([
-                    'es_anulado'              => false,
-                    'cantidad_facturada'      => $item['cantidad'],
-                    'cantidad_bonificada'     => 0,
+                    'es_anulado' => false,
+                    'cantidad_facturada' => $item['cantidad'],
+                    'cantidad_bonificada' => 0,
                     'precio_unitario_factura' => $item['precio'],
-                    'iva_linea'               => null,
-                    'descuento_linea'         => 0,
-                    'sub_total'               => $subTotal,
-                    'compra_id'               => $compra->id,
-                    'lote_id'                 => $lote->id,
-                    'presentacion_id'         => $presentacion->id,
+                    'iva_linea' => null,
+                    'descuento_linea' => 0,
+                    'sub_total' => $subTotal,
+                    'compra_id' => $compra->id,
+                    'lote_id' => $lote->id,
+                    'presentacion_id'=> $presentacion->id,
                 ]);
 
-                
                 $kardexService->registrarEntrada(
                     $presentacion,
                     $lote,
                     (float) $item['cantidad'],
                     $compra,
                     $compra->numero_documento,
-                    'Compra Seeder ' . $compra->numero_documento
+                    'Compra Seeder '.$compra->numero_documento
                 );
             }
         }
@@ -215,12 +215,13 @@ class CompraSeeder extends Seeder
              LIMIT 1',
             ['buscar' => "LOT-{$fecha}-%"]
         );
-        $ultimo = !empty($resultado) ? $resultado[0]->lote_interno : null;
+        $ultimo = ! empty($resultado) ? $resultado[0]->lote_interno : null;
         if ($ultimo) {
             $secuencia = (int) substr($ultimo, -4) + 1;
         } else {
             $secuencia = 1;
         }
-        return 'LOT-' . $fecha . '-' . str_pad($secuencia, 4, '0', STR_PAD_LEFT);
+
+        return 'LOT-'.$fecha.'-'.str_pad($secuencia, 4, '0', STR_PAD_LEFT);
     }
 }

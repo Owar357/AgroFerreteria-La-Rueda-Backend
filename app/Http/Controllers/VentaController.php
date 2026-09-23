@@ -377,6 +377,8 @@ class VentaController extends Controller
                 'message' => 'Ocurrió un error interno al procesar la venta. Por favor intente nuevamente o contacte a soporte.',
             ], 500);
         }
+
+        return 'FAC-'.str_pad($secuencia, 7, '0', STR_PAD_LEFT);
     }
 
     /**
