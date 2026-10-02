@@ -100,14 +100,7 @@ class VentaController extends Controller
         }
     }
 
-    /**
-     * Registra una venta.
-     *
-     * El servidor NO confía en los importes del POS: el precio sale de la presentación,
-     * el descuento de los lotes consumidos y el IVA del producto. Con eso calcula
-     * gravado, exento, iva, total y cambio. Si el total del POS difiere más allá del
-     * redondeo, la venta se rechaza y la transacción completa (stock y kardex) se revierte.
-     */
+    
     public function store(StoreVentaRequest $request, KardexService $kardexService, CajaService $cajaService)
     {
         try {
@@ -378,7 +371,7 @@ class VentaController extends Controller
             ], 500);
         }
 
-        return 'FAC-'.str_pad($secuencia, 7, '0', STR_PAD_LEFT);
+        
     }
 
     /**
@@ -405,22 +398,17 @@ class VentaController extends Controller
     }
 
     public function numeroFactura()
-    {
+{
+    $numeroFactura = DB::select(
+        'SELECT numero_factura FROM ventas
+         ORDER BY numero_factura DESC
+         LIMIT 1'
+    );
 
-        $numeroFactura = DB::select(
-            'SELECT numero_factura FROM ventas
-             ORDER BY numero_factura DESC
-             LIMIT 1
-            ', );
+    $resultado = ! empty($numeroFactura) ? $numeroFactura[0]->numero_factura : null;
 
-        $resultado = ! empty($numeroFactura) ? $numeroFactura[0]->numero_factura : null;
+    $secuencia = $resultado ? ((int) substr($resultado, 4) + 1) : 1;
 
-        if ($resultado) {
-            $secuencia = (int) substr($resultado, 4) + 1;
-        } else {
-            $secuencia = 1;
-        }
-
-        return 'FAC-'.str_pad($secuencia, 7, '0', STR_PAD_LEFT);
-    }
+    return 'FAC-'.str_pad($secuencia, 7, '0', STR_PAD_LEFT);
+}
 }
