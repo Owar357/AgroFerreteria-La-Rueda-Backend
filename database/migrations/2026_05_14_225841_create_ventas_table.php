@@ -21,6 +21,11 @@
                 $table->decimal('total',15,2);
                 $table->decimal('efectivo_recibido',15,2)->nullable();
                 $table->decimal('cambio',15,2)->nullable();
+
+                    $table->string('tipo_factura', 2)->default('01'); 
+                    $table->string('motivo_anulacion', 255)->nullable();
+                    $table->string('numero_factura', 20)->unique()->after('id');
+
                 $table->timestamp('fecha_hora_anulacion')->nullable();
                 $table->foreignId('cliente_id')->nullable()->constrained('clientes');
                 $table->foreignId('vendido_por')->constrained('users');
