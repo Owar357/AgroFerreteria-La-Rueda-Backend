@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Compra\StoreCompraRequest;
+use App\Http\Requests\Compra\UpdateCompraRequest;
 use App\Models\Compra;
 use App\Models\Lote;
 use App\Models\Presentacion;
@@ -82,7 +83,6 @@ class CompraController extends Controller
                 'per_page' => $compras->perPage(),
                 'total' => $compras->total(),
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
@@ -108,7 +108,7 @@ class CompraController extends Controller
 
                 $productosAfectadosIds = [];
 
-           
+
                 foreach ($request->validated()['detalles'] as $detalle) {
 
                     $lote = Lote::create([
@@ -117,7 +117,7 @@ class CompraController extends Controller
                         'cantidad_actual' => $detalle['lote']['cantidad_inicial'],
                     ]);
 
-                 
+
                     $presentacionId = $detalle['presentacion_id'] ?? $detalle['lote']['presentacion_id'];
 
                     $compra->detallesCompra()->create([
@@ -141,13 +141,13 @@ class CompraController extends Controller
                         $cantidadFisicaIngresada,
                         $compra,
                         $compra->numero_documento ?? $compra->id,
-                        'Entrada por Compra '.($compra->numero_documento ?? ('#'.$compra->id))
+                        'Entrada por Compra ' . ($compra->numero_documento ?? ('#' . $compra->id))
                     );
 
                     $productosAfectadosIds[] = $presentacionKardex->producto_id;
                 }
 
-               
+
                 $productosUnicosIds = array_unique($productosAfectadosIds);
 
                 foreach ($productosUnicosIds as $prodId) {
@@ -221,7 +221,6 @@ class CompraController extends Controller
                 'status' => 'ok',
                 'message' => 'Documento de compra y Detalles de los lotes han sido guardados'
             ], 201);
-
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'status' => 'error',
@@ -241,19 +240,157 @@ class CompraController extends Controller
     public function show(string $id)
     {
         try {
-            $compras = Compra::with(['proveedor:id,nombre', 'detallesCompra',
-                'detallesCompra.lote', 'detallesCompra.lote.presentacion.producto:id,nombre', 'detallesCompra.lote.presentacion.producto:id,nombre'])
+            $compras = Compra::with([
+                'proveedor:id,nombre',
+                'detallesCompra',
+                'detallesCompra.lote',
+                'detallesCompra.lote.presentacion.producto:id,nombre',
+                'detallesCompra.lote.presentacion.producto:id,nombre'
+            ])
                 ->findOrFail($id);
 
             return response()->json([
                 'status' => 'ok',
                 'data' => $compras,
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error interno en el Servidor',
+            ], 500);
+        }
+    }
+
+
+    /**
+     * Actualiza el estado de pago de una compra.
+     * Solo permitido cuando el estado actual es PENDIENTE.
+     * Una compra ABONADA no puede marcarse como PAGADA manualmente;
+     * debe completarse mediante abonos hasta cubrir el monto total.
+     */
+    public function update(UpdateCompraRequest $request, string $id)
+    {
+        try {
+            $compra = Compra::findOrFail($id);
+
+            if ($compra->es_anulado) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'No se puede modificar una compra anulada.',
+                ], 422);
+            }
+
+            if ($compra->estado_pago !== 'PENDIENTE') {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Solo se puede marcar como PAGADO una compra en estado PENDIENTE. '
+                        . 'Si la compra tiene abonos registrados, debe completarse mediante abonos.',
+                ], 422);
+            }
+
+            $compra->estado_pago = 'PAGADO';
+            $compra->save();
+
+            return response()->json([
+                'status'  => 'ok',
+                'message' => 'La compra fue marcada como PAGADA correctamente.',
+                'data'    => [
+                    'id'          => $compra->id,
+                    'estado_pago' => $compra->estado_pago,
+                    'monto_total' => number_format((float) $compra->monto_total, 2, '.', ','),
+                ],
+            ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'La compra no existe.',
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Error interno del servidor.',
+            ], 500);
+        }
+    }
+
+
+    public function abonar(Request $request, string $id)
+    {
+        $request->validate([
+            'monto_abono' => 'required|numeric|min:0.01',
+        ], [
+            'monto_abono.required' => 'El monto del abono es obligatorio.',
+            'monto_abono.numeric'  => 'El monto del abono debe ser un valor numérico.',
+            'monto_abono.min'      => 'El monto del abono debe ser mayor a cero.',
+        ]);
+
+        try {
+            $compra = Compra::findOrFail($id);
+
+            if ($compra->es_anulado) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'No se puede abonar a una compra anulada.',
+                ], 422);
+            }
+
+            if ($compra->estado_pago !== 'ABONADO') {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Solo se pueden registrar abonos en compras con estado ABONADO. '
+                        . 'Si la compra está PENDIENTE, cámbiela directamente a pagado en dado caso el pago ya se efectuara..',
+                ], 422);
+            }
+
+            $montoTotal    = (float) $compra->monto_total;
+            $abonoActual   = (float) $compra->abono;
+            $nuevoAbono    = (float) $request->monto_abono;
+            $saldoRestante = $montoTotal - $abonoActual;
+
+            if ($nuevoAbono > $saldoRestante) {
+                return response()->json([
+                    'status'        => 'error',
+                    'message'       => 'El monto del abono supera el saldo pendiente.',
+                    'saldo_restante' => number_format($saldoRestante, 2, '.', ','),
+                ], 422);
+            }
+
+            $abonoAcumulado = $abonoActual + $nuevoAbono;
+            $compra->abono  = $abonoAcumulado;
+
+            // Cambio automático de estado
+            if ($abonoAcumulado >= $montoTotal) {
+                $compra->estado_pago = 'PAGADO';
+            } else {
+                $compra->estado_pago = 'ABONADO';
+            }
+
+            $compra->save();
+
+            $saldoFinal = $montoTotal - $abonoAcumulado;
+
+            return response()->json([
+                'status'          => 'ok',
+                'message'         => $compra->estado_pago === 'PAGADO'
+                    ? 'Abono registrado. La deuda ha sido saldada completamente.'
+                    : 'Abono registrado correctamente.',
+                'data'            => [
+                    'id'             => $compra->id,
+                    'estado_pago'    => $compra->estado_pago,
+                    'monto_total'    => number_format($montoTotal, 2, '.', ','),
+                    'total_abonado'  => number_format($abonoAcumulado, 2, '.', ','),
+                    'saldo_restante' => number_format($saldoFinal, 2, '.', ','),
+                ],
+            ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'La compra no existe.',
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Error interno del servidor.',
             ], 500);
         }
     }
@@ -278,7 +415,7 @@ class CompraController extends Controller
             $secuencia = 1;
         }
 
-        return 'LOT-'.$fecha.'-'.str_pad($secuencia, 4, '0', STR_PAD_LEFT);
+        return 'LOT-' . $fecha . '-' . str_pad($secuencia, 4, '0', STR_PAD_LEFT);
     }
 
     public function anularCompra(string $id)
@@ -332,9 +469,8 @@ class CompraController extends Controller
                     $cantidadFisicaOriginal,
                     $compra,
                     $compra->numero_documento ?? $compra->id,
-                    'Anulación de Compra '.($compra->numero_documento ?? ('#'.$compra->id))
+                    'Anulación de Compra ' . ($compra->numero_documento ?? ('#' . $compra->id))
                 );
-
             }
 
             $compra->es_anulado = true;
@@ -346,7 +482,6 @@ class CompraController extends Controller
                 'status' => 'ok',
                 'message' => 'La compra se anuló con éxito',
             ], 200);
-
         } catch (ModelNotFoundException $mdn) {
             DB::rollback();
 
@@ -354,7 +489,6 @@ class CompraController extends Controller
                 'status' => 'error',
                 'message' => 'La compra no existe',
             ], 404);
-
         } catch (\Throwable $th) {
             DB::rollback();
 
