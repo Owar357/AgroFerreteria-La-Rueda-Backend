@@ -22,6 +22,7 @@ class Venta extends Model
         'anulado_por',
         'apertura_venta_id',
         'tipo_factura',
+         'motivo_anulacion',
     ];
 
     protected $casts = [
