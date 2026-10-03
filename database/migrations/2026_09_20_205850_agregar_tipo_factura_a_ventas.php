@@ -12,7 +12,7 @@ return new class extends Migration
             // Códigos DTE: 01 = Consumidor Final, 03 = Comprobante de Crédito Fiscal.
             // Las ventas anteriores quedan como Consumidor Final.
             $table->string('tipo_factura', 2)->default('01');
-        });
+         });
     }
 
     public function down(): void
