@@ -242,9 +242,8 @@ class CompraController extends Controller
         try {
             $compras = Compra::with([
                 'proveedor:id,nombre',
-                'detallesCompra',
                 'detallesCompra.lote',
-                'detallesCompra.lote.presentacion.producto:id,nombre',
+                'detallesCompra.presentacion.producto:id,nombre',
                 'detallesCompra.lote.presentacion.producto:id,nombre'
             ])
                 ->findOrFail($id);
