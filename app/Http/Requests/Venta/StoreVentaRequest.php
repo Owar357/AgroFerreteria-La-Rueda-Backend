@@ -28,11 +28,12 @@ class StoreVentaRequest extends FormRequest
         return [
             'tipo_pago'                      => 'required|in:EFECTIVO,TARJETA,TRANSFERENCIA',
             'gravado'                        => 'required|numeric|min:0',   
+            'iva'                            => 'required|numeric|min:0',
             'exento'                         => 'required|numeric|min:0',
             'total'                          => 'required|numeric|min:0.01',
-            'efectivo_recibido'              => 'required_if:tipo_pago,EFECTIVO|numeric|gte:total',
-            'cambio'                         => 'nullable|numeric|min:0',
+            'efectivo_recibido'              => 'required_if:tipo_pago,EFECTIVO|nullable|numeric|gte:total',
             'cliente_id'                     => 'nullable|exists:clientes,id',
+            'tipo_factura'                   => 'nullable|in:01,03',
             
             // Validación del contenedor de artículos
             'detalles'                       => 'required|array|min:1',
@@ -73,6 +74,7 @@ class StoreVentaRequest extends FormRequest
             'cambio.numeric'                 => 'El cambio debe ser un valor numérico.',
             'cambio.min'                     => 'El cambio no puede ser negativo.',
             'cliente_id.exists'              => 'El cliente seleccionado no existe en los registros.',
+            'tipo_factura.in'                => 'El tipo de factura debe ser 01 (Consumidor Final) o 03 (Crédito Fiscal).',
            
           
             'detalles.required'              => 'Debe agregar al menos un producto a la venta.',

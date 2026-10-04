@@ -13,6 +13,7 @@ class Compra extends Model
         'descuentos_global',
         'iva_total',
         'monto_total',
+        'abono',
         'estado_pago',
         'fecha_vencimiento_pago',
         'proveedor_id',
@@ -20,11 +21,12 @@ class Compra extends Model
     ];
 
     protected $casts = [
-        'fecha_emision' => 'date',
+        'fecha_emision'          => 'date',
         'fecha_vencimiento_pago' => 'date',
-        'descuentos_global' => 'decimal:2',
-        'iva_total' => 'decimal:2',
-        'monto_total' => 'decimal:2',
+        'descuentos_global'      => 'decimal:2',
+        'iva_total'              => 'decimal:2',
+        'monto_total'            => 'decimal:2',
+        'abono'                  => 'decimal:2',
     ];
 
     public function proveedor()

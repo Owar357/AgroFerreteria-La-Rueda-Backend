@@ -63,7 +63,7 @@ class UserController extends Controller
        
          $usuarios = User::role('CAJERO')
          ->where('activo','true')
-         ->select('id','nombre' )
+         ->select('id','name' )
          ->get();
 
 

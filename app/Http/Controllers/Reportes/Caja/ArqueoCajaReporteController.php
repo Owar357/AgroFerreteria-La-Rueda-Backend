@@ -15,7 +15,6 @@ class ArqueoCajaReporteController extends Controller
      */
     public function __invoke(Request $request)
     {
-
         $request->validate([
             'fecha'     => 'required|date',
             'cajero_id' => 'required|exists:users,id',
@@ -24,19 +23,14 @@ class ArqueoCajaReporteController extends Controller
         $fecha = $request->input('fecha');
         $cajeroId = $request->input('cajero_id');
 
-         
-        
         $apertura = AperturaVenta::with('cajero:id,name')
             ->where('cajero_id', $cajeroId)
             ->whereDate('fecha_hora_apertura', $fecha)
             ->latest('fecha_hora_apertura')
             ->first();
 
-
-        $nombreCajero = $apertura->cajero?->name?? "cajero-{$cajeroId}";
-
-        $nombreLimpio = \Illuminate\Support\Str::slug($nombreCajero);
-
+        // Este chequeo debe ir ANTES de leer cualquier propiedad de $apertura,
+        // porque si no se encontró ninguna apertura, $apertura es null.
         if (!$apertura) {
             return response()->json([
                 'status'  => 'error',
@@ -44,7 +38,9 @@ class ArqueoCajaReporteController extends Controller
             ], 404);
         }
 
-    
+        $nombreCajero = $apertura->cajero?->name ?? "cajero-{$cajeroId}";
+        $nombreLimpio = \Illuminate\Support\Str::slug($nombreCajero);
+
         $ventasEfectivo = Venta::where('apertura_venta_id', $apertura->id)
             ->where('tipo_pago', 'EFECTIVO')
             ->where('estado', '!=', 'ANULADA')

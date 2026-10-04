@@ -51,9 +51,15 @@ class VentasPorUsuarioController extends Controller
               $resultado[$usuarioNombre]['numero_ventas'] ++;
            }
 
-        
-        $resultado[$usuarioNombre]['ticket_promedio'] =  $resultado[$usuarioNombre]['total_vendido'] / $resultado[$usuarioNombre]['numero_ventas'];
+            // Calculamos el ticket_promedio de CADA usuario, dentro de su propio
+            // ciclo, una vez que ya tenemos el total acumulado de todos
+            foreach ($resultado as $usuarioNombre => $datos) {
+                $resultado[$usuarioNombre]['ticket_promedio'] = $datos['numero_ventas'] > 0
+                ? $datos['total_vendido'] / $datos['numero_ventas']
+                : 0;
+            }
 
+            $resultado = array_values($resultado);
     
         usort($resultado, function ($a, $b  ) {
             return $b['total_vendido'] <=> $a['total_vendido'];
@@ -66,6 +72,7 @@ class VentasPorUsuarioController extends Controller
             'fecha_fin' => $fecha_fin,
         ]);
 
-        return $pdf->stream("reporte-ventas-por-usuario-{$fecha_inicio->format('Y-m-d')}_al_{$fecha_fin->format('Y-m-d')}.pdf");
-    }
+         return $pdf->stream("reporte-ventas-por-usuario-{$fecha_inicio->format('Y-m-d')}_al_{$fecha_fin->format('Y-m-d')}.pdf");
+}
+
 }

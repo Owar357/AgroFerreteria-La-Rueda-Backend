@@ -20,6 +20,7 @@ return new class extends Migration
             $table->decimal('descuento_global',15,2)->nullable();
             $table->decimal('iva_total',15,2)->nullable();
             $table->decimal('monto_total',15,2)->nullable();
+            $table->decimal('abono',15,2)->default(0.00);
             $table->enum('estado_pago',['PAGADO','PENDIENTE','ABONADO','VENCIDO'])->index();
             $table->date('fecha_vencimiento_pago')->nullable();
             $table->foreignId('proveedor_id')->constrained('proveedores');

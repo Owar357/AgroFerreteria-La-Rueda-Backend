@@ -21,6 +21,8 @@ class Venta extends Model
         'vendido_por',
         'anulado_por',
         'apertura_venta_id',
+        'tipo_factura',
+         'motivo_anulacion',
     ];
 
     protected $casts = [
@@ -48,13 +50,14 @@ class Venta extends Model
         return $this->belongsTo(User::class, 'anulado_por');
     }
 
-    public function aperturaCaja()
+    public function aperturaVenta()
     {
-        return $this->belongsTo(TurnoCaja::class, 'apertura_caja_id');
+        return $this->belongsTo(AperturaVenta::class, 'apertura_venta_id');
     }
 
     public function detallesVenta()
     {
-        return $this->hasMany(DetalleVenta::class);
+       return $this->hasMany(DetalleVenta::class);
+
     }
 }

@@ -13,6 +13,60 @@ use Illuminate\Support\Facades\DB;
 
 class PresentacionController extends Controller
 {
+
+    /**
+ * Display a listing of the resource.
+ */
+public function index(Request $request)
+{
+    try {
+        if (! auth()->user()->hasAnyRole(['ADMIN',  'CONTADOR'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No autorizado',
+            ], 403);
+        }
+
+        $perPage  = $request->input('per_page', 10);
+        $page     = $request->input('page', 1);
+        $search   = trim($request->input('q', ''));
+        $productoId = $request->input('producto_id', null);
+
+        $query = Presentacion::with(['producto:id,nombre', 'unidadMedida:id,nombre,abreviatura'])
+            ->select('id', 'nombre', 'factor_conversion', 'precio_venta', 'es_base', 'activo', 'producto_id', 'unidad_medida_id');
+
+        if (! empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nombre', 'ILIKE', "%{$search}%")
+                  ->orWhereHas('producto', function ($sub) use ($search) {
+                      $sub->where('nombre', 'ILIKE', "%{$search}%");
+                  });
+            });
+        }
+
+        if (! empty($productoId)) {
+            $query->where('producto_id', $productoId);
+        }
+
+        $presentaciones = $query->orderBy('id', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'status'       => 'ok',
+            'data'         => $presentaciones->items(),
+            'total'        => $presentaciones->total(),
+            'per_page'     => $presentaciones->perPage(),
+            'current_page' => $presentaciones->currentPage(),
+            'last_page'    => $presentaciones->lastPage(),
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Error al obtener las presentaciones',
+        ], 500);
+    }
+}
     /**
      * Store a newly created resource in storage.
      */

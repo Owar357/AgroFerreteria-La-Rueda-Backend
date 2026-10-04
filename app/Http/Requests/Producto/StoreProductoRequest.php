@@ -12,7 +12,7 @@ class StoreProductoRequest extends FormRequest
         return true;
     }
 
-       public function rules(): array
+    public function rules(): array
     {
         return [
             'codigo' => 'required|string|min:2|max:24|regex:/^[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*$/',
@@ -22,11 +22,9 @@ class StoreProductoRequest extends FormRequest
             'unidad_medida_id' => 'required|exists:unidad_medidas,id',
             'categoria_id' => 'required|exists:categorias,id',
             'porcentaje_ganancia_minimo' => 'nullable|numeric|min:0|max:100',
-            
-        
 
             'presentaciones' => 'required|array|min:1',
-            'presentaciones.*.nombre' => 'required|string|max:150', 
+            'presentaciones.*.nombre' => 'required|string|max:150',
             'presentaciones.*.factor_conversion' => 'required|numeric|min:0.0001',
             'presentaciones.*.stock_minimo' => 'nullable|numeric|min:0',
             'presentaciones.*.es_base' => 'boolean',
@@ -34,7 +32,7 @@ class StoreProductoRequest extends FormRequest
             'presentaciones.*.unidad_medida_id' => 'required|exists:unidad_medidas,id',
 
             'presentaciones.*.codigos_barra' => 'nullable|array',
-            'presentaciones.*.codigos_barra.*.codigo' => 'required|string|unique:codigos_barras,codigo',
+            'presentaciones.*.codigos_barra.*.codigo' => 'required|string|distinct|unique:codigos_barras,codigo',
         ];
     }
 
@@ -45,7 +43,6 @@ class StoreProductoRequest extends FormRequest
             $presentaciones = collect($this->input('presentaciones', []));
             $unidadBaseId = (int) $this->input('unidad_medida_id');
 
-            
             if ($tipoProducto === 'UNIDAD FIJA') {
                 $presentaciones->each(function ($p, $index) use ($validator) {
                     if (abs((float) $p['factor_conversion'] - 1.0) > 0.0001) {
@@ -57,7 +54,6 @@ class StoreProductoRequest extends FormRequest
                 });
             }
 
-          
             if ($tipoProducto === 'GRANEL') {
                 $bases = $presentaciones->where('es_base', true);
 
@@ -66,13 +62,13 @@ class StoreProductoRequest extends FormRequest
                         'presentaciones',
                         'Para productos a GRANEL es obligatorio configurar exactamente una presentación como presentación base.'
                     );
+
                     return;
                 }
 
                 $baseIndex = $bases->keys()->first();
                 $base = $bases->first();
 
-                
                 if (abs((float) $base['factor_conversion'] - 1.0) > 0.0001) {
                     $validator->errors()->add(
                         "presentaciones.{$baseIndex}.factor_conversion",
@@ -80,7 +76,6 @@ class StoreProductoRequest extends FormRequest
                     );
                 }
 
-                
                 if ((int) $base['unidad_medida_id'] !== $unidadBaseId) {
                     $validator->errors()->add(
                         "presentaciones.{$baseIndex}.unidad_medida_id",
@@ -88,14 +83,12 @@ class StoreProductoRequest extends FormRequest
                     );
                 }
 
-                
-                if (!isset($base['stock_minimo']) || (float) $base['stock_minimo'] <= 0) {
+                if (! isset($base['stock_minimo']) || (float) $base['stock_minimo'] <= 0) {
                     $validator->errors()->add(
                         "presentaciones.{$baseIndex}.stock_minimo",
                         'La presentación base debe tener un stock mínimo mayor a 0 para generar alertas de inventario.'
                     );
                 }
-            
 
                 // Derivadas: stock_minimo = 0
                 $presentaciones->where('es_base', '!=', true)->each(function ($p, $index) use ($validator) {
@@ -108,7 +101,6 @@ class StoreProductoRequest extends FormRequest
                 });
             }
 
-            
             $unidadBase = UnidadMedida::find($unidadBaseId);
             if ($unidadBase) {
                 $magnitudBase = $unidadBase->magnitud;
@@ -128,20 +120,45 @@ class StoreProductoRequest extends FormRequest
         });
     }
 
+    private function mensajesCodigosBarra(): array
+    {
+        $mensajes = [];
+
+        foreach ((array) $this->input('presentaciones', []) as $indicePresentacion => $presentacion) {
+            if (! is_array($presentacion)) {
+                continue;
+            }
+
+            $nombrePresentacion = trim((string) ($presentacion['nombre'] ?? '')) ?: 'Presentación #'.($indicePresentacion + 1);
+
+            foreach ((array) ($presentacion['codigos_barra'] ?? []) as $indiceCodigo => $codigoBarra) {
+                $rutaCampo = "presentaciones.{$indicePresentacion}.codigos_barra.{$indiceCodigo}.codigo";
+
+                $mensajes["{$rutaCampo}.unique"] =
+                    "El código de barras :input ya está registrado en otro producto, correguir en la (presentación: {$nombrePresentacion}).";
+
+                $mensajes["{$rutaCampo}.distinct"] =
+                    "El código de barras :input está repetido dentro del formulario (presentación: {$nombrePresentacion}).";
+            }
+        }
+
+        return $mensajes;
+    }
+
     public function messages(): array
     {
-        return [
+        return array_merge($this->mensajesCodigosBarra(), [
             'codigo.required' => 'El código del producto es obligatorio.',
             'codigo.string' => 'El código del producto debe ser un texto.',
             'codigo.min' => 'El código debe tener un mínimo de 2 caracteres.',
-            'codigo.max' => 'El código no puede superar los 14 caracteres.',
+            'codigo.max' => 'El código no puede superar los 24 caracteres.',
             'codigo.unique' => 'Ya existe un producto con este código.',
             'codigo.regex' => 'El código solo puede contener letras, números y guiones.',
 
             'nombre.required' => 'El nombre del producto es obligatorio.',
             'nombre.string' => 'El nombre del producto debe ser un texto.',
             'nombre.max' => 'El nombre del producto no puede superar los 100 caracteres.',
-            'nombre.uique' => 'Ya existe un producto con el mismo nombre',
+            'nombre.unique' => 'Ya existe un producto con el mismo nombre',
 
             'fabricante.max' => 'El fabricante y/o marca no pueden superar los 100 caracteres.',
             'porcentaje_ganancia_minimo.numeric' => 'El porcentaje de ganancia mínimo debe ser un número.',
@@ -182,7 +199,7 @@ class StoreProductoRequest extends FormRequest
             'presentaciones.*.codigos_barra.array' => 'Los códigos de barras deben enviarse en un formato válido.',
             'presentaciones.*.codigos_barra.*.codigo.required' => 'El código de barras es obligatorio cuando se envía.',
             'presentaciones.*.codigos_barra.*.codigo.string' => 'El código de barras debe ser un texto.',
-            'presentaciones.*.codigos_barra.*.codigo.unique' => 'El código de barras ya se encuentra registrado.',
-        ];
+
+        ]);
     }
 }
