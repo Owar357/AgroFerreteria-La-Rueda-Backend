@@ -103,7 +103,7 @@ class CodigoBarraController extends Controller
     public function destroy(string $id)
     {
         try {
-            $codigo = CodigoBarra::findOrfaild($id);
+            $codigo = CodigoBarra::findOrfail($id);
             $codigo->delete();
 
             return response()->json([
