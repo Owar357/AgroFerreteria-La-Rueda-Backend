@@ -46,9 +46,12 @@ Route::prefix('auth')->group(function () {
 
 Route::middleware('auth:api')->group(function () {
     Route::patch('compras/{id}/anular', [CompraController::class, 'anularCompra']);
+    Route::post('compras/{id}/abonar', [CompraController::class, 'abonar']);
     Route::apiResource('compras', CompraController::class);
+
     Route::get('/clientes/buscar', [ClienteController::class, 'buscarPorDocumento']);
     Route::apiResource('clientes', ClienteController::class);
+
     Route::apiResource('ventas', VentaController::class);
     Route::patch('ventas/{id}/anular', [VentaController::class, 'anularVenta']);
     Route::apiResource('categorias', CategoriaController::class);
@@ -77,10 +80,15 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/caja/venta/cuadre', [CajaController::class, 'cuadrarVenta'])->middleware('throttle:10,1');
     Route::get('/caja/resumen-turno', [CajaController::class, 'resumenTurno']);
     Route::patch('/caja/venta/cierre', [CajaController::class, 'cerrarVentaCaja']);
+
     Route::patch('/caja/movimientos/{movimiento}/anular', [MovimientoExternoCajaController::class, 'anularMovimiento']);
-    Route::apiResource('caja/movimientoExterno', MovimientoExternoCajaController::class)->only(['index', 'store', 'show']);
+
+    Route::apiResource('caja/movimientoExterno', MovimientoExternoCajaController::class)
+        ->only(['index', 'store', 'show']);
+
     Route::patch('alertas/{id}/marcar-leida', [AlertasController::class, 'marcarLeida']);
     Route::apiResource('alertas', AlertasController::class)->only('index');
+
     Route::apiResource('/unidades', UnidadMedidaController::class)->only('index');
 
     Route::post('/ajuste-inventario', AjusteInventarioController::class);
