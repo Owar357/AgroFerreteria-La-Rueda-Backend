@@ -31,7 +31,6 @@ class UpdateProveedorRequest extends FormRequest
             'correo' => [
                 'sometimes', 'email',
                 Rule::unique('proveedores', 'correo')->ignore($this->route('proveedore')),
-                'regex:/^[a-z0-9_.+\-]+@[a-z0-9\-]+\.[a-z]{2,}$/',
             ],
             'direccion' => 'sometimes|string|max:250',
              'telefono' => 'sometimes|string|max:20',
