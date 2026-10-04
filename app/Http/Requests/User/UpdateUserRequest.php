@@ -25,7 +25,7 @@ class UpdateUserRequest extends FormRequest
     {
         return [
             'name' => 'sometimes|string|min:3|max:100|regex:/^[\pL\s]+$/u|unique:users,name,' . $this->route('usuario'),
-            'email' => 'sometimes|email|regex:/^[a-z0-9_.+\-]+@[a-z0-9\-]+\.[a-z]{2,}$/|unique:users,email,' . $this->route('usuario'),
+            'email' => 'sometimes|email|unique:users,email,' . ($this->route('usuario')?->id ?? $this->route('usuario')),
             'pin_caja' => 'sometimes|min:6|max:6|regex:/^\d+$/',
             'password' => 'sometimes|min:8',
             'rol' => 'required|exists:roles,name',
@@ -41,7 +41,6 @@ class UpdateUserRequest extends FormRequest
             'name.regex' => 'No se permite el ingreso de datos numericos',
             'email.unique' => 'Ya existe un usuario con este correo',
             'email.email' => 'Ingresar el correo con el formato correcto(@gmail.com, @hotmail.com, etc.',
-            'email.regex' => 'No se permite el ingreso de mayusculas',
             'pin_caja.required' => 'Por favor ingresar el pin de caja',
             'pin_caja.max' => 'Numero de dijitos excedido, favor ingresar un maximo 6 numeros',
             'pin_caja.min' => 'Por favor ingresar un minimo de 6 numeros',
