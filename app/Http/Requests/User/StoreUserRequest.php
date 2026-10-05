@@ -24,7 +24,7 @@ class StoreUserRequest extends FormRequest
     {
         return [
             'name' => 'required|string|min:3|max:100|regex:/^[\pL\s]+$/u|unique:users,name',
-            'email' => 'required|email|unique:users,email|regex:/^[a-z0-9_.+\-]+@[a-z0-9\-]+\.[a-z]{2,}$/',
+            'email' => 'required|email|unique:users,email',
             'password' => 'required|min:8',
             'rol' => 'required|exists:roles,name',
         ];
@@ -38,7 +38,6 @@ class StoreUserRequest extends FormRequest
             'name.regex' => 'No se permite el ingreso de datos numericos',
             'email.unique' => 'Ya existe un usuario con este correo',
             'email.email' => 'Ingresar el correo con el formato correcto(@gmail.com, @hotmail.com, etc.',
-            'email.regex' => 'No se permite el ingreso de mayusculas',
             'password.required' => 'Contraseñá obligatoria.',
             'rol.required' => 'El rol es obligatorio.',
         ];
