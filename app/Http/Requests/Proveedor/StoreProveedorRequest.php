@@ -23,7 +23,7 @@ class StoreProveedorRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nombre' => 'required|string|min:3|max:100|unique:proveedores,nombre',
+            'nombre' => 'required|string|min:3|max:50|unique:proveedores,nombre',
             'direccion' => 'required|string|min:5|max:250',
             'correo' => 'nullable|unique:proveedores,correo|email',
             'telefono' => 'required|string',
@@ -35,6 +35,8 @@ class StoreProveedorRequest extends FormRequest
     function messages(): array {
         return[
             'nombre.required' => 'El nombre es obligatorio',
+            'nombre.min' => 'El nombre debe tener un mínimo de 3 caracteres.',
+            'nombre.max' => 'El nombre debe tener un máximo de 50 caracteres.',
             'nombre.unique' => 'Este proveedor ya fue registrado.',
             'direccion.required' => 'Por favor ingresar una dirección.',
             'correo.regex' => 'No se permite mayusculas',
