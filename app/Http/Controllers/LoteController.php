@@ -61,6 +61,14 @@ class LoteController extends Controller
                 ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
                 ->paginate($perPage, ['*'], 'page', $page);
 
+        
+            $esGranel = $presentacion->producto?->tipo_producto === 'GRANEL';
+            $precioVenta = $esGranel ? null : (float) $presentacion->precio_venta;
+
+            $lotes->getCollection()->each(
+                fn ($lote) => $lote->setAttribute('precio_venta', $precioVenta)
+            );
+
             return response()->json([
                 'status' => 'ok',
                 'data' => $lotes->items(),
