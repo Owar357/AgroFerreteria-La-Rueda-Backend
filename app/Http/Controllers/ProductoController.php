@@ -138,68 +138,75 @@ class ProductoController extends Controller
         }
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        try {
-            if (! auth()->user()->hasAnyRole(['ADMIN', 'CAJERO'])) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'No autorizado',
-                ], 403);
-            }
-
-            $existeProducto = Producto::where('id', $id)->exists();
-
-            if (! $existeProducto) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Producto no encontrado',
-                ], 404);
-            }
-
-            $presentaciones = Presentacion::select([
-                'id',
-                'nombre',
-                'factor_conversion',
-                'precio_venta',
-                'es_base',
-                'activo',
-                'producto_id',
-                'unidad_medida_id',
-                DB::raw('(
-                    SELECT COALESCE(SUM(l.cantidad_actual), 0)
-                    FROM lotes l
-                    WHERE l.presentacion_id = presentaciones.id
-                    AND l.estado = \'ACTIVO\'
-                ) as stock_actual'),
-            ])->with('producto:id', 'unidadMedida:id,nombre,abreviatura')
-                ->where('producto_id', $id)
-                ->orderBy('es_base', 'desc')
-                ->orderBy('factor_conversion', 'asc')
-                ->get();
-
-            if ($presentaciones->isEmpty()) {
-                return response()->json([
-                    'status' => 'ok',
-                    'data' => [],
-                    'message' => 'No hay presentaciones registradas',
-                ], 200);
-            }
-
-            return response()->json([
-                'status' => 'ok',
-                'data' => $presentaciones,
-            ], 200);
-        } catch (\Exception $e) {
+   public function show(string $id)
+{
+    try {
+        if (! auth()->user()->hasAnyRole(['ADMIN', 'CAJERO'])) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error interno del servidor',
-            ], 500);
+                'message' => 'No autorizado',
+            ], 403);
         }
+
+        $producto = Producto::select('id', 'tipo_producto')->find($id);
+
+        if (! $producto) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Producto no encontrado',
+            ], 404);
+        }
+
+        $presentaciones = Presentacion::select([
+            'id',
+            'nombre',
+            'factor_conversion',
+            'precio_venta',
+            'es_base',
+            'activo',
+            'producto_id',
+            'unidad_medida_id',
+            DB::raw('(
+                SELECT COALESCE(SUM(l.cantidad_actual), 0)
+                FROM lotes l
+                WHERE l.presentacion_id = presentaciones.id
+                AND l.estado = \'ACTIVO\'
+            ) as stock_actual'),
+        ])->with('producto:id', 'unidadMedida:id,nombre,abreviatura')
+            ->where('producto_id', $id)
+            ->orderBy('es_base', 'desc')
+            ->orderBy('factor_conversion', 'asc')
+            ->get();
+
+        if ($presentaciones->isEmpty()) {
+            return response()->json([
+                'status' => 'ok',
+                'data' => [],
+                'message' => 'No hay presentaciones registradas',
+            ], 200);
+        }
+
+        if ($producto->tipo_producto === 'GRANEL') {
+            $stockTotal = (float) Lote::where('producto_id', $id)
+                ->where('estado', 'ACTIVO')
+                ->sum('cantidad_actual');
+
+            $presentaciones->each(function ($pres) use ($stockTotal) {
+                $pres->stock_actual = $stockTotal;
+            });
+        }
+
+        return response()->json([
+            'status' => 'ok',
+            'data' => $presentaciones,
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error interno del servidor',
+        ], 500);
     }
+}
 
     /**
      * Update the specified resource in storage.
@@ -264,8 +271,8 @@ class ProductoController extends Controller
                 return response()->json([]);
             }
 
-            $productos = Producto::query()
-                ->select('id', 'codigo', 'nombre', 'unidad_medida_id', 'aplica_iva', 'tipo_producto')
+           $productos = Producto::query()
+                ->select('id', 'codigo', 'nombre', 'fabricante', 'unidad_medida_id', 'aplica_iva', 'tipo_producto')
                 ->with(['unidadMedida:id,nombre,abreviatura'])
                 ->where(function ($query) use ($q) {
                     $query->where('nombre', 'ilike', "%{$q}%")
@@ -353,7 +360,7 @@ class ProductoController extends Controller
             }
 
             $productos = Producto::query()
-                ->select('id', 'codigo', 'nombre', 'unidad_medida_id', 'tipo_producto')
+                ->select('id', 'codigo', 'nombre', 'fabricante', 'unidad_medida_id', 'tipo_producto')
                 ->with(['unidadMedida:id,nombre,abreviatura'])
                 ->where(function ($query) use ($q) {
                     $query->where('nombre', 'ilike', "%{$q}%")
