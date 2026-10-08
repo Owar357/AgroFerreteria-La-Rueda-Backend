@@ -24,6 +24,7 @@ class Cliente extends Model
         'cod_municipio',
         'complemento',
         'correo',
+        'telefono',
         'activo',
         'registrado_por',
     ];

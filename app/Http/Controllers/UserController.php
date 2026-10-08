@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
+use App\Models\AperturaVenta;
 
 class UserController extends Controller
 {
@@ -140,6 +141,17 @@ class UserController extends Controller
                 ], 404);
             }
 
+            // No se puede desactivar a un usuario que tiene un turno de caja abierto
+                $tieneTurnoAbierto = AperturaVenta::where('cajero_id', $user->id)
+                    ->where('estado', 'ABIERTA')
+                    ->exists();
+
+                if ($tieneTurnoAbierto) {
+                    return response()->json([
+                        'message' => "No se puede desactivar a {$user->name} porque tiene una caja aperturada. Debe cerrar la caja por completo primero.",
+                        'turno_abierto' => true,
+                    ], 409);
+                }
             $user->update($request->validated());
 
             return response()->json([
@@ -157,7 +169,7 @@ class UserController extends Controller
     public function destroy(string $id) {}
 
 
-    public function desactivarUsuario(string $id)
+     public function desactivarUsuario(string $id)
     {
         try {
             if (! auth()->user()->hasRole('ADMIN')) {
@@ -166,29 +178,42 @@ class UserController extends Controller
                 ], 403);
             }
             $user = User::find($id);
-
+ 
             if (! $user) {
                 return response()->json([
                 'message' => 'Usuario no encontrado',
                 ], 404);
             }
-
+ 
             if (auth()->id() == $user->id) {
                 return response()->json([
                 'message' => 'No puedes desactivar tu propio usuario',
                 ], 400);
             }
-
+ 
             if (! $user->activo) {
                 return response()->json([
                 'message' => 'El usuario ya se encuentra desactivado',
                 ], 400);
             }
-
+ 
+            // No se puede desactivar a un usuario que tiene un turno de caja abierto:
+            // si se desactiva, ya no podría cuadrar ni cerrar su turno.
+            $tieneTurnoAbierto = AperturaVenta::where('cajero_id', $user->id)
+                ->where('estado', 'ABIERTA')
+                ->exists();
+ 
+            if ($tieneTurnoAbierto) {
+                return response()->json([
+                    'message' => "No se puede desactivar a {$user->name} porque tiene una caja aperturada. Debe cerrar la caja por completo primero.",
+                    'turno_abierto' => true,
+                ], 409);
+            }
+ 
             $user->update([
                 'activo' => false,
             ]);
-
+ 
             return response()->json([
             'message' => 'Usuario desactivado correctamente',
             ], 200);
