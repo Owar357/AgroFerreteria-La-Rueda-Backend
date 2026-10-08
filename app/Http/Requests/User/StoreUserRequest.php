@@ -4,6 +4,7 @@ namespace App\Http\Requests\User;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\PasswordNoUsadaPorOtro;
 
 class StoreUserRequest extends FormRequest
 {
@@ -24,8 +25,12 @@ class StoreUserRequest extends FormRequest
     {
         return [
             'name' => 'required|string|min:3|max:100|regex:/^[\pL\s]+$/u|unique:users,name',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:8',
+            'email' => [
+                    'required', 'string', 'max:255',
+                    'regex:/^[A-Za-z0-9]+([._-][A-Za-z0-9]+)*@[A-Za-z0-9]+(-[A-Za-z0-9]+)*(\.[A-Za-z]{2,3})?\.[A-Za-z]{2,}$/',
+                'unique:users,email',
+            ],
+            'password' => ['required', 'string', 'min:8', new PasswordNoUsadaPorOtro()],
             'rol' => 'required|exists:roles,name',
         ];
     }
@@ -33,13 +38,19 @@ class StoreUserRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.unique' => 'Ya existe un usuario con este nombre',
-            'name.required' => 'El nombre es obligatorio.',
-            'name.regex' => 'No se permite el ingreso de datos numericos',
-            'email.unique' => 'Ya existe un usuario con este correo',
-            'email.email' => 'Ingresar el correo con el formato correcto(@gmail.com, @hotmail.com, etc.',
-            'password.required' => 'Contraseñá obligatoria.',
+          'name.required' => 'El nombre es obligatorio.',
+            'name.min' => 'El nombre debe tener al menos 3 caracteres.',
+            'name.max' => 'El nombre no puede superar los 50 caracteres.',
+            'name.regex' => 'El nombre solo puede contener letras y espacios.',
+            'name.unique' => 'Ya existe un usuario con este nombre.',
+            'email.required' => 'El correo es obligatorio.',
+            'email.max' => 'El correo no puede superar los 255 caracteres.',
+            'email.regex' => 'Correo inválido. Solo se permiten letras, números y los símbolos . _ -',
+            'email.unique' => 'Ya existe un usuario con este correo.',
+            'password.required' => 'La contraseña es obligatoria.',
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
             'rol.required' => 'El rol es obligatorio.',
+            'rol.exists' => 'El rol seleccionado no es válido.',
         ];
     }
 }

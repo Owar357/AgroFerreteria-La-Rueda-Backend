@@ -28,6 +28,7 @@ return new class extends Migration
             $table->string('complemento', 250)->nullable();
             
             $table->string('correo', 150)->nullable();
+            $table->string('telefono', 20)->nullable();
             $table->boolean('activo')->default(true)->index();
             $table->foreignId('registrado_por')->nullable()->constrained('users');
             $table->timestamps();
