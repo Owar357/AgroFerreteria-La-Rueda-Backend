@@ -29,16 +29,10 @@ class CategoriaController extends Controller
 
             $categorias = Categoria::with('creadoPor')
                 ->when($search, function ($query, $search) {
-                    $query->where('nombre', 'like', '%'.$search.'%');
+                    $query->where('nombre', 'ilike', '%'.$search.'%');
                 })
-                ->orderBy('id', 'desc')
+                ->orderBy('nombre','desc')
                 ->paginate($perPage, ['*'], 'page', $page);
-
-            if ($categorias->isEmpty()) {
-                return response()->json([
-                    'message' => 'No se encontraron categorías',
-                ], 404);
-            }
 
             return response()->json([
                 'data' => $categorias->items(),

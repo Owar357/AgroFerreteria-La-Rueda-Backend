@@ -16,27 +16,37 @@ class UserController extends Controller
     public function index(Request $request)
     {
         try {
-
             if (! auth()->user()->hasRole('ADMIN')) {
                 return response()->json([
                     'message' => 'No autorizado',
                 ], 403);
             }
 
-            $perPage = $request->get('per_page', 5);
-            $page = $request->get('page', 1);
+            $perPage = $request->input('per_page', 5);
+            $page = $request->input('page', 1);
+            $search = $request->input('search');
+            $estado = $request->input('estado');
 
-            $users = User::with(['roles:name', 'registradoPor:id,name'])
-                ->select('id', 'name', 'email', 'activo', 'registrado_por', 'created_at')
-                ->orderBy('id', 'desc')
-                ->paginate($perPage, ['*'], 'page', $page);
-            if ($users->isEmpty()) {
-                return response()->json([
-                    'message' => 'No se encontraron usuarios',
-                ], 404);
+            $query = User::with(['roles:name', 'registradoPor:id,name'])
+                ->select('id', 'name', 'email', 'activo', 'registrado_por', 'created_at');
+
+            $query->when($search, function ($q, $search) {
+                $q->where(function ($query) use ($search) {
+                    $query->where('name', 'ilike', "%{$search}%")
+                          ->orWhere('email', 'ilike', "%{$search}%");
+                });
+            });
+
+          
+            if ($estado !== null && $estado !== 'TODOS') {
+                $query->where('activo', filter_var($estado, FILTER_VALIDATE_BOOLEAN));
             }
 
-            // Ocultamos el pivot de roles en cada usuario
+            $users = $query->orderBy('name','asc')
+                           ->orderByDesc('id')
+                           ->paginate($perPage, ['*'], 'page', $page);
+
+          
             $users->each(function ($user) {
                 $user->roles->makeHidden(['pivot']);
             });
@@ -56,16 +66,13 @@ class UserController extends Controller
         }
     }
 
-
-    public function  ListarUsuariosRolCajero(){
-         
+    public function ListarUsuariosRolCajero()
+    {
       try {
-       
          $usuarios = User::role('CAJERO')
          ->where('activo','true')
-         ->select('id','name' )
+         ->select('id','name')
          ->get();
-
 
          return response()->json([
              'status' => 'ok',
@@ -78,16 +85,11 @@ class UserController extends Controller
              'message' => 'ocurrio un error interno en el servidor y no se pudo listar los usuarios'
          ],500);
       } 
-
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(StoreUserRequest $request)
     {
         try {
-
             if (! auth()->user()->hasRole('ADMIN')) {
                 return response()->json([
                     'message' => 'No autorizado',
@@ -122,10 +124,7 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, string $id)
     {
-
         try {
-            //Validamos que solo administradores podran actulizar datos de usuario
-
             if (! auth()->user()->hasRole('ADMIN')) {
                 return response()->json([
                     'message' => 'No autorizado',
@@ -155,7 +154,6 @@ class UserController extends Controller
     }
 
     public function destroy(string $id) {}
-
 
     public function desactivarUsuario(string $id)
     {
