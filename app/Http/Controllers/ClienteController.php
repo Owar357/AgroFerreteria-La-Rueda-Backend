@@ -19,8 +19,12 @@ class ClienteController extends Controller
         $clientes = Cliente::select(
                 'id',
                 'nombre',
+                'razon_social',
                 'tipo_persona',
                 'numero_documento',
+                'nrc',
+                'telefono',
+                'correo',
             )->paginate();
 
         return response()->json([
