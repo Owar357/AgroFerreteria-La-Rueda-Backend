@@ -30,25 +30,23 @@ class ProductoController extends Controller
             $search = trim($request->input('q', ''));
             $categoria = $request->input('categoria', null);
 
-            // Construcción de la consulta base
             $query = Producto::with(['categoria:id,nombre,porcentaje_ganancia_minimo', 'unidadMedida:id,nombre,abreviatura'])
                 ->select('id', 'codigo', 'nombre', 'fabricante', 'tipo_producto', 'unidad_medida_id', 'porcentaje_ganancia_minimo', 'categoria_id');
 
-            if (! empty($search)) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('nombre', 'ILIKE', "%{$search}%")
-                        ->orWhere('codigo', 'ILIKE', "%{$search}%")
-                        ->orWhere('fabricante', 'ILIKE', "%{$search}%");
+            $query->when(!empty($search), function ($q) use ($search) {
+                $q->where(function ($query) use ($search) {
+                    $query->where('nombre', 'ilike',"%{$search}%" )
+                        ->orWhere('codigo', 'ilike', "%{$search}%")
+                        ->orWhere('fabricante', 'ilike', "%{$search}%");
                 });
-            }
-
-            if (! empty($categoria)) {
-                $query->whereHas('categoria', function ($q) use ($categoria) {
-                    $q->where('nombre', $categoria);
+            })->when(!empty($categoria), function ($q) use ($categoria) {
+                $q->whereHas('categoria', function ($subQ) use ($categoria) {
+                    $subQ->where('nombre', $categoria);
                 });
-            }
+            });
 
-            $productos = $query->orderBy('id', 'desc')
+            $productos = $query->orderBy('nombre', 'asc')
+                ->orderByDesc('id')
                 ->paginate($perPage, ['*'], 'page', $page);
 
             return response()->json([
