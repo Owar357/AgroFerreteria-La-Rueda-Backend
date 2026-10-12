@@ -25,65 +25,77 @@ class VentaController extends Controller
 
     private const TOLERANCIA_POR_LINEA = 0.005;
 
-    /**
-     * Listado paginado en el servidor.
-     *
-     * Filtros: cliente, fecha_desde, fecha_hasta, estado, tipo_pago, search
-     * (N° de factura o nombre del vendedor), page y per_page (1 a 100).
-     * Sin cliente ni fechas devuelve las ventas de hoy.
-     */
     public function index(Request $request)
     {
         try {
             $perPage = min(max((int) $request->input('per_page', 8), 1), 100);
+            
+            $fechaDesde = $request->input('fecha_desde');
+            $fechaHasta = $request->input('fecha_hasta');
+            $search = trim($request->input('search', ''));
 
-            $resultados = Venta::query()
+            // 1. Fechas por defecto: Último mes si no se envía ninguna
+            if (!$fechaDesde && !$fechaHasta) {
+                $fechaDesde = Carbon::now()->subMonth()->format('Y-m-d');
+                $fechaHasta = Carbon::now()->format('Y-m-d');
+            }
+
+            // 2. Ordenar fechas si vienen invertidas por error
+            if ($fechaDesde && $fechaHasta && $fechaDesde > $fechaHasta) {
+                [$fechaDesde, $fechaHasta] = [$fechaHasta, $fechaDesde];
+            }
+
+    
+            $ventas = Venta::query()
                 ->with(['cliente:id,nombre,tipo_persona', 'vendidoPor:id,name'])
                 ->select([
-                    'id',
-                    'numero_factura',
-                    'total',
-                    'tipo_pago',
-                    'tipo_factura',
-                    'estado',
-                    'cliente_id',
-                    'apertura_venta_id',
-                    'created_at',
-                    'vendido_por',
-                ]);
-
-            if ($request->filled('cliente')) {
-                $resultados->where('cliente_id', $request->cliente);
-            } elseif ($request->filled('fecha_desde') && $request->filled('fecha_hasta')) {
-                $resultados->whereBetween('created_at', [
-                    Carbon::parse($request->input('fecha_desde'))->startOfDay(),
-                    Carbon::parse($request->input('fecha_hasta'))->endOfDay(),
-                ]);
-            } elseif ($request->filled('fecha_desde')) {
-                $resultados->whereDate('created_at', '>=', $request->input('fecha_desde'));
-            } else {
-                $resultados->whereDate('created_at', today());
-            }
-
-            if (in_array($request->input('estado'), ['PROCESADA', 'ANULADA'], true)) {
-                $resultados->where('estado', $request->input('estado'));
-            }
-
-            if (in_array($request->input('tipo_pago'), ['EFECTIVO', 'TARJETA', 'TRANSFERENCIA'], true)) {
-                $resultados->where('tipo_pago', $request->input('tipo_pago'));
-            }
-
-            if ($request->filled('search')) {
-                // Se escapan los comodines de LIKE para que se busquen como texto literal
-                $texto = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($request->input('search')));
-
-                $resultados->where(function ($q) use ($texto) {
-                    $q->where('numero_factura', 'ilike', "%{$texto}%")
-                        ->orWhereHas('vendidoPor', fn ($u) => $u->where('name', 'ilike', "%{$texto}%"));
-                });
-            }
-
-            $ventas = $resultados
+                    'id', 'numero_factura', 'total', 'tipo_pago', 'tipo_factura', 
+                    'estado', 'cliente_id', 'apertura_venta_id', 'created_at', 'vendido_por'
+                ])
+                
+                // Filtro: Cliente específico
+                ->when($request->filled('cliente'), function ($q) use ($request) {
+                    $q->where('cliente_id', $request->cliente);
+                })
+                
+                // Filtro: Estado (Procesada / Anulada)
+                ->when(in_array($request->input('estado'), ['PROCESADA', 'ANULADA']), function ($q) use ($request) {
+                    $q->where('estado', $request->estado);
+                })
+                
+                // Filtro: Tipo de pago
+                ->when(in_array($request->input('tipo_pago'), ['EFECTIVO', 'TARJETA', 'TRANSFERENCIA']), function ($q) use ($request) {
+                    $q->where('tipo_pago', $request->tipo_pago);
+                })
+                
+                // Filtro: Rango de fechas (Ambas)
+                ->when($fechaDesde && $fechaHasta, function ($q) use ($fechaDesde, $fechaHasta) {
+                    $q->whereBetween('created_at', [
+                        Carbon::parse($fechaDesde)->startOfDay(),
+                        Carbon::parse($fechaHasta)->endOfDay(),
+                    ]);
+                })
+                
+                // Filtro: Solo desde (sin fin)
+                ->when($fechaDesde && !$fechaHasta, function ($q) use ($fechaDesde) {
+                    $q->where('created_at', '>=', Carbon::parse($fechaDesde)->startOfDay());
+                })
+                
+                // Filtro: Solo hasta (sin inicio)
+                ->when(!$fechaDesde && $fechaHasta, function ($q) use ($fechaHasta) {
+                    $q->where('created_at', '<=', Carbon::parse($fechaHasta)->endOfDay());
+                })
+                
+                // Filtro: Búsqueda de texto (N° Factura o Vendedor)
+                ->when(!empty($search), function ($q) use ($search) {
+                    $texto = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search);
+                    $q->where(function ($sub) use ($texto) {
+                        $sub->where('numero_factura', 'ilike', "%{$texto}%")
+                            ->orWhereHas('vendidoPor', fn ($u) => $u->where('name', 'ilike', "%{$texto}%"));
+                    });
+                })
+                
+                // 4. Ordenamiento estable y Paginación
                 ->orderByDesc('created_at')
                 ->orderByDesc('id')
                 ->paginate($perPage);
@@ -95,12 +107,11 @@ class VentaController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'ocurrio un error interno y no se pudo obtener los registros',
+                'message' => 'Ocurrió un error interno y no se pudieron obtener los registros',
             ], 500);
         }
     }
 
-    
     public function store(StoreVentaRequest $request, KardexService $kardexService, CajaService $cajaService)
     {
         try {
@@ -398,17 +409,17 @@ class VentaController extends Controller
     }
 
     public function numeroFactura()
-{
-    $numeroFactura = DB::select(
-        'SELECT numero_factura FROM ventas
-         ORDER BY numero_factura DESC
-         LIMIT 1'
-    );
+    {
+        $numeroFactura = DB::select(
+            'SELECT numero_factura FROM ventas
+             ORDER BY numero_factura DESC
+             LIMIT 1'
+        );
 
-    $resultado = ! empty($numeroFactura) ? $numeroFactura[0]->numero_factura : null;
+        $resultado = ! empty($numeroFactura) ? $numeroFactura[0]->numero_factura : null;
 
-    $secuencia = $resultado ? ((int) substr($resultado, 4) + 1) : 1;
+        $secuencia = $resultado ? ((int) substr($resultado, 4) + 1) : 1;
 
-    return 'FAC-'.str_pad($secuencia, 7, '0', STR_PAD_LEFT);
-}
+        return 'FAC-'.str_pad($secuencia, 7, '0', STR_PAD_LEFT);
+    }
 }
