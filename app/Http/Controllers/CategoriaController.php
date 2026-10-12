@@ -16,7 +16,6 @@ class CategoriaController extends Controller
     public function index(Request $request)
     {
         try {
-
             if (! auth()->user()->hasRole('ADMIN')) {
                 return response()->json([
                     'message' => 'No autorizado',
@@ -29,9 +28,9 @@ class CategoriaController extends Controller
 
             $categorias = Categoria::with('creadoPor')
                 ->when($search, function ($query, $search) {
-                    $query->where('nombre', 'ilike', '%'.$search.'%');
+                    $query->where('nombre', 'ilike', "%{$search}%");
                 })
-                ->orderBy('nombre','desc')
+                ->orderBy('nombre', 'asc')
                 ->paginate($perPage, ['*'], 'page', $page);
 
             return response()->json([
