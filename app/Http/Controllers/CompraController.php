@@ -71,7 +71,7 @@ class CompraController extends Controller
             ->when($request->proveedor, fn($q, $prov) => $q->where('proveedor_id', $prov));
 
             $compras = $resultado
-                ->orderByDesc('created_at')
+                ->orderByDesc('fecha_emision')
                 ->orderByDesc('id')
                 ->paginate(5);
 
