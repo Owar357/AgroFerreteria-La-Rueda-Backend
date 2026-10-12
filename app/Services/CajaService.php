@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\AperturaVenta;
-use App\Models\Configuracion;
 use App\Models\MovimientoExternoCaja;
 use App\Models\Venta;
 
@@ -12,30 +11,26 @@ class CajaService
     private const ESCALA = 2;
 
     public const DENOMINACIONES = [
-    'c1'   => 0.01,
-    'c5'   => 0.05,
-    'c10'  => 0.10,
-    'c25'  => 0.25,
-    'b1'   => 1.00,
-    'b5'   => 5.00,
-    'b10'  => 10.00,
-    'b20'  => 20.00,
-    'b50'  => 50.00,
-    'b100' => 100.00,
-];
+        'c1'   => 0.01,
+        'c5'   => 0.05,
+        'c10'  => 0.10,
+        'c25'  => 0.25,
+        'b1'   => 1.00,
+        'b5'   => 5.00,
+        'b10'  => 10.00,
+        'b20'  => 20.00,
+        'b50'  => 50.00,
+        'b100' => 100.00,
+    ];
     
+    /**
+     * Retorna el fondo fijo estático de 75.00 dólares establecido para el proyecto de graduación.
+     */
     public function fondoFijo(): string
     {
-        $valor = trim((string) Configuracion::obtener(Configuracion::FONDO_FIJO_CAJA));
-
-        if (! preg_match('/^\d+(\.\d{1,2})?$/', $valor) || bccomp($valor, '0', self::ESCALA) <= 0) {
-            return Configuracion::FONDO_FIJO_DEFECTO;
-        }
-
-        return bcadd($valor, '0', self::ESCALA);
+        return '75.00';
     }
 
-    
     public function turnoActivo(bool $bloquear = false): ?AperturaVenta
     {
         $query = AperturaVenta::query()->where('estado', 'ABIERTA');
@@ -47,7 +42,6 @@ class CajaService
         return $query->first();
     }
 
-    
     public function resumen(AperturaVenta $turno): array
     {
         $ventas = Venta::query()
@@ -105,13 +99,11 @@ class CajaService
         return $this->resumen($turno)['efectivo_disponible'];
     }
 
-    
     public function permiteRetirar(AperturaVenta $turno, mixed $monto): bool
     {
         return bccomp($this->efectivoDisponible($turno), $this->monto($monto), self::ESCALA) >= 0;
     }
 
-   
     public function saldoRetirable(AperturaVenta $turno): string
     {
         $fondo = $turno->fondo_fijo_referencia !== null
@@ -123,7 +115,6 @@ class CajaService
         return bccomp($retirable, '0', self::ESCALA) > 0 ? $retirable : '0.00';
     }
 
-    
     public function evaluarApertura(mixed $montoContado): array
     {
         $contado = $this->monto($montoContado);
@@ -143,7 +134,6 @@ class CajaService
         ];
     }
 
-    
     public function calcularCierre(AperturaVenta $turno, mixed $montoContado): array
     {
         $contado = $this->monto($montoContado);
@@ -184,43 +174,36 @@ class CajaService
         ];
     }
 
-     
-public function normalizarDenominaciones(array $denominaciones): array
-{
-    $resultado = [];
+    public function normalizarDenominaciones(array $denominaciones): array
+    {
+        $resultado = [];
 
-    foreach (self::DENOMINACIONES as $clave => $valor) {
-        $cantidad = (int) ($denominaciones[$clave] ?? 0);
-        $resultado[$clave] = max(0, $cantidad);
+        foreach (self::DENOMINACIONES as $clave => $valor) {
+            $cantidad = (int) ($denominaciones[$clave] ?? 0);
+            $resultado[$clave] = max(0, $cantidad);
+        }
+
+        return $resultado;
     }
 
-    return $resultado;
-}
+    public function totalDenominaciones(array $desglose): string
+    {
+        $total = '0.00';
 
+        foreach ($desglose as $clave => $cantidad) {
+            $valorDenominacion = (string) (self::DENOMINACIONES[$clave] ?? '0');
+            $subtotal = bcmul($valorDenominacion, (string) $cantidad, self::ESCALA);
+            $total = bcadd($total, $subtotal, self::ESCALA);
+        }
 
-public function totalDenominaciones(array $desglose): string
-{
-    $total = '0.00';
-
-    foreach ($desglose as $clave => $cantidad) {
-        $valorDenominacion = (string) (self::DENOMINACIONES[$clave] ?? '0');
-        $subtotal = bcmul($valorDenominacion, (string) $cantidad, self::ESCALA);
-        $total = bcadd($total, $subtotal, self::ESCALA);
+        return $total;
     }
 
-    return $total;
-}
-    /**
-     * Normaliza un monto que viene del cliente (float/string) a string con 2 decimales.
-     */
     public function monto(mixed $valor): string
     {
         return number_format(round((float) $valor, self::ESCALA), self::ESCALA, '.', '');
     }
 
-    /**
-     * Normaliza un valor que viene de la base de datos (numeric) a string con 2 decimales.
-     */
     private function decimal(mixed $valor): string
     {
         return bcadd((string) ($valor ?? '0'), '0', self::ESCALA);
