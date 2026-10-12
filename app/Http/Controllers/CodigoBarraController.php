@@ -3,13 +3,33 @@
 namespace App\Http\Controllers;
 
 use App\Models\CodigoBarra;
+use App\Models\Presentacion;
+use App\Models\Producto;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use App\Http\Requests\CodigoBarra\StoreCodigoBarraRequest;
 
 class CodigoBarraController extends Controller
 {
-   
+    
+    private function resolverPresentacionId(int|string $presentacionId): int
+    {
+        $presentacion = Presentacion::findOrFail($presentacionId);
+
+        $producto = Producto::find($presentacion->producto_id);
+
+        if ($producto && $producto->tipo_producto === 'GRANEL' && ! $presentacion->es_base) {
+            $base = Presentacion::where('producto_id', $presentacion->producto_id)
+                ->where('es_base', true)
+                ->first();
+
+            if ($base) {
+                return $base->id;
+            }
+        }
+
+        return $presentacion->id;
+    }
 
     /**
      * Store a newly created resource in storage.
@@ -23,11 +43,12 @@ class CodigoBarraController extends Controller
                 ], 403);
             }
 
+            $datos = $request->validated();
 
+            // Si viene de una derivada (granel), se guarda en la base
+            $datos['presentacion_id'] = $this->resolverPresentacionId($datos['presentacion_id']);
 
-            $codigoBarra = CodigoBarra::create([
-            ...$request->validated(),
-            ]);
+            $codigoBarra = CodigoBarra::create($datos);
 
             return response()->json([
                 'message' => 'Código de barra creado correctamente',
@@ -62,7 +83,10 @@ class CodigoBarraController extends Controller
                 ], 403);
             }
 
-            $codigosBarra = CodigoBarra::where('presentacion_id', $id)
+            // Si es una derivada (granel), se leen los códigos de la base
+            $presentacionId = $this->resolverPresentacionId($id);
+
+            $codigosBarra = CodigoBarra::where('presentacion_id', $presentacionId)
                 ->select('id', 'codigo')
                 ->orderBy('id', 'desc')
                 ->get();

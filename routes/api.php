@@ -71,6 +71,7 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/presentaciones/actualizar-precios-masivo', [PresentacionController::class, 'actualizarPreciosMasivo']);
     Route::apiResource('presentaciones', PresentacionController::class)->only(['index','store', 'update', 'destroy']);
     Route::patch('/proveedores/{id}/desactivar', [ProveedorController::class, 'desactivarProveedor']);
+    Route::patch('/proveedores/{id}/activar', [ProveedorController::class, 'activarProveedor']);
     Route::get('/proveedor/proveedores', [ProveedorController::class, 'traerNombreProveedores']);
     Route::apiResource('proveedores', ProveedorController::class);
 

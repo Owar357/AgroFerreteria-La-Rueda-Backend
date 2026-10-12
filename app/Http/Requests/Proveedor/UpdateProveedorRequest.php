@@ -25,25 +25,25 @@ class UpdateProveedorRequest extends FormRequest
     {
         return [
             'nombre' => [
-                'sometimes', 'string', 'min:3', 'max:100',
+                'sometimes', 'string', 'min:3', 'max:50',
                 Rule::unique('proveedores', 'nombre')->ignore($this->route('proveedore')),
             ],
             'correo' => [
-                'sometimes', 'email',
+                'sometimes', 'nullable', 'email',
                 Rule::unique('proveedores', 'correo')->ignore($this->route('proveedore')),
             ],
             'direccion' => 'sometimes|string|max:250',
              'telefono' => 'sometimes|string|max:20',
             'direccion' => 'sometimes|string|max:260',
         ];
-        
+
     }
 
     public function messages(): array
     {
         return [
             'nombre.min' => 'El nombre debe tener un mínimo de 3 caracteres',
-            'nombre.max' => 'El nombre debe tener un máximo de 100 caracteres',
+            'nombre.max' => 'El nombre debe tener un máximo de 50 caracteres',
             'nombre.unique' => 'El nombre de ese proveedor ya existe',
             'correo.regex' => 'No se permite mayúsculas',
             'correo.unique' => 'El correo ingresado ya está asociado',

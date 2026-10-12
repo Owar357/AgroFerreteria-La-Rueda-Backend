@@ -202,12 +202,12 @@
         </div>
     </div>
 
-  
+
     <table class="tabla-contenedor">
         <tr>
-          
+
             <td class="celda-bloque">
-                <h3 class="bloque-h3"> Período Anterior</h3>
+                <h3 class="bloque-h3"> Período 1</h3>
                 <div class="fecha">
                     {{ $inicio1->format('d/m/Y') }} - {{ $fin1->format('d/m/Y') }}
                 </div>
@@ -225,12 +225,12 @@
                 </div>
             </td>
 
-    
+
             <td class="celda-espacio"></td>
 
-        
+
             <td class="celda-bloque">
-                <h3 class="bloque-h3">Período Actual</h3>
+                <h3 class="bloque-h3">Período 2</h3>
                 <div class="fecha">
                     {{ $inicio2->format('d/m/Y') }} - {{ $fin2->format('d/m/Y') }}
                 </div>
