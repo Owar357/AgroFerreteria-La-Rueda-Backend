@@ -33,10 +33,13 @@ use App\Http\Controllers\UnidadMedidaController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Reportes\Compras\ComprasPorProveedorDatosController;
+use App\Http\Controllers\DashboardController;
+
 
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
 
+   
     Route::middleware('auth:api')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         Route::post('logout', [AuthController::class, 'logout']);
@@ -45,6 +48,10 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::middleware('auth:api')->group(function () {
+     Route::prefix('dashboard')->middleware('role:ADMIN,api')->group(function () {
+        Route::get('resumen', [DashboardController::class, 'resumen']);
+        Route::get('ventas-compras', [DashboardController::class, 'ventasCompras']);
+    });
     Route::patch('compras/{id}/anular', [CompraController::class, 'anularCompra']);
     Route::post('compras/{id}/abonar', [CompraController::class, 'abonar']);
     Route::apiResource('compras', CompraController::class);
