@@ -13,10 +13,15 @@ class ClienteController extends Controller
     /**
      * Display a listing of the resource.
      */
-   public function index()
-{
-    try {
-        $clientes = Cliente::select(
+  public function index(Request $request)
+    {
+        try {
+            $perPage = $request->input('per_page', 10);
+            $page = $request->input('page', 1);
+            $search = trim($request->input('search', ''));
+            $tipoPersona = $request->input('tipo_persona');
+
+            $query = Cliente::select(
                 'id',
                 'nombre',
                 'razon_social',
@@ -24,21 +29,37 @@ class ClienteController extends Controller
                 'numero_documento',
                 'nrc',
                 'telefono',
-                'correo',
-            )->paginate();
+                'correo'
+            );
 
-        return response()->json([
-            'status' => 'ok',
-            'data' => $clientes,
-        ], 200);
+            $query->when(!empty($search), function ($q) use ($search) {
+                $texto = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search);
+                $q->where(function ($sub) use ($texto) {
+                    $sub->where('nombre', 'ilike', "%{$texto}%")
+                        ->orWhere('razon_social', 'ilike', "%{$texto}%")
+                        ->orWhere('numero_documento', 'ilike', "%{$texto}%");
+                });
+            });
 
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Error al obtener la lista de clientes'
-        ], 500);
+            if ($tipoPersona && $tipoPersona !== 'TODOS') {
+                $query->where('tipo_persona', $tipoPersona);
+            }
+
+            $clientes = $query->orderBy('id', 'desc')
+                              ->paginate($perPage, ['*'], 'page', $page);
+
+            return response()->json([
+                'status' => 'ok',
+                'data' => $clientes,
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error al obtener la lista de clientes'
+            ], 500);
+        }
     }
-}
 
     /**
      * Store a newly created resource in storage.
