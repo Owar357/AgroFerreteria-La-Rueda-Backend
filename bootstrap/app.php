@@ -9,6 +9,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Exceptions\TokenInvalidException;
+use Spatie\Permission\Middleware\RoleMiddleware;
+
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -21,8 +23,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => null);
         $middleware->alias([
             'auth' => Authenticate::class,
+            'role' => RoleMiddleware::class, //se agrego para proteger el dasboard y que solo el admin lo vea
         ]);
     })
+
+
 
 
 
