@@ -121,7 +121,6 @@ class UserController extends Controller
         }
     }
 
-    public function show(string $id) {}
 
     public function update(UpdateUserRequest $request, string $id)
     {
@@ -221,4 +220,6 @@ class UserController extends Controller
             ], 500);
         }
     }
+
+
 }
