@@ -42,7 +42,7 @@ class AuthController extends Controller
                 'email' => auth()->user()->email,
             ],
             'roles' => auth()->user()->getRoleNames(),
-            'expires_in' => auth()->factory()->getTTL() * 30,
+            'expires_in' => auth()->factory()->getTTL() * 60,
         ]);
     }
 
@@ -64,6 +64,15 @@ class AuthController extends Controller
     // método para refrescar el token
     public function refresh()
     {
+        if(! auth()->user()->activo){
+            auth()->logout();
+
+            return response()->json([
+            'message' => 'Su cuenta a sido desactivada'
+        ],403);
+
+        }
+
         return $this->responseWithToken(auth()->refresh());
     }
 }
