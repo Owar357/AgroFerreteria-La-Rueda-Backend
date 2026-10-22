@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Reporte de Ventas por Cajero - Agroferretería La Rueda</title>
+    <title>Total de ventas por cajero - Agroferretería La Rueda</title>
 
     <style>
         @page {
@@ -148,7 +148,7 @@
         </div>
 
         <div class="subtitulo">
-            Reporte de Ventas por Cajero
+            Total ventas por cajero
         </div>
 
         <div class="apartado-fechas">
