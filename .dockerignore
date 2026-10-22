@@ -1,0 +1,27 @@
+# Dependencias locales de Windows 
+vendor/
+node_modules/
+
+# Archivos de entorno y credenciales sensibles
+.env
+.env.backup
+.env.production
+
+# Control de versiones y configuración de Git
+.git/
+.github/
+.gitignore
+.gitattributes
+
+# Cachés temporales y logs de Laravel
+storage/logs/*.log
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*.php
+
+# Archivos de pruebas y editores
+.phpunit.cache/
+tests/
+.vscode/
+.idea/
