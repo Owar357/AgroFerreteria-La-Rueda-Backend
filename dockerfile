@@ -2,9 +2,13 @@ FROM php:8.4.15-cli
 
 WORKDIR /app
 
-#  Instalar el conector de PostgreSQL y la herramienta zip
-RUN apt-get update && apt-get install -y libpq-dev zip unzip \
-    && docker-php-ext-install pdo pdo_pgsql bcmath
+# Instalar PostgreSQL, herramientas ZIP y dependencias para GD (JPEG/PDF)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libpq-dev libpng-dev libjpeg-dev libfreetype6-dev zip unzip \
+    && docker-php-ext-configure gd --with-jpeg --with-freetype \
+    && docker-php-ext-install pdo pdo_pgsql bcmath gd \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Traer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

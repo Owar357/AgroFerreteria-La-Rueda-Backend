@@ -6,7 +6,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
-class Anularmovimientorequest extends FormRequest
+class AnularMovimientoRequest extends FormRequest
 {
     
     public function authorize(): bool
