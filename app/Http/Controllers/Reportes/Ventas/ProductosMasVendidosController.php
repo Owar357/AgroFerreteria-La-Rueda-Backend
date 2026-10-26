@@ -44,7 +44,6 @@ class ProductosMasVendidosController extends Controller
                     ];
                 }
 
-                // Sumamos los lotes asociados a este detalle de venta
                 $cantidadLotes = $detalle->loteDetallesVenta->sum('cantidad_tomada');
                 $cantidad = $cantidadLotes > 0 ? $cantidadLotes : $detalle->cantidad;
                 $monto = $cantidad * $detalle->precio_unitario;

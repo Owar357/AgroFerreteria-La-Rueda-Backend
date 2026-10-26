@@ -51,8 +51,6 @@ class VentasPorUsuarioController extends Controller
               $resultado[$usuarioNombre]['numero_ventas'] ++;
            }
 
-            // Calculamos el ticket_promedio de CADA usuario, dentro de su propio
-            // ciclo, una vez que ya tenemos el total acumulado de todos
             foreach ($resultado as $usuarioNombre => $datos) {
                 $resultado[$usuarioNombre]['ticket_promedio'] = $datos['numero_ventas'] > 0
                 ? $datos['total_vendido'] / $datos['numero_ventas']

@@ -80,7 +80,6 @@ class CategoriaController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al crear la categoria',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -115,7 +114,6 @@ class CategoriaController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar la categoría',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }

@@ -161,7 +161,6 @@ class PresentacionController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error interno del servidor',
-                'error_log' => $e->getMessage(), // Opcional para debuguear si algo truena
             ], 500);
         }
     }

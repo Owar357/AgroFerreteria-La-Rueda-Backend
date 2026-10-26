@@ -45,7 +45,7 @@ class CodigoBarraController extends Controller
 
             $datos = $request->validated();
 
-            // Si viene de una derivada (granel), se guarda en la base
+            // Si viene de una presentación  a granel, se guarda en la base
             $datos['presentacion_id'] = $this->resolverPresentacionId($datos['presentacion_id']);
 
             $codigoBarra = CodigoBarra::create($datos);
@@ -64,7 +64,6 @@ class CodigoBarraController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al crear código de barra',
-                'error' => $e->getMessage(),
             ], 500);
 
         }

@@ -162,7 +162,7 @@ class MovimientoExternoCajaController extends Controller
             $admin = $resultado['usuario'];
 
             DB::transaction(function () use ($movimiento, $admin) {
-                // Se bloquea primero el turno (mismo orden que store) y luego se relee el movimiento.
+                
                 $turno = AperturaVenta::whereKey($movimiento->apertura_venta_id)->lockForUpdate()->firstOrFail();
                 $movimiento->refresh();
 

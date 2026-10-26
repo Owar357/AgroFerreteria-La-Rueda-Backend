@@ -30,11 +30,9 @@ class CuadrarVentaRequest extends FormRequest
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
  
-            // Conteo final por denominación: { "c1": 0, "c5": 2, ..., "b100": 1 }
             'denominaciones' => ['required_without:monto_contado', 'array'],
             'denominaciones.*' => ['nullable', 'integer', 'min:0', 'max:1000000'],
  
-            // TRANSICIÓN: se elimina cuando el frontend envíe siempre 'denominaciones'
             'monto_contado' => ['required_without:denominaciones', 'numeric', 'min:0'],
         ];
     }

@@ -41,7 +41,6 @@ class UpdatePresentacionesRequest extends FormRequest
 
             $producto = $presentacion->producto;
 
-            // Si se manda unidad_medida_id, validar que sea de la misma magnitud que el producto
             if ($this->filled('unidad_medida_id')) {
                 $unidadNueva = UnidadMedida::find($this->input('unidad_medida_id'));
                 if ($unidadNueva && $producto->unidadMedida && $unidadNueva->magnitud !== $producto->unidadMedida->magnitud) {
@@ -52,7 +51,6 @@ class UpdatePresentacionesRequest extends FormRequest
                 }
             }
 
-            // Si esta presentación es la base de un producto GRANEL, no se le puede tocar factor_conversion ni ponerle stock_minimo <= 0
             if ($producto->tipo_producto === 'GRANEL' && $presentacion->es_base) {
 
                 if ($this->filled('factor_conversion') && abs((float) $this->input('factor_conversion') - 1.0) > 0.0001) {
@@ -70,7 +68,6 @@ class UpdatePresentacionesRequest extends FormRequest
                 }
             }
 
-            // Si es GRANEL pero NO es la base, no se le puede asignar stock_minimo > 0
             if ($producto->tipo_producto === 'GRANEL' && ! $presentacion->es_base) {
                 if ($this->filled('stock_minimo') && (float) $this->input('stock_minimo') > 0) {
                     $validator->errors()->add(
@@ -80,7 +77,6 @@ class UpdatePresentacionesRequest extends FormRequest
                 }
             }
 
-            // UNIDAD FIJA: factor_conversion siempre debe ser 1
             if ($producto->tipo_producto === 'UNIDAD FIJA' && $this->filled('factor_conversion')) {
                 if (abs((float) $this->input('factor_conversion') - 1.0) > 0.0001) {
                     $validator->errors()->add(

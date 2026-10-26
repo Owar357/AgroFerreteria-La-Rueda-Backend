@@ -25,7 +25,6 @@ class InventarioValorizadoReporteController extends Controller
             $categoriaNombre = Categoria::where('id', $categoriaId)->value('nombre');
         }
 
-        // Subconsulta para presentación base (GRANEL)
         $presentacionBaseGranel = DB::table('presentaciones')
             ->select('producto_id', 'precio_venta', 'factor_conversion')
             ->where('activo', true)
@@ -40,10 +39,8 @@ class InventarioValorizadoReporteController extends Controller
 
         $formulaCostoLote = "lotes.costo_unitario_compra * (1 - COALESCE(lotes.porcentaje_descuento, 0) / 100)";
 
-        // Expresión SQL para resolver herencia del Porcentaje de Ganancia Mínimo
         $sqlGananciaMinima = "COALESCE(productos.porcentaje_ganancia_minimo, categorias.porcentaje_ganancia_minimo, 15.00)";
 
-        // 1. GRANEL
         $queryGranel = Producto::join('lotes', 'productos.id', '=', 'lotes.producto_id')
             ->join('categorias', 'productos.categoria_id', '=', 'categorias.id')
             ->join('unidad_medidas', 'productos.unidad_medida_id', '=', 'unidad_medidas.id')
@@ -69,7 +66,6 @@ class InventarioValorizadoReporteController extends Controller
             )
             ->groupBy('productos.id', 'productos.codigo', 'productos.nombre', 'unidad_medidas.abreviatura', 'productos.porcentaje_ganancia_minimo', 'categorias.porcentaje_ganancia_minimo');
 
-        // 2. UNIDAD FIJA
         $queryUnidadFija = Producto::join('presentaciones', 'productos.id', '=', 'presentaciones.producto_id')
             ->join('categorias', 'productos.categoria_id', '=', 'categorias.id')
             ->join('lotes', 'presentaciones.id', '=', 'lotes.presentacion_id')
