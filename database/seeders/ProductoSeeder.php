@@ -12,7 +12,8 @@ class ProductoSeeder extends Seeder
 {
     public function run(): void
     {
-        $usuario = User::where('email', 'admin@test.com')->firstOrFail();
+        // Se actualizó el correo para que coincida con tu SuperUsuarioSeeder
+        $usuario = User::where('email', 'stevenAlfaro@gmail.com')->firstOrFail();
         $unidades = UnidadMedida::all()->keyBy('nombre');
 
         $productosPorCategoria = [
@@ -21,12 +22,12 @@ class ProductoSeeder extends Seeder
                 ['codigo' => 'FER-URE-01', 'nombre' => 'Urea Agrícola 46%', 'fabricante' => 'Fertica', 'tipo_producto' => 'GRANEL', 'unidad_base_nombre' => 'Libra', 'aplica_iva' => true],
             ],
             'Insecticidas y Fungicidas' => [
-                
                 ['codigo' => 'INS-LOR-01', 'nombre' => 'Insecticida Lorsban 4E', 'fabricante' => 'Corteva', 'tipo_producto' => 'UNIDAD FIJA', 'unidad_base_nombre' => 'Unidad', 'aplica_iva' => true],
                 ['codigo' => 'FUN-CUP-01', 'nombre' => 'Fungicida Cupravit', 'fabricante' => 'Bayer', 'tipo_producto' => 'UNIDAD FIJA', 'unidad_base_nombre' => 'Unidad', 'aplica_iva' => true],
             ],
             'Semillas' => [
-                ['codigo' => 'SEM-MAI59-01', 'nombre' => 'Semilla de Maíz H-59', 'fabricante' => 'Semillas Cristiani', 'tipo_producto' => 'UNIDAD FIJA', 'unidad_base_nombre' => 'Libra', 'aplica_iva' => false],
+                // Mantenemos el cambio a GRANEL que habíamos acordado
+                ['codigo' => 'SEM-MAI59-01', 'nombre' => 'Semilla de Maíz H-59', 'fabricante' => 'Semillas Cristiani', 'tipo_producto' => 'GRANEL', 'unidad_base_nombre' => 'Libra', 'aplica_iva' => false],
                 ['codigo' => 'SEM-FRJ-01', 'nombre' => 'Semilla de Frijol Rojo', 'fabricante' => 'Semillas Cristiani', 'tipo_producto' => 'GRANEL', 'unidad_base_nombre' => 'Libra', 'aplica_iva' => false],
             ],
             'Herramientas Manuales' => [

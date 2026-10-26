@@ -27,7 +27,7 @@ class CodigoBarraSeeder extends Seeder
             ['codigo_producto' => 'FUN-CUP-01', 'presentacion' => 'Bolsa 1kg', 'barcode' => '7501234500080'],
 
             // Semillas
-            ['codigo_producto' => 'SEM-MAI59-01', 'presentacion' => 'Bolsa 1lb', 'barcode' => '7501234500097'],
+            ['codigo_producto' => 'SEM-MAI59-01', 'presentacion' => 'Libra', 'barcode' => '7501234500097'], // Corregido de 'Bolsa 1lb' a 'Libra'
             ['codigo_producto' => 'SEM-MAI59-01', 'presentacion' => 'Saco 50lb', 'barcode' => '7501234500103'],
 
             ['codigo_producto' => 'SEM-FRJ-01', 'presentacion' => 'Libra', 'barcode' => '7501234500110'],

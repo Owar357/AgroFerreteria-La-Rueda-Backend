@@ -13,8 +13,8 @@ class CategoriaSeeder extends Seeder
      */
     public function run(): void
     {
-       $usuario = User::where('email', 'admin@test.com')->firstOrFail();
-
+       $usuario = User::where('email', 'stevenAlfaro@gmail.com')->firstOrFail();
+ 
         $categorias = [
             'Fertilizantes',
             'Insecticidas y Fungicidas',

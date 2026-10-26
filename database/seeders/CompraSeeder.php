@@ -18,7 +18,7 @@ class CompraSeeder extends Seeder
 {
     public function run(KardexService $kardexService): void
     {
-        $usuario = User::where('email', 'admin@test.com')->firstOrFail();
+        $usuario = User::where('email', 'stevenAlfaro@gmail.com')->firstOrFail();
 
         $compras = [
             [
@@ -40,11 +40,11 @@ class CompraSeeder extends Seeder
                 'numero_documento' => 'DTE-03-001-000000002',
                 'fecha_emision' => now()->subDays(10)->toDateString(),
                 'estado_pago' => 'PENDIENTE',
-                'fecha_vencimiento_pago' => now()->addDays(5)->toDateString(),
+                'fecha_vencimiento_pago' => now()->subDays(1)->toDateString(),
                 'items' => [
-                    ['codigo' => 'INS-LOR-01', 'presentacion' => 'Envase 4L', 'cantidad' => 20, 'precio' => 25.00],
-                    ['codigo' => 'INS-LOR-01', 'presentacion' => 'Botella 1L', 'cantidad' => 30, 'precio' => 7.00],
-                    ['codigo' => 'FUN-CUP-01', 'presentacion' => 'Bolsa 1kg', 'cantidad' => 25, 'precio' => 8.50],
+                    ['codigo' => 'INS-LOR-01', 'presentacion' => 'Envase 4L', 'cantidad' => 2, 'precio' => 25.00], 
+                    ['codigo' => 'INS-LOR-01', 'presentacion' => 'Botella 1L', 'cantidad' => 3, 'precio' => 7.00],
+                    ['codigo' => 'FUN-CUP-01', 'presentacion' => 'Bolsa 1kg', 'cantidad' => 1, 'precio' => 8.50],
                 ],
                 'fecha_vencimiento_lotes' => Carbon::now()->addMonths(6),
             ],
@@ -57,7 +57,7 @@ class CompraSeeder extends Seeder
                 'fecha_vencimiento_pago' => null,
                 'items' => [
                     ['codigo' => 'SEM-MAI59-01', 'presentacion' => 'Saco 50lb', 'cantidad' => 10, 'precio' => 40.00],
-                    ['codigo' => 'SEM-MAI59-01', 'presentacion' => 'Bolsa 1lb',  'cantidad' => 100, 'precio' => 0.80],
+                    ['codigo' => 'SEM-MAI59-01', 'presentacion' => 'Libra',  'cantidad' => 100, 'precio' => 0.80], // Corregido a Libra
                     ['codigo' => 'SEM-FRJ-01',   'presentacion' => 'Quintal',   'cantidad' => 20, 'precio' => 65.00],
                 ],
                 'fecha_vencimiento_lotes' => Carbon::now()->addMonths(9),
@@ -87,7 +87,7 @@ class CompraSeeder extends Seeder
                     ['codigo' => 'ABO-BOC-01', 'presentacion' => 'Quintal', 'cantidad' => 15, 'precio' => 22.00],
                     ['codigo' => 'ABO-HUM-01', 'presentacion' => 'Quintal', 'cantidad' => 15, 'precio' => 26.00],
                 ],
-                'fecha_vencimiento_lotes' => Carbon::now()->addMonths(5),
+                'fecha_vencimiento_lotes' => Carbon::now()->addDays(15), 
             ],
             [
                 'proveedor' => 'Bayer',
@@ -95,17 +95,16 @@ class CompraSeeder extends Seeder
                 'numero_documento' => 'DTE-03-001-000000006',
                 'fecha_emision' => now()->subDays(3)->toDateString(),
                 'estado_pago' => 'ABONADO',
-                'fecha_vencimiento_pago' => now()->addDays(15)->toDateString(),
+                'fecha_vencimiento_pago' => now()->addDays(2)->toDateString(), 
                 'items' => [
-                    ['codigo' => 'RIE-MNG-01', 'presentacion' => 'Rollo 50m', 'cantidad' => 10, 'precio' => 25.00],
-                    ['codigo' => 'FRR-ALA-01', 'presentacion' => 'Rollo 5lb',  'cantidad' => 20, 'precio' => 3.20],
-                    ['codigo' => 'FRR-CLV-01', 'presentacion' => 'Libra',      'cantidad' => 200, 'precio' => 0.45],
-                    ['codigo' => 'REP-DIS-01', 'presentacion' => 'Pieza',      'cantidad' => 8,  'precio' => 28.00],
-                    ['codigo' => 'REP-CUC-01', 'presentacion' => 'Pieza',      'cantidad' => 15, 'precio' => 4.50],
+                    ['codigo' => 'RIE-MNG-01', 'presentacion' => 'Rollo 50m', 'cantidad' => 2, 'precio' => 25.00], 
+                    ['codigo' => 'FRR-ALA-01', 'presentacion' => 'Rollo 5lb',  'cantidad' => 3, 'precio' => 3.20],
+                    ['codigo' => 'FRR-CLV-01', 'presentacion' => 'Libra',      'cantidad' => 5, 'precio' => 0.45],
+                    ['codigo' => 'REP-DIS-01', 'presentacion' => 'Pieza',      'cantidad' => 1,  'precio' => 28.00],
+                    ['codigo' => 'REP-CUC-01', 'presentacion' => 'Pieza',      'cantidad' => 2, 'precio' => 4.50],
                 ],
                 'fecha_vencimiento_lotes' => null,
             ],
-
             [
                 'proveedor' => 'Semillas Cristiani',
                 'tipo_dte' => '03',
@@ -116,7 +115,7 @@ class CompraSeeder extends Seeder
                 'items' => [
                     ['codigo' => 'SEM-FRJ-01', 'presentacion' => 'Quintal', 'cantidad' => 5, 'precio' => 60.00, 'descuento_promo' => 10.00],
                 ],
-                'fecha_vencimiento_lotes' => Carbon::now()->addDays(20), // Próximo a vencer
+                'fecha_vencimiento_lotes' => Carbon::now()->subDays(2), 
             ],
         ];
 
@@ -158,14 +157,13 @@ class CompraSeeder extends Seeder
                 $subTotal = round($item['cantidad'] * $item['precio'], 2);
                 $factorConversion = (float) ($presentacion->factor_conversion ?? 1);
 
-                // Cantidad inicial convertida a unidades base (para Granel) o unidades directas
                 $cantidadInicial = $esGranel
                     ? $item['cantidad'] * $factorConversion
                     : $item['cantidad'];
 
                 $costoUnitarioCompra = $esGranel
-    ? round($item['precio'] / $factorConversion, 4)
-    : (float) $item['precio'];
+                    ? round($item['precio'] / $factorConversion, 4)
+                    : (float) $item['precio'];
 
                 $lote = Lote::create([
                     'lote_interno' => $this->generarLoteInterno(),
