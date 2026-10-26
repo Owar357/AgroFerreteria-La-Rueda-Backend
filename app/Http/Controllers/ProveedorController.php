@@ -67,7 +67,6 @@ class ProveedorController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener proveedores',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -99,7 +98,6 @@ class ProveedorController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Ocurrió un error y no se pudo registrar el proveedor',
-                'errorMessage' => $e->getMessage()
             ], 500);
         }
     }

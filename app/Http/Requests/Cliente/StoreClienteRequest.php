@@ -76,7 +76,7 @@ class StoreClienteRequest extends FormRequest
 
         $rules = [
             'tipo_persona' => ['required', 'in:JURIDICA,NATURAL'],
-            // La persona jurídica solo puede identificarse con NIT (36)
+            
             'tipo_documento_receptor' => [
                 'required',
                 Rule::in($esNatural ? ['13', '36', '02', '03'] : ['36']),
@@ -136,7 +136,6 @@ class StoreClienteRequest extends FormRequest
                 'regex:/^[A-ZÁÉÍÓÚÜÑ0-9 .,\-]+$/u',
                 fn ($attribute, $value, $fail) => $this->validarTextoComercial((string) $value, 5, true, $fail),
             ];
-            // 6 a 8 dígitos, ya sin guion (el guion es solo visual en el formulario)
             $rules['nrc'] = [
                 'bail', 'required', 'string', 'regex:/^\d{6,8}$/',
                 function ($attribute, $value, $fail) {
@@ -240,7 +239,7 @@ class StoreClienteRequest extends FormRequest
     private function validarNumeroDocumento(string $tipo, string $numero, Closure $fail): void
     {
         switch ($tipo) {
-            case '13': // DUI
+            case '13': 
                 if (! preg_match('/^\d{9}$/', $numero)) {
                     $fail('El DUI debe tener 9 dígitos (formato xxxxxxxx-x).');
                 } elseif (! $this->validarDui($numero)) {
@@ -248,7 +247,7 @@ class StoreClienteRequest extends FormRequest
                 }
                 break;
 
-            case '36': // NIT
+            case '36': 
                 if (! preg_match('/^\d{14}$/', $numero)) {
                     $fail('El NIT debe tener 14 dígitos (formato xxxx-xxxxxx-xxx-x).');
                 } elseif (preg_match('/^(\d)\1+$/', $numero)) {
@@ -256,13 +255,13 @@ class StoreClienteRequest extends FormRequest
                 }
                 break;
 
-            case '02': // Pasaporte
+            case '02': 
                 if (! preg_match('/^(?=.*[A-Z])(?=.*\d)[A-Z0-9]{6,15}$/', $numero)) {
                     $fail('El pasaporte debe tener de 6 a 15 caracteres, con letras y números, sin guiones, puntos ni espacios.');
                 }
                 break;
 
-            case '03': // Carnet de residente
+            case '03': 
                 if (! preg_match('/^[A-Z0-9]{5,15}$/', $numero)) {
                     $fail('El carnet de residente debe tener de 5 a 15 caracteres alfanuméricos.');
                 }
@@ -270,10 +269,7 @@ class StoreClienteRequest extends FormRequest
         }
     }
 
-    /**
-     * Reglas comunes de razón social y giro. Evitan textos sin sentido como "&&&&&" o "AAAAA".
-     * El valor llega ya en mayúsculas y sin espacios repetidos (prepareForValidation).
-     */
+    
     private function validarTextoComercial(string $valor, int $minLetras, bool $empiezaConLetra, Closure $fail): void
     {
         $inicio = $empiezaConLetra ? '/^[A-ZÁÉÍÓÚÜÑ]/u' : '/^[A-ZÁÉÍÓÚÜÑ0-9]/u';
@@ -316,7 +312,7 @@ class StoreClienteRequest extends FormRequest
         }
 
         $residuo = $suma % 10;
-        $digitoVerificador = (10 - $residuo) % 10; // Si el residuo es 0, el dígito será 0
+        $digitoVerificador = (10 - $residuo) % 10; 
 
         return (int) $digitos[8] === $digitoVerificador;
     }

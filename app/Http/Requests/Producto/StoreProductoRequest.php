@@ -90,7 +90,6 @@ class StoreProductoRequest extends FormRequest
                     );
                 }
 
-                // Derivadas: stock_minimo = 0
                 $presentaciones->where('es_base', '!=', true)->each(function ($p, $index) use ($validator) {
                     if (isset($p['stock_minimo']) && (float) $p['stock_minimo'] > 0) {
                         $validator->errors()->add(

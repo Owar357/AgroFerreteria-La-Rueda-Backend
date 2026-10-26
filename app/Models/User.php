@@ -21,10 +21,10 @@ class User extends Authenticatable implements JWTSubject
      * @var list<string>
      */
 
-    // sobreescribimos la variable $guard_name
+    
     protected $guard_name = 'api';
 
-    // implementación de los métodos de JWT
+
     public function getJWTIdentifier()
     {
         return $this->getKey();

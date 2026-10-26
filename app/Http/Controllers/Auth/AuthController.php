@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    // Función login
+    
     public function login(Request $request)
     {
         $credenciales = $request->only('email', 'password');
@@ -20,17 +20,17 @@ class AuthController extends Controller
         }
 
         if (! auth()->user()->activo) {
-            auth()->logout(); // esto invalida el toker recien emitido
+            auth()->logout(); 
 
             return response()->json([
                 'message' => 'Su cuenta ha sido desactivada.'
             ], 403);
         }
-        // en caso de exitoso retornamos el token
+        
         return $this->responseWithToken($token);
     }
 
-    // Para detectar el token
+    
     protected function responseWithToken($token)
     {
         return response()->json([
@@ -51,7 +51,7 @@ class AuthController extends Controller
         return response()->json(auth()->user());
     }
 
-    // método para invalidar un token (logout)
+    
     public function logout()
     {
         auth()->logout();
@@ -61,7 +61,7 @@ class AuthController extends Controller
         ]);
     }
 
-    // método para refrescar el token
+   
     public function refresh()
     {
         if(! auth()->user()->activo){

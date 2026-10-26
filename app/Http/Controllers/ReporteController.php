@@ -34,7 +34,7 @@ class ReporteController extends Controller
             $ventas->whereBetween('created_at', [$request->fecha_desde, $request->fecha_hasta]);
         }
 
-        // Traemos los datos de la Db
+
         $ventas = $ventas->orderBy('created_at', 'asc')->get();
 
         $pdf = Pdf::loadView('reportes.ventas', [

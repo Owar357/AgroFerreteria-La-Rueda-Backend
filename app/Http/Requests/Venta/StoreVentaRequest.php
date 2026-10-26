@@ -35,7 +35,6 @@ class StoreVentaRequest extends FormRequest
             'cliente_id'                     => 'nullable|exists:clientes,id',
             'tipo_factura'                   => 'nullable|in:01,03',
             
-            // Validación del contenedor de artículos
             'detalles'                       => 'required|array|min:1',
             'detalles.*.nombre_producto'     => 'required|string',
             'detalles.*.presentacion'        => 'required|string',
@@ -57,7 +56,7 @@ class StoreVentaRequest extends FormRequest
     public function messages(): array
     {
         return [
-            // Mensajes de la Cabecera de la Venta
+        
             'tipo_pago.required'             => 'El tipo de pago es obligatorio.',
             'tipo_pago.in'                   => 'El tipo de pago debe ser EFECTIVO, TARJETA O TRANSFERENCIA.',
             'gravado.required'               => 'El monto gravado es obligatorio.',

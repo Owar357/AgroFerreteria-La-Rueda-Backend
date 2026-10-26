@@ -23,7 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => null);
         $middleware->alias([
             'auth' => Authenticate::class,
-            'role' => RoleMiddleware::class, //se agrego para proteger el dasboard y que solo el admin lo vea
+            'role' => RoleMiddleware::class, 
         ]);
     })
 

@@ -125,7 +125,7 @@ class AjusteInventarioController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error al procesar el ajuste de inventario.' . $e->getMessage(),
+                'message' => 'Error al procesar el ajuste de inventario.',
             ], 500);
         }
     }

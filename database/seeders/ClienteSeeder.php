@@ -16,7 +16,7 @@ class ClienteSeeder extends Seeder
             ['id' => 1],
             [
                 'tipo_persona' => 'NATURAL',
-                'nombre' => 'CONSUMIDOR FINAL',
+                'nombre' => 'CLIENTES VARIOS',
                 'tipo_documento_receptor' => 13,
                 'numero_documento' => 06411613-0,
                 'nrc' => null,

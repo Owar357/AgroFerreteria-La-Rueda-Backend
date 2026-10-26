@@ -385,7 +385,7 @@ class CompraController extends Controller
             $abonoAcumulado = $abonoActual + $nuevoAbono;
             $compra->abono  = $abonoAcumulado;
 
-            // Cambio automático de estado
+        
             if ($abonoAcumulado >= $montoTotal) {
                 $compra->estado_pago = 'PAGADO';
             } else {

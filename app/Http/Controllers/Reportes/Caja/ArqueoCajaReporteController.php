@@ -29,8 +29,6 @@ class ArqueoCajaReporteController extends Controller
             ->latest('fecha_hora_apertura')
             ->first();
 
-        // Este chequeo debe ir ANTES de leer cualquier propiedad de $apertura,
-        // porque si no se encontró ninguna apertura, $apertura es null.
         if (!$apertura) {
             return response()->json([
                 'status'  => 'error',

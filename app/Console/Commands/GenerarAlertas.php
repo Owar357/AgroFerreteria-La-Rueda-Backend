@@ -162,7 +162,7 @@ class GenerarAlertas extends Command
     }
 
     // ============================================================
-    // STOCK (ACTUALIZADO)
+    // STOCK
     // ============================================================
     public function procesarStock()
     {
@@ -187,7 +187,7 @@ class GenerarAlertas extends Command
         $unidadNombre = $presentacion->producto->unidadMedida->nombre ?? 'unidades';
 
         if ($stockActual > 0 && $stockActual <= $presentacion->stock_minimo) {
-            // Cerrar alerta de "AGOTADO" si existe
+            
             Alerta::where('presentacion_id', $presentacion->id)
                 ->where('tipo', 'STOCK AGOTADO')
                 ->where('estado', 'ACTIVA')
@@ -232,9 +232,7 @@ class GenerarAlertas extends Command
         }
     }
 
-    // ============================================================
-    // HELPER
-    // ============================================================
+
     private function reNotificarSiToca(Alerta $alerta, int $horasIntervalo = 24, bool $respetarLeidaPor = true)
     {
         if ($respetarLeidaPor && ! is_null($alerta->leida_por)) {

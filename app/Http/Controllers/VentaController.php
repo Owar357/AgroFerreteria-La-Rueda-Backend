@@ -34,13 +34,13 @@ class VentaController extends Controller
             $fechaHasta = $request->input('fecha_hasta');
             $search = trim($request->input('search', ''));
 
-            // 1. Fechas por defecto: Último mes si no se envía ninguna
+            
             if (!$fechaDesde && !$fechaHasta) {
                 $fechaDesde = Carbon::now()->subMonth()->format('Y-m-d');
                 $fechaHasta = Carbon::now()->format('Y-m-d');
             }
 
-            // 2. Ordenar fechas si vienen invertidas por error
+          
             if ($fechaDesde && $fechaHasta && $fechaDesde > $fechaHasta) {
                 [$fechaDesde, $fechaHasta] = [$fechaHasta, $fechaDesde];
             }
@@ -53,22 +53,22 @@ class VentaController extends Controller
                     'estado', 'cliente_id', 'apertura_venta_id', 'created_at', 'vendido_por'
                 ])
                 
-                // Filtro: Cliente específico
+               
                 ->when($request->filled('cliente'), function ($q) use ($request) {
                     $q->where('cliente_id', $request->cliente);
                 })
                 
-                // Filtro: Estado (Procesada / Anulada)
+                
                 ->when(in_array($request->input('estado'), ['PROCESADA', 'ANULADA']), function ($q) use ($request) {
                     $q->where('estado', $request->estado);
                 })
                 
-                // Filtro: Tipo de pago
+               
                 ->when(in_array($request->input('tipo_pago'), ['EFECTIVO', 'TARJETA', 'TRANSFERENCIA']), function ($q) use ($request) {
                     $q->where('tipo_pago', $request->tipo_pago);
                 })
                 
-                // Filtro: Rango de fechas (Ambas)
+               
                 ->when($fechaDesde && $fechaHasta, function ($q) use ($fechaDesde, $fechaHasta) {
                     $q->whereBetween('created_at', [
                         Carbon::parse($fechaDesde)->startOfDay(),
@@ -76,17 +76,17 @@ class VentaController extends Controller
                     ]);
                 })
                 
-                // Filtro: Solo desde (sin fin)
+                
                 ->when($fechaDesde && !$fechaHasta, function ($q) use ($fechaDesde) {
                     $q->where('created_at', '>=', Carbon::parse($fechaDesde)->startOfDay());
                 })
                 
-                // Filtro: Solo hasta (sin inicio)
+               
                 ->when(!$fechaDesde && $fechaHasta, function ($q) use ($fechaHasta) {
                     $q->where('created_at', '<=', Carbon::parse($fechaHasta)->endOfDay());
                 })
                 
-                // Filtro: Búsqueda de texto (N° Factura o Vendedor)
+                
                 ->when(!empty($search), function ($q) use ($search) {
                     $texto = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search);
                     $q->where(function ($sub) use ($texto) {
@@ -95,7 +95,6 @@ class VentaController extends Controller
                     });
                 })
                 
-                // 4. Ordenamiento estable y Paginación
                 ->orderByDesc('created_at')
                 ->orderByDesc('id')
                 ->paginate($perPage);
@@ -119,7 +118,6 @@ class VentaController extends Controller
             $datosVenta['cliente_id'] = $datosVenta['cliente_id'] ?? 1;
             $datosVenta['tipo_factura'] = $datosVenta['tipo_factura'] ?? '01';
 
-            // Crédito Fiscal (03) exige un cliente registrado; el 1 es "Consumidor Final"
             if ($datosVenta['tipo_factura'] === '03' && (int) $datosVenta['cliente_id'] === 1) {
                 return response()->json([
                     'status' => 'error',
@@ -131,14 +129,13 @@ class VentaController extends Controller
                 $datosVenta['efectivo_recibido'] = null;
             }
 
-            // El cambio se calcula al final, con el total real
+           
             $datosVenta['cambio'] = null;
 
             $detallesRequest = $request->validated()['detalles'];
 
             $venta = DB::transaction(function () use ($detallesRequest, $kardexService, $cajaService, $datosVenta) {
 
-                // Si el cierre está en curso, la venta espera y luego se rechaza
                 $turno = $cajaService->turnoActivo(true);
 
                 if (! $turno) {
@@ -149,7 +146,6 @@ class VentaController extends Controller
                     throw new \DomainException('El turno activo pertenece a otro cajero. Solo ese cajero puede registrar ventas.');
                 }
 
-                // Los importes (gravado, exento, iva, total) son provisionales: se reemplazan al final
                 $venta = Venta::create([
                     ...$datosVenta,
                     'numero_factura' => $this->numeroFactura(),
@@ -173,7 +169,6 @@ class VentaController extends Controller
                     $aplicaIva = (bool) $producto->aplica_iva;
                     $factorConversion = (float) ($presentacion->factor_conversion ?? 1);
 
-                    // El precio sale de la base de datos, no del POS
                     $precioUnitario = (float) $presentacion->precio_venta;
 
                     $cantidadSolicitada = $esGranel
@@ -205,7 +200,6 @@ class VentaController extends Controller
                             throw new \DomainException("No hay stock suficiente en los lotes activos para el producto {$producto->nombre}.");
                         }
 
-                        // --- CÁLCULO DE DESCUENTO POR LOTE ---
                         $porcentajeDescLote = (float) ($lote->porcentaje_descuento ?? 0);
                         $descuentoUnitarioDolar = $precioUnitario * ($porcentajeDescLote / 100);
 
@@ -239,7 +233,6 @@ class VentaController extends Controller
 
                             $stockEntregado = $lote->cantidad_actual;
 
-                            // Calcular descuento de esta porción parcial
                             $cantidadEntregadaEnPresentacion = $esGranel
                                 ? ($stockEntregado / $factorConversion)
                                 : $stockEntregado;
@@ -262,7 +255,6 @@ class VentaController extends Controller
                         }
                     }
 
-                    // --- IMPORTES DE LA LÍNEA, CALCULADOS POR EL SERVIDOR ---
                     $descuentoTotalAcumulado = round($descuentoTotalAcumulado, 2);
                     $subtotalFinal = round(((float) $detalles['cantidad'] * $precioUnitario) - $descuentoTotalAcumulado, 2);
                     $ivaLinea = $aplicaIva
@@ -276,7 +268,6 @@ class VentaController extends Controller
                         $exentoServidor = bcadd($exentoServidor, $subtotalTexto, 2);
                     }
 
-                    // CREACIÓN DEL DETALLE DE VENTA CON SU DESCUENTO
                     $detalleVenta = DetalleVenta::create([
                         'venta_id' => $venta->id,
                         'nombre_producto' => $detalles['nombre_producto'],
@@ -289,7 +280,6 @@ class VentaController extends Controller
                         'descuento_aplicado' => $descuentoTotalAcumulado,
                     ]);
 
-                    // REGISTRO DE LOTES Y KARDEX CON LOS DATOS ACUMULADOS
                     foreach ($lotesConsumidos as $item) {
                         LoteDetalleVenta::create([
                             'detalle_venta_id' => $detalleVenta->id,
@@ -311,14 +301,11 @@ class VentaController extends Controller
                         );
                     }
                 }
-
-                // --- TOTALES DE LA VENTA ---
-                // gravado + iva = monto con IVA de las líneas gravadas; así gravado + exento + iva = total exacto
                 $gravadoConIva = bcsub($totalServidor, $exentoServidor, 2);
                 $gravado = number_format(round((float) $gravadoConIva / (1 + self::TASA_IVA), 2), 2, '.', '');
                 $iva = bcsub($gravadoConIva, $gravado, 2);
 
-                // El total del POS solo se contrasta: si difiere más allá del redondeo, se rechaza y se revierte todo
+                
                 $tolerancia = self::TOLERANCIA_BASE + (self::TOLERANCIA_POR_LINEA * count($detallesRequest));
 
                 if (abs((float) $totalServidor - (float) $datosVenta['total']) > $tolerancia) {

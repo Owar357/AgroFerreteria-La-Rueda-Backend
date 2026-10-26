@@ -11,16 +11,14 @@ class DashboardService
 {
     private const METODOS_PAGO = ['EFECTIVO', 'TARJETA', 'TRANSFERENCIA'];
 
-    /**
-     * Datos de la vista inicial del dashboard (todo en una sola respuesta).
-     */
+    
     public function resumen(): array
     {
         $ahora = now();
 
         $inicioHoy = $ahora->copy()->startOfDay();
         $inicioAyer = $inicioHoy->copy()->subDay();
-        $ayerMismaHora = $ahora->copy()->subDay(); // comparación justa: ayer hasta la misma hora
+        $ayerMismaHora = $ahora->copy()->subDay();
 
         $inicioMes = $ahora->copy()->startOfMonth();
         $inicioMesAnterior = $inicioMes->copy()->subMonthNoOverflow();
@@ -57,11 +55,6 @@ class DashboardService
         ];
     }
 
-    /**
-     * Serie mensual (12 meses) de ventas y compras de un año.
-     * Mismo criterio que el reporte "Flujo Compras vs Ventas":
-     * ventas PROCESADAS (total) vs compras no anuladas (monto_total).
-     */
     public function ventasCompras(int $anio): array
     {
         $inicio = Carbon::create($anio, 1, 1)->startOfDay();
@@ -94,10 +87,6 @@ class DashboardService
         ];
     }
 
-    // ------------------------------------------------------------------
-    // Helpers de KPIs
-    // ------------------------------------------------------------------
-
     private function kpi(float|int $valor, float|int $anterior): array
     {
         return [
@@ -107,9 +96,6 @@ class DashboardService
         ];
     }
 
-    /**
-     * % de variación. Devuelve null cuando no hay base de comparación.
-     */
     private function variacion(float $actual, float $anterior): ?float
     {
         if ($anterior == 0.0) {
@@ -132,10 +118,6 @@ class DashboardService
         ];
     }
 
-    /**
-     * Ganancia = ventas netas (gravado + exento, sin IVA)
-     *          - costo real de los lotes consumidos.
-     */
     private function gananciaEntre(Carbon $desde, Carbon $hasta): float
     {
         $ventasNetas = (float) Venta::where('estado', 'PROCESADA')
@@ -154,10 +136,6 @@ class DashboardService
 
         return round($ventasNetas - $costo, 2);
     }
-
-    // ------------------------------------------------------------------
-    // Widgets
-    // ------------------------------------------------------------------
 
     private function ultimasVentas(): array
     {
@@ -266,7 +244,6 @@ class DashboardService
             )
             ->first();
 
-        // Ajusta 'nombre' si la columna del proveedor se llama distinto.
         $proximas = (clone $base)
             ->with('proveedor:id,nombre')
             ->orderByRaw('fecha_vencimiento_pago ASC NULLS LAST')

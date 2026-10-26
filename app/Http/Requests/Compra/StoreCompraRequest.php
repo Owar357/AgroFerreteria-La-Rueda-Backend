@@ -24,7 +24,7 @@ class StoreCompraRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Compra
+           
             'tipo_dte' => 'required|string',
             'numero_documento' => 'nullable|string|min:6|max:31',
             'fecha_emision' => 'nullable|date',
@@ -40,7 +40,7 @@ class StoreCompraRequest extends FormRequest
                 }),
             ],
 
-            // DetalleCompra
+            
             'detalles' => 'required|array|min:1',
             'detalles.*.presentacion_id' => 'required|exists:presentaciones,id', 
             'detalles.*.cantidad_facturada' => 'nullable|numeric|min:0',
@@ -50,7 +50,6 @@ class StoreCompraRequest extends FormRequest
             'detalles.*.descuento_linea' => 'nullable|numeric|min:0',
             'detalles.*.sub_total' => 'nullable|numeric|min:0',
 
-            // Lote
             'detalles.*.lote.lote_fabricante' => 'nullable|string|max:50',
             'detalles.*.lote.fecha_vencimiento' => 'nullable|date',
             'detalles.*.lote.cantidad_inicial' => 'nullable|numeric|min:0',

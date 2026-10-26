@@ -26,14 +26,11 @@ class AbrirAperturaVentaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Conteo por denominación: { "c1": 0, "c5": 2, ..., "b100": 1 }
             'denominaciones' => ['required_without:monto_inicial', 'array'],
             'denominaciones.*' => ['nullable', 'integer', 'min:0', 'max:1000000'],
  
-            // TRANSICIÓN: se elimina cuando el frontend envíe siempre 'denominaciones'
             'monto_inicial' => ['required_without:denominaciones', 'numeric', 'min:0.01'],
  
-            // Obligatoria (validada en el controlador) si el conteo es distinto del fondo fijo
             'justificacion_apertura' => ['nullable', 'string', 'max:500'],
         ];
     }

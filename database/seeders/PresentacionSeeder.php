@@ -56,10 +56,10 @@ class PresentacionSeeder extends Seeder
                 ['nombre' => 'Bolsa 500g', 'factor_conversion' => 1, 'precio_venta' => 6.00, 'stock_minimo' => 15, 'es_base' => false],
                 ['nombre' => 'Bolsa 1kg', 'factor_conversion' => 1, 'precio_venta' => 10.50, 'stock_minimo' => 20, 'es_base' => false],
             ],
-            'SEM-MAI59-01' => [
-                ['nombre' => 'Bolsa 1lb', 'factor_conversion' => 1, 'precio_venta' => 1.10, 'stock_minimo' => 100, 'es_base' => false],
-                ['nombre' => 'Saco 50lb', 'factor_conversion' => 1, 'precio_venta' => 50.00, 'stock_minimo' => 0, 'es_base' => false],
-            ],
+           'SEM-MAI59-01' => [
+                ['nombre' => 'Libra', 'factor_conversion' => 1, 'precio_venta' => 1.10, 'stock_minimo' => 100, 'es_base' => true],
+                ['nombre' => 'Saco 50lb', 'factor_conversion' => 50, 'precio_venta' => 50.00, 'stock_minimo' => 0, 'es_base' => false],
+            ]   ,
             'HER-MC22-01' => [
                 ['nombre' => 'Pieza', 'factor_conversion' => 1, 'precio_venta' => 9.60, 'stock_minimo' => 5, 'es_base' => false],
             ],

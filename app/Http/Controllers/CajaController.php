@@ -343,7 +343,7 @@ class CajaController extends Controller
 
             $esMiTurno = (int) $turno->cajero_id === (int) auth()->id();
 
-            // Solo el dueño del turno o un admin ven las cifras del turno activo.
+            // Solo el dueño del turno o un admin pueden ver los datos activo.
             if (! $esMiTurno && ! $this->esAdmin()) {
                 return response()->json($vacio, 200);
             }
@@ -365,7 +365,7 @@ class CajaController extends Controller
                 'total_entradas' => $resumen['total_entradas'],
                 'total_salidas' => $resumen['total_salidas'],
                 'monto_en_caja' => $resumen['efectivo_disponible'],
-                'monto_esperado' => $resumen['efectivo_disponible'], // igual mientras el turno sigue abierto
+                'monto_esperado' => $resumen['efectivo_disponible'], 
                 'total_en_caja' => $totalEnCaja,
                 'apertura_venta_id' => $turno->id,
                 'es_mi_turno' => $esMiTurno,
@@ -376,15 +376,7 @@ class CajaController extends Controller
         }
     }
 
-    // ------------------------------------------------------------------
-    // Helpers privados
-    // ------------------------------------------------------------------
 
-    /**
-     * Turno activo, validando que pertenezca al usuario autenticado.
-     *
-     * @throws \DomainException 404 si no hay turno, 403 si es de otro cajero
-     */
     private function turnoDelUsuario(bool $bloquear = false): AperturaVenta
     {
         $turno = $this->cajaService->turnoActivo($bloquear);

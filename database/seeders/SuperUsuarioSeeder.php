@@ -11,20 +11,20 @@ class SuperUsuarioSeeder extends Seeder
     public function run(): void
     {
         $admin = User::firstOrCreate(
-            ['email' => 'admin@test.com'],
+            ['email' => 'stevenAlfaro@gmail.com'],
             [
-                'name' => 'Super Admin',
-                'password' => Hash::make('1234567890'),
+                'name' => ' Steven Omar Alfaro Villanueva',
+                'password' => Hash::make('Larued@1234'),
             ]
         );
         $admin->assignRole('ADMIN');
 
        
         $cajero = User::firstOrCreate(
-            ['email' => 'cajero@test.com'],
+            ['email' => 'carlosOrellana@gmail.com'],
             [
-                'name' => 'Cajero Principal',
-                'password' => Hash::make('1234567890'),
+                'name' => 'Roberto Carlos Orellana Rodriguez',
+                'password' => Hash::make('Larued@1234'),
             ]
         );
         $cajero->assignRole('CAJERO');

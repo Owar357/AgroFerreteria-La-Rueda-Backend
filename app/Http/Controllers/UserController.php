@@ -62,7 +62,6 @@ class UserController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener usuarios',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -116,7 +115,6 @@ class UserController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al crear usuario',
-                'error'   => $e->getMessage(),
             ], 500);
         }
     }
@@ -139,7 +137,7 @@ class UserController extends Controller
                 ], 404);
             }
 
-            // No se puede desactivar a un usuario que tiene un turno de caja abierto
+            
                 $tieneTurnoAbierto = AperturaVenta::where('cajero_id', $user->id)
                     ->where('estado', 'ABIERTA')
                     ->exists();
@@ -159,7 +157,6 @@ class UserController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar el usuario',
-                'error'   => $e->getMessage(),
             ], 500);
         }
     }
@@ -193,8 +190,6 @@ class UserController extends Controller
                 ], 400);
             }
  
-            // No se puede desactivar a un usuario que tiene un turno de caja abierto:
-            // si se desactiva, ya no podría cuadrar ni cerrar su turno.
             $tieneTurnoAbierto = AperturaVenta::where('cajero_id', $user->id)
                 ->where('estado', 'ABIERTA')
                 ->exists();
@@ -216,7 +211,6 @@ class UserController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al desactivar el usuario',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
